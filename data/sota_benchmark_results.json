@@ -1,0 +1,40 @@
+{
+  "Baseline (Seed-Only)": {
+    "ndcg_10": 0.20377323636483757,
+    "recall_10": 0.12616666666666665,
+    "mrr": 0.38817906746031744,
+    "stationary_ndcg": 0.2013455108466169,
+    "drift_ndcg": 0.19974447710138096,
+    "cold_start_ndcg": 0.18221226847133937
+  },
+  "Baseline (Static Centroid)": {
+    "ndcg_10": 0.2980967319743055,
+    "recall_10": 0.17866666666666667,
+    "mrr": 0.5264637896825397,
+    "stationary_ndcg": 0.38479073908112527,
+    "drift_ndcg": 0.00818024096117826,
+    "cold_start_ndcg": 0.29895858126075736
+  },
+  "Non-Profile SOTA (V-SKNN)": {
+    "ndcg_10": 0.317870098959785,
+    "recall_10": 0.19008333333333333,
+    "mrr": 0.580515873015873,
+    "stationary_ndcg": 0.36405897647278274,
+    "drift_ndcg": 0.09035297049944858,
+    "cold_start_ndcg": 0.29095234452319546
+  },
+  "Profile SOTA (PaperFlow 2026)": {
+    "ndcg_10": 0.42277875583479163,
+    "recall_10": 0.25383333333333336,
+    "mrr": 0.6887470238095239,
+    "stationary_ndcg": 0.5081175870735886,
+    "drift_ndcg": 0.09632053920220268,
+    "cold_start_ndcg": 0.4907461684680197
+  },
+  "comparison_summary": {
+    "vsknn_ndcg": 0.317870098959785,
+    "paperflow_ndcg": 0.42277875583479163,
+    "relative_gain_percent": 33.00362544898538,
+    "p_value": 0.0
+  }
+}
