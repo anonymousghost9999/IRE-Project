@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Feed Council</title>
+<style>
+:root{
+  --bg:#ffffff; --surface:#f7f7f8; --text:#1d1d1f; --muted:#5f6368; --border:#e2e2e6;
+  --accent:#3b5bdb; --good:#2b8a3e; --warn:#c77700; --bad:#c92a2a;
+  --c-con:#c92a2a; --c-fp:#5f3dc4; --c-exp:#2b8a3e; --c-out:#c77700; --c-exe:#1971c2;
+  --verdict-bg:#f3f5ff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16171a; --surface:#1f2024; --text:#e8e8ea; --muted:#a0a3a8; --border:#33353a;
+    --accent:#91a7ff; --good:#69db7c; --warn:#ffc078; --bad:#ff8787;
+    --c-con:#ff8787; --c-fp:#b197fc; --c-exp:#69db7c; --c-out:#ffc078; --c-exe:#74c0fc;
+    --verdict-bg:#1d2133;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16171a; --surface:#1f2024; --text:#e8e8ea; --muted:#a0a3a8; --border:#33353a;
+  --accent:#91a7ff; --good:#69db7c; --warn:#ffc078; --bad:#ff8787;
+  --c-con:#ff8787; --c-fp:#b197fc; --c-exp:#69db7c; --c-out:#ffc078; --c-exe:#74c0fc;
+  --verdict-bg:#1d2133;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:860px;margin:0 auto;padding:32px 16px 48px}
+h1{font-size:1.6rem;margin:0 0 4px;letter-spacing:-.01em}
+h2{font-size:1.15rem;margin:36px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h3{font-size:1rem;margin:20px 0 6px}
+.sub{color:var(--muted);margin:0 0 20px}
+.question{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.question p{margin:6px 0}
+.verdict{background:var(--verdict-bg);border:1px solid var(--border);border-left:4px solid var(--accent);
+  border-radius:10px;padding:8px 22px 18px}
+.verdict ul{padding-left:20px} .verdict li{margin:4px 0}
+.first{border:2px solid var(--accent);border-radius:10px;padding:14px 18px;margin-top:18px}
+.first strong{color:var(--accent)}
+.headline{font-size:1.05rem;font-weight:600;margin:14px 0 4px}
+.tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:.9rem}
+th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:center}
+th:first-child,td:first-child{text-align:left}
+thead th{background:var(--surface);font-weight:600}
+tr:last-child td{border-bottom:none}
+.y{color:var(--good);font-weight:700} .p{color:var(--warn);font-weight:700} .n{color:var(--muted)}
+.stance td{font-weight:600;font-size:.82rem}
+.legend{color:var(--muted);font-size:.85rem;margin-top:8px}
+.votes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+@media (max-width:560px){.votes{grid-template-columns:1fr}}
+.vote{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.vote .big{font-size:1.4rem;font-weight:700}
+.bar{height:8px;border-radius:4px;background:var(--border);margin-top:8px;overflow:hidden}
+.bar span{display:block;height:100%}
+details{border:1px solid var(--border);border-radius:10px;margin:10px 0;background:var(--bg)}
+summary{cursor:pointer;padding:12px 16px;font-weight:600;list-style:none;display:flex;align-items:center;gap:10px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"▸";color:var(--muted);transition:transform .15s}
+details[open] summary::before{transform:rotate(90deg)}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+.tag{margin-left:auto;font-weight:500;font-size:.8rem;color:var(--muted)}
+.body{padding:0 18px 14px;border-top:1px solid var(--border)}
+.body ol,.body ul{padding-left:20px}
+code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:0 4px;font-size:.88em}
+footer{margin-top:40px;color:var(--muted);font-size:.85rem;border-top:1px solid var(--border);padding-top:14px}
+</style>
+</head>
+<body>
+<main>
+
+<h1>LLM Council Report: Paper Feed Design</h1>
+<p class="sub">Five advisors · anonymous peer review · chairman synthesis</p>
+
+<div class="question">
+  <p><strong>Question brought to the council</strong></p>
+  <p>Is the <code>paper_feed_current_design.md</code> design sound, internally consistent, and achievable within a semester IRE project (OpenAlex-only, no training, API budget 0, RTX 3050)? What are the biggest flaws, gaps and undervalued pieces, and what should be changed, cut or prioritized before implementation continues?</p>
+</div>
+
+<h2>Chairman's Verdict</h2>
+<div class="verdict">
+  <p class="headline">The design isn't sound as written, but it can be saved in a semester if you narrow the claim.</p>
+
+  <h3>Where the council agrees</h3>
+  <ul>
+    <li><strong>The main evaluation doesn't test the system you designed.</strong> LFO author timelines have no sessions, no reading order, no skips and no likes. So V-SKNN decay, the pivot gate γ and the session timeout never actually run.</li>
+    <li><strong>The citation signal mostly tests itself.</strong> The +2.0 "user cited p" tier only points at papers already removed from the ground truth (§16.4, §19). The graph also shares its source with the labels.</li>
+    <li><strong>Future data leaks into the past.</strong> <code>cited_by_count</code> and co-citation are today's snapshots. Rebuild them from papers up to T and use <code>counts_by_year</code>.</li>
+    <li><strong>Corpus coverage is unchecked.</strong> Build the corpus outward from the eval authors' citation neighbourhoods, then report the share of Ref(B) it covers.</li>
+    <li><strong>The doc contradicts itself:</strong>
+      <ul>
+        <li>The session update differs between §12 and §15.</li>
+        <li>λ is ≈0.5 in one place and [0.7, 0.95] in another.</li>
+        <li>γ and w<sub>*</sub> each have more than one meaning.</li>
+        <li>The §15 decay gives the latest item a weight of e<sup>δ</sup> &gt; 1.</li>
+        <li>Novelty is added after MMR, which undoes the diversity step.</li>
+        <li>The 16 GB LLM baseline won't fit on a 4 GB GPU.</li>
+        <li>Feed mode has no text query for BM25 or the reranker.</li>
+      </ul>
+    </li>
+    <li><strong>Cut scope.</strong> Shrink the user study from n=50 to about 10–15, drop the reranker from the feed path, drop the LLM baseline, and tune about 3 weights instead of about 15.</li>
+  </ul>
+
+  <h3>Where the council clashes</h3>
+  <p>The Expansionist wants to release LFO as a benchmark, add ORCID onboarding, and add facet query operators. All five reviewers called this the biggest blind spot, because publishing a benchmark that leaks and has low coverage makes its flaws public. Two of the Expansionist's ideas hold up:</p>
+  <ul>
+    <li>Report <strong>re-citations and discoveries</strong> separately.</li>
+    <li>Use <strong>real topic pivots</strong> in Paper B to label the γ gate.</li>
+  </ul>
+  <p>Both should wait until the evaluation harness is fixed.</p>
+
+  <h3>Blind spots caught in peer review</h3>
+  <ul>
+    <li><strong>SPECTER2 likely leaks too.</strong> It was trained on S2 citation data that probably includes 2023–24, so BM25 is the only clean baseline.</li>
+    <li><strong>Whose history is Paper B?</strong> OpenAlex author disambiguation is noisy and multi-author papers have no single "user". Use one seed author per paper (first or single authors).</li>
+    <li><strong>Self-citations in Ref(B)</strong> are trivially predictable. Filter them out or report them separately.</li>
+    <li><strong>No statistics.</strong> There's no LFO sample size, no confidence intervals and no paired significance tests.</li>
+    <li><strong>Missing baselines:</strong> popular recent papers before T, co-author papers, and "re-recommend own references".</li>
+    <li><strong>Other gaps:</strong> no ethics or consent plan for the user study, no compute budget for GLiNER and NLI on 4 GB, and no fallback deliverable.</li>
+  </ul>
+
+  <h3>The recommendation</h3>
+  <ol>
+    <li>Restate the hypothesis so LFO can test it: <em>faceted persona + time-bounded citation-graph signals beat SPECTER2/BM25 at predicting next-paper references, especially discoveries.</em></li>
+    <li>Demote session gating, or test it only on clearly labelled simulated sessions.</li>
+    <li>Rename V-SKNN, or implement real neighbour-session kNN.</li>
+    <li>Give the baselines the same candidate pool and MMR so the ablation isn't confounded.</li>
+    <li>Check that PaperFlow (arXiv:2606.07454) exists and can be reimplemented.</li>
+  </ol>
+  <p><strong>Build order:</strong></p>
+  <ul>
+    <li>Weeks 1–3: corpus, LFO harness and BM25/SPECTER2 baselines.</li>
+    <li>Week 4: GLiNER with SciERC evaluation.</li>
+    <li>Then the ranker with 3 signals.</li>
+    <li>Last: ablations with confidence intervals.</li>
+  </ul>
+  <p>NLI verification and the user study are optional extras. Add one notation table and one canonical scoring equation, and fix the draft text and the unclosed code blocks.</p>
+
+  <div class="first">
+    <strong>The one thing to do first</strong>
+    <p style="margin:6px 0 0">Write a <strong>one-page LFO evaluation spec</strong> and settle it before any model code. It should fix:</p>
+    <ul>
+      <li>the seed-author rule and the self-citation filter;</li>
+      <li>the cutoff T and the time-bounded features;</li>
+      <li>how the corpus is built and the coverage target;</li>
+      <li>the split into re-citations and discoveries;</li>
+      <li>the number of authors and the significance test.</li>
+    </ul>
+    <p style="margin:6px 0 0">Everything else depends on what this harness can measure.</p>
+  </div>
+</div>
+
+<h2>Where the Advisors Stood</h2>
+<div class="tablewrap">
+<table>
+  <thead>
+    <tr><th>Issue</th><th>Contrarian</th><th>First Principles</th><th>Expansionist</th><th>Outsider</th><th>Executor</th></tr>
+  </thead>
+  <tbody>
+    <tr class="stance"><td>Overall stance</td>
+      <td style="color:var(--c-con)">Fatal flaw</td><td style="color:var(--c-fp)">Wrong claim</td>
+      <td style="color:var(--c-exp)">Undersold</td><td style="color:var(--c-out)">Inconsistent</td><td style="color:var(--c-exe)">Not runnable yet</td></tr>
+    <tr><td>LFO has no sessions to test V-SKNN/gating</td><td class="y">●</td><td class="y">●</td><td class="n">—</td><td class="y">●</td><td class="y">●</td></tr>
+    <tr><td>Citation signal vs ground-truth conflict</td><td class="y">●</td><td class="y">●</td><td class="p">◐</td><td class="y">●</td><td class="n">—</td></tr>
+    <tr><td>Internal contradictions (§12 vs §15, symbols)</td><td class="y">●</td><td class="y">●</td><td class="n">—</td><td class="y">●</td><td class="y">●</td></tr>
+    <tr><td>Corpus coverage of Ref(B)</td><td class="y">●</td><td class="y">●</td><td class="n">—</td><td class="n">—</td><td class="y">●</td></tr>
+    <tr><td>Feed mode has no query (BM25/reranker)</td><td class="y">●</td><td class="y">●</td><td class="n">—</td><td class="n">—</td><td class="y">●</td></tr>
+    <tr><td>Post-cutoff leakage in citation counts</td><td class="y">●</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">●</td></tr>
+    <tr><td>Cut scope (user study, reranker, LLM baseline)</td><td class="y">●</td><td class="p">◐</td><td class="n">—</td><td class="p">◐</td><td class="y">●</td></tr>
+    <tr><td>LFO benchmark as the real contribution</td><td class="n">—</td><td class="p">◐</td><td class="y">●</td><td class="n">—</td><td class="n">—</td></tr>
+  </tbody>
+</table>
+</div>
+<p class="legend">● raised strongly &nbsp; ◐ partially / implied &nbsp; — not raised</p>
+
+<h3>Peer review votes (5 anonymous reviewers)</h3>
+<div class="votes">
+  <div class="vote">
+    <div>Strongest response</div>
+    <div class="big" style="color:var(--c-con)">Contrarian · 5/5</div>
+    <div class="bar"><span style="width:100%;background:var(--c-con)"></span></div>
+    <div class="legend">Runner-up in every review: Executor</div>
+  </div>
+  <div class="vote">
+    <div>Biggest blind spot</div>
+    <div class="big" style="color:var(--c-exp)">Expansionist · 5/5</div>
+    <div class="bar"><span style="width:100%;background:var(--c-exp)"></span></div>
+    <div class="legend">Praised a benchmark that leaks and can't exercise sessions</div>
+  </div>
+</div>
+
+<h2>Advisor Responses</h2>
+
+<details>
+  <summary><span class="dot" style="background:var(--c-con)"></span>The Contrarian<span class="tag">Fatal flaw</span></summary>
+  <div class="body">
+    <p><strong>The main evaluation (§16.4/§28) doesn't measure the system you designed.</strong></p>
+    <ol>
+      <li><strong>LFO has no sessions.</strong> There is no order within a year, so position decay, the pivot gate and the timeout are arbitrary. The +33% simulation claim is circular because a "read" is defined as a cluster match.</li>
+      <li><strong>The ablation is confounded.</strong> Only the proposed model gets citation, facet and MMR signals. "V-SKNN" here is a decayed centroid, not Jannach's session-kNN.</li>
+      <li><strong>The citation tiers conflict with the ground truth.</strong> The +2.0 tier only scores excluded items. If you drop the exclusion, re-recommending old references becomes a trivial baseline that wins.</li>
+      <li><strong>Leakage.</strong> <code>cited_by_count</code> and co-citation are present-day snapshots, so they need year-bounded reconstruction.</li>
+      <li><strong>Corpus coverage.</strong> Much of Ref(B) will fall outside the 100k subset.</li>
+    </ol>
+    <p><strong>Contradictions:</strong></p>
+    <ul>
+      <li>§12 and §15 reset differently.</li>
+      <li>λ≈0.5 conflicts with [0.7, 0.95].</li>
+      <li>γ has three meanings.</li>
+      <li>The decay gives a weight of e<sup>δ</sup> &gt; 1.</li>
+      <li>Novelty after MMR undoes the diversity step.</li>
+      <li>Searching over ~15 weights contradicts §35.</li>
+      <li>A 16 GB LLM won't fit on a 4 GB GPU.</li>
+      <li>The reranker has no query.</li>
+      <li>Exact-match facets will rarely fire.</li>
+    </ul>
+    <p><strong>Cut:</strong> the n=50 study (to about 10), NLI verification, the LLM baseline and the reranker.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="dot" style="background:var(--c-fp)"></span>The First Principles Thinker<span class="tag">Wrong claim</span></summary>
+  <div class="body">
+    <p><strong>What is the main claim, and can your evaluation measure it? Right now it can't.</strong></p>
+    <ol>
+      <li><strong>The ground truth can't measure the main idea.</strong> V-PaperFlow models reading sessions, but LFO has no reading events, order or skips. s<sub>t</sub>, Δ<sub>t</sub> and γ are never exercised.</li>
+      <li><strong>The evaluation is really citation prediction</strong>, which §35 puts out of scope. The citation signal also shares a graph with the labels.</li>
+      <li><strong>The feed has no query.</strong> In LFO mode BM25 and RRF have nothing to search with.</li>
+      <li><strong>Coverage.</strong> Build the corpus outward from the eval authors and report the share of ground truth it reaches.</li>
+    </ol>
+    <p><strong>Fix:</strong> state one hypothesis LFO can test, e.g. "faceted persona + citation-graph signals beat pure SPECTER2 for next-paper reference recommendation". Cut session gating, or test it on labelled simulated sessions. Settle §15 vs §17.5 and §12 vs §15.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="dot" style="background:var(--c-exp)"></span>The Expansionist<span class="tag">Undersold</span></summary>
+  <div class="body">
+    <p><strong>V-PaperFlow is a weighted cosine blend. The valuable assets are buried.</strong></p>
+    <ol>
+      <li><strong>The LFO benchmark is the real contribution.</strong> Freeze it and release it as "OpenAlex-CS-LFO" with a dataset card.</li>
+      <li><strong>Split the ground truth</strong> into re-citations and discoveries. Discoveries are where novelty shows up.</li>
+      <li><strong>Evaluate pivot detection on real pivots.</strong> Authors whose Paper B drifts away from their past work can label the γ gate.</li>
+      <li><strong>Onboard users through OpenAlex/ORCID.</strong> This solves cold start, and study participants get feeds built from their real records.</li>
+      <li><strong>Use facets as query operators</strong>, e.g. "same task, different method". CSFCube already evaluates this.</li>
+      <li><strong>Make the NLI-verified explanation rate a headline metric.</strong></li>
+    </ol>
+  </div>
+</details>
+
+<details>
+  <summary><span class="dot" style="background:var(--c-out)"></span>The Outsider<span class="tag">Inconsistent</span></summary>
+  <div class="body">
+    <p><strong>Read cold, the way a TA would, the doc contradicts itself before you get to any technical judgment.</strong></p>
+    <ol>
+      <li><strong>V-PaperFlow is defined three ways</strong> (§12, §15, §37), and Baseline 2 changes between §14 and §28.3.</li>
+      <li><strong>The core ablation has no sessions.</strong> What is V-SKNN's "position" measured over?</li>
+      <li><strong>The citation +2.0 tier</strong> only points at excluded items.</li>
+      <li><strong>Symbols are overloaded:</strong> γ, λ and w<sub>m/d/t</sub> each mean two or three things.</li>
+      <li><strong>The §37 "Fixed" list disagrees with the body:</strong>
+        <ul>
+          <li>profile fields: 7 vs 5;</li>
+          <li>MMR: plain vs facet-aware;</li>
+          <li>vector store: FAISS vs NumPy/Qdrant;</li>
+          <li>n=50 study with no protocol;</li>
+          <li>API use despite a cost of 0;</li>
+          <li>a 16 GB LLM on a 4 GB GPU.</li>
+        </ul>
+      </li>
+      <li><strong>Presentation:</strong>
+        <ul>
+          <li>the "no recommendations" header is contradicted by the body;</li>
+          <li>code blocks are left unclosed (§§7, 11, 21, 30, 31);</li>
+          <li>draft text such as "NEED TO BE ATLEAST" is still in;</li>
+          <li>the PaperFlow citation has no title or authors.</li>
+        </ul>
+      </li>
+    </ol>
+    <p><strong>Fix:</strong> add a notation table, one canonical equation and an honest status list, and spell out how an LFO author becomes a user with a session.</p>
+  </div>
+</details>
+
+<details>
+  <summary><span class="dot" style="background:var(--c-exe)"></span>The Executor<span class="tag">Not runnable yet</span></summary>
+  <div class="body">
+    <ol>
+      <li><strong>Build the eval harness first.</strong> §28 can't run as written. Order papers by cited-work publication date and call it a proxy, or demote V-SKNN.</li>
+      <li><strong>Choose authors first, then crawl.</strong> Pick about 500 authors who published in 2023–24, pull their references plus 1–2 hops, fill to 100k, and report coverage.</li>
+      <li><strong>Close leakage in the day-one code.</strong> Use <code>counts_by_year</code> and a graph limited to papers up to T, and reconstruct the inverted-index abstracts.</li>
+      <li><strong>Cut:</strong>
+        <ul>
+          <li>the cross-encoder from the feed path;</li>
+          <li>most of the tuning (keep 3 signals and 3 weights);</li>
+          <li>the n=50 study, down to 10–15 people;</li>
+          <li>LLM paraphrasing and the API fallback.</li>
+        </ul>
+      </li>
+      <li><strong>Reconcile §12 and §15</strong>, and check that PaperFlow exists and is specified well enough to reimplement.</li>
+    </ol>
+    <p><strong>Order:</strong> corpus, harness and baselines (weeks 1–3); GLiNER and SciERC (week 4); the ranker; ablations last.</p>
+  </div>
+</details>
+
+<h2>Peer Review Highlights</h2>
+<details>
+  <summary>All five reviews, condensed<span class="tag">A=Executor · B=Outsider · C=Contrarian · D=Expansionist · E=First Principles</span></summary>
+  <div class="body">
+    <p><strong>Consensus:</strong> every reviewer ranked C as strongest, citing its unique catches: the confounded ablation, the mislabelled V-SKNN, the circular +33% result, e<sup>δ</sup>&gt;1, novelty after MMR, and exact-match facets. A was runner-up every time for its concrete build order. Every reviewer flagged D's blind spot: it praises and expands a benchmark that leaks and can't exercise sessions. One reviewer added that B catalogues defects but never prioritizes them.</p>
+    <p><strong>What all advisors missed, according to the reviewers:</strong></p>
+    <ul>
+      <li><strong>SPECTER2 model-level leakage</strong> (raised by 2 reviewers). Its citation-trained embeddings may already encode the held-out links, so only BM25 is clean.</li>
+      <li><strong>Author identity</strong> (4 reviewers). OpenAlex merges and splits author profiles, and multi-author papers have no clear "user". Use one seed author per paper.</li>
+      <li><strong>Self-citations in Ref(B)</strong> inflate the citation signals (3 reviewers).</li>
+      <li><strong>Statistics</strong> (5 reviewers): no sample size, confidence intervals or paired significance tests.</li>
+      <li><strong>Trivial baselines</strong> (4 reviewers): popular recent papers before T, co-author papers, recent references.</li>
+      <li><strong>Ethics and consent</strong> for the user study (4 reviewers).</li>
+      <li><strong>Compute budget and fallback deliverable</strong>, plus how work is split across the team (2 reviewers).</li>
+    </ul>
+  </div>
+</details>
+
+<footer>
+  Council convened 2026-10-26 20:51 · Subject: <code>IRE-Project/paper_feed_current_design.md</code> (context: <code>benchmarking_dataset.md</code>) · Full transcript: <code>council-transcript-20261026-2051.md</code>
+</footer>
+
+</main>
+</body>
+</html>
