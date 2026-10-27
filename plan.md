@@ -117,7 +117,7 @@ For each candidate author, fetch all works with `publication_year` $\le T$ (`Aut
 
 ### 1.6 SQLite database (D§5)
 Create `schema.sql` with these tables and load the data:
-- `papers` (`paper_id`, `title`, `abstract`, `authors`, `year`, `publication_date`, `venue`, `doi`, `url`, `citation_count_T`, `primary_topic_id`, `subfield_id`, `field_id`, `in_candidates`)
+- `papers` (`paper_id`, `title`, `abstract`, `authors`, `year`, `publication_date`, `venue`, `doi`, `url`, `citation_count_T`, `primary_topic_id`, `subfield_id`, `field_id`, `in_candidates`). If `primary_topic` is missing, use the highest-scoring entry in `topics`, else `UNKNOWN`; report the `UNKNOWN` share in the data report (1.11).
 - `paper_citations` (`source_paper_id`, `target_paper_id`, `source_year`), including references to papers outside the corpus (needed for BC)
 - `paper_facets`, `facet_canon` (filled in Phase 3)
 - `users`, `user_profiles`, `user_sessions`, `user_interactions` (used by Track 2 and the UI)
@@ -134,7 +134,7 @@ Create `schema.sql` with these tables and load the data:
 For each candidate author:
 - $\text{Ref}_{\le T}(B)$ = references of $B$ with year $\le T$.
 - $\text{Discovery}(B\mid u) = \text{Ref}_{\le T}(B) \setminus (\text{Citations}(u,\le T) \cup \text{Authored}(u,\le T))$.
-- $\text{ReCitation}(B\mid u) = \text{Ref}_{\le T}(B) \cap \text{Citations}(u,\le T)$.
+- $\text{ReCitation}(B\mid u) = \text{Ref}_{\le T}(B) \cap \text{Citations}(u,\le T) \setminus \text{Authored}(u,\le T)$ (self-citations removed).
 - **Zero-publication slice ground truth:** $\text{Ref}_{\le T}(B) \setminus \text{Authored}(u,\le T)$ (P§6E.1).
 - Mark which targets are in the corpus **and** have an abstract (in-corpus targets).
 
@@ -254,12 +254,12 @@ Most frequent canonical task/method/dataset terms of $\mathcal{F}_u$ plus titles
 **Goal:** `recommend(user, mode) → Top-10 with scores, feature contributions and explanations` (D§8–§11).
 
 ### 5.1 Candidate generation
-- **Feed mode:** dense kNN on $\mathbf{q}_t = \text{normalize}((1-\rho)\mathbf{v}^{\text{sess}}_t + \rho\,\mathbf{v}^{\text{pers}}_u)$ (just the persona when the session is empty) + BM25s on the pseudo-query; apply year $\le T$, `in_candidates` and $\mathcal{E}_u$ filters; fuse by RRF ($k=60$); keep $M=100$.
-- **Search mode:** `adhoc_query` embedding + BM25s on the query text, RRF; optional cross-encoder rerank (Extended).
+- **Feed mode:** dense kNN on $\mathbf{q}_t = \text{normalize}((1-\rho)\mathbf{v}^{\text{sess}}_t + \rho\,\mathbf{v}^{\text{pers}}_u)$ (just the persona when the session is empty) + BM25s on the pseudo-query; apply year $\le T$, `in_candidates` and $\mathcal{E}_u$ filters; take the top $M_{\text{channel}}=200$ per channel after filtering; fuse by RRF ($k=60$); keep $M=100$.
+- **Search mode:** `adhoc_query` embedding + BM25s on the query text, RRF with the same depths; optional cross-encoder rerank (Extended).
 - Return the candidate list with each channel's rank (needed by V3 and for Recall@100).
 
 ### 5.2 Features (D§9)
-For each candidate: $\cos(\mathbf{e}_p,\mathbf{v}^{\text{pers}}_u)$; $\cos(\mathbf{e}_p,\mathbf{v}^{\text{sess}}_t)$ (dropped when the session is empty); $\log(1+\text{BC}+\text{CC})$; $S_{\text{facet}}$ (overlap of canonical task and dataset facets with $\mathcal{F}_u$, equal type weights by default); new-method indicator ($\exists$ shared task and $\exists$ method of $p$ not in $\mathcal{F}_u$); Penalty ($\max$ cosine to $\mathcal{S}^-_u$, 0 if empty).
+For each candidate: $\cos(\mathbf{e}_p,\mathbf{v}^{\text{pers}}_u)$; $\cos(\mathbf{e}_p,\mathbf{v}^{\text{sess}}_t)$ (dropped when the session is empty); $\log(1+\text{BC}+\text{CC})$; $S_{\text{facet}}$ (frequency-weighted coverage of the candidate's canonical task and dataset facets, formula in D§9); new-method indicator ($\exists$ shared task and $\exists$ method of $p$ not in $\mathcal{F}_u$); Penalty ($\max$ cosine to $\mathcal{S}^-_u$, 0 if empty).
 
 ### 5.3 Scaling and score
 Min-max scale continuous features to $[0,1]$ within the pool (a constant feature → 0); binary indicators stay 0/1; penalty unscaled. Linear score with $w_{\text{pers}}=1$ and the configured weights. Keep the per-feature contributions $w_k\,\text{mm}_k$.
@@ -290,7 +290,7 @@ Small fixture corpus: filters remove excluded and future papers; scaling handles
 - **Headline:** Discovery NDCG@10 (binary relevance; ideal DCG uses $\min(10, |\text{targets}|)$), Recall@10, HitRate@10, MRR — computed against full references and against in-corpus targets.
 - **Anchored versions:** each metric as a percentage of **Oracle@10**.
 - **Candidate ceiling:** Discovery Recall@100 of the first stage.
-- **Diversity/novelty:** Topic Entropy over primary OpenAlex Topics (raw and divided by $\log_2 10$); Topic Discovery Rate; embedding ILD; Facet Novelty ratio.
+- **Diversity/novelty:** Topic Entropy over primary OpenAlex Topics (raw and divided by $\log_2 10$); Topic Discovery Rate; embedding ILD; Facet Novelty ratio. Missing topics use the 1.6 fallback; `UNKNOWN` is one category in entropy and never "new".
 - **Edge cases:** users with no hits score 0 (not dropped); deterministic tie-breaking; unit tests on hand-computed lists.
 
 ### 6.2 Baselines and anchors (all with the same year filter and $\mathcal{E}_u$)
@@ -338,7 +338,7 @@ Main results table (with Oracle-normalized columns), ablation table, slice table
 Each benchmark has its own corpus, so build separate indexes with the Phase 2 code.
 
 ### 7.2 Runs and metrics
-BM25s, SPECTER2, RRF hybrid ($k=60$); optional cross-encoder rerank rows. Metrics: Recall@100 (primary), nDCG@10, nDCG@100, MRR.
+BM25s, SPECTER2, RRF hybrid ($k=60$, top 200 per channel); optional cross-encoder rerank rows. Metrics: Recall@100 (primary), nDCG@10, nDCG@100, MRR.
 
 **Done when:** one table per benchmark is generated by script.
 
@@ -378,11 +378,11 @@ BM25s, SPECTER2, RRF hybrid ($k=60$); optional cross-encoder rerank rows. Metric
 2. Topic A turns (fixed number).
 3. Shift: the agent runs the Topic B search query; its clicks on results update the session.
 4. Topic B turns until the maximum number of turns; record pivot latency (censored at the maximum).
-5. Re-engagement: the goal switches back to Topic A and the agent clicks a Topic A paper; record Retention@$k$ for $k = 1..3$.
+5. Re-engagement: the goal switches back to Topic A; the agent runs a fixed Topic A search query and clicks results it rates ≥ 4 (if none, the highest-rated Topic A result). Record Retention@$k$ for $k = 1..3$ from that click.
 Topic membership comes only from OpenAlex Topic labels (subfield level).
 
 ### 9.4 Arms
-Persona-only, Session-only, Static blend (50/50, un-decayed session mean), Hybrid, Hybrid + gate. Same candidate generator, signals and MMR; only the user-state terms differ.
+Persona-only, Session-only, Static blend (50/50, un-decayed session mean), Hybrid, Hybrid + gate, with the per-arm settings of D§13.2. Persona-only has no session input anywhere ($\rho=1$, $w_{\text{sess}}=0$, no session titles in the pseudo-query, no skip penalty). Same citation/facet signals and MMR across arms.
 
 ### 9.5 Pilot tuning
 On the pilot personas only: $\alpha_{\text{sess}}$, $\rho$, $w_{\text{sess}}$, $\lambda_{\text{neg}}$, $\gamma_{\text{pivot}}$, using a pre-stated criterion that combines pivot latency and retention. Track 1 weights are reused. Freeze before the evaluation run.

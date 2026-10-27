@@ -51,6 +51,7 @@ One symbol, one meaning (C4, D4). Values marked *tuned* are chosen on the tuning
 | $\rho$ | Persona weight in the retrieval query vector $\mathbf{q}_t$ | 0.3; *tuned in Track 2 pilot* | §8 |
 | $M$, $K$ | Candidate pool size, feed size | 100, 10 | §8, §10 |
 | $k_{\text{rrf}}$ | RRF constant | 60 | §8 |
+| $M_{\text{channel}}$ | Papers each channel (dense, BM25) returns before fusion | 200 | §8 |
 | $\text{mm}[\cdot]$ | Min-max scaling to $[0,1]$ across the candidate pool (binary indicators stay 0/1) | — | §9 |
 | $w_{\text{pers}}, w_{\text{sess}}$ | Persona / session similarity weights | $w_{\text{pers}}=1$ fixed | §9 |
 | $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}$ | Citation, facet-match, new-method weights | *tuned (Track 1 tuning split)* | §9 |
@@ -100,7 +101,7 @@ OpenAlex stores abstracts as `abstract_inverted_index`. The ingestion step recon
 - A user's own authored paper without an abstract contributes a **title-only** embedding to the persona.
 
 ### 4.3 Paper metadata schema
-`paper_id` (OpenAlex ID), `title`, `abstract`, `authors`, `year`, `venue`, `doi`, `url`, `references` (`referenced_works`), `citation_count_T` (from `counts_by_year`, up to $T$ only), `primary_topic` / `subfield` (OpenAlex Topic IDs, used as the **independent** labels in §13), and the five extracted facets (§6).
+`paper_id` (OpenAlex ID), `title`, `abstract`, `authors`, `year`, `venue`, `doi`, `url`, `references` (`referenced_works`), `citation_count_T` (from `counts_by_year`, up to $T$ only), `primary_topic` / `subfield` (OpenAlex Topic IDs, used as the **independent** labels in §13; if `primary_topic` is missing, use the highest-scoring entry in `topics`, else `UNKNOWN`), and the five extracted facets (§6).
 
 **Never stored for use in features:** present-day `cited_by_count`, the cited-by (`citations`) list, or any count that includes years $> T$ (L1).
 
@@ -202,12 +203,12 @@ No text query exists, so one is constructed from the user model.
    $$\mathbf{q}_t = \frac{(1-\rho)\,\mathbf{v}^{\text{sess}}_t + \rho\,\mathbf{v}^{\text{pers}}_u}{\|\cdot\|_2}$$
    (when $\mathbf{v}^{\text{sess}}_t=\mathbf{0}$, $\mathbf{q}_t=\mathbf{v}^{\text{pers}}_u$).
 2. **Lexical channel:** BM25s over title + abstract with a **pseudo-query** built from (a) the user's most frequent canonical task / method / dataset facet terms and (b) the titles of the last 3 session papers, if any. The Lexical Baseline (§13.1) shares the same BM25s code path but uses the full text of the user's past papers as its query; the pseudo-query is deliberately shorter and facet-focused. For Track 1 (no session) part (b) uses the titles of the user's 3 most recent authored papers instead.
-3. **Fusion:** Reciprocal Rank Fusion with $k_{\text{rrf}}=60$ yields the top $M=100$ candidates.
+3. **Fusion:** each channel returns its top $M_{\text{channel}}=200$ papers after the filters above; Reciprocal Rank Fusion with $k_{\text{rrf}}=60$ keeps the top $M=100$ candidates.
 
 **Core feed mode has no cross-encoder:** there is no user-written query to rerank against. An Extended variant (§13.8, V2) builds a *profile query text* and reranks the 100 candidates with a cross-encoder; it is adopted only if it beats the linear score on tuning data.
 
 ### 8.2 Search mode (UI search bar; retrieval benchmark)
-- Query encoded with the `adhoc_query` adapter for dense kNN; BM25s on the query text; RRF ($k_{\text{rrf}}=60$).
+- Query encoded with the `adhoc_query` adapter for dense kNN; BM25s on the query text; RRF ($k_{\text{rrf}}=60$), with the same $M_{\text{channel}}$ and $M$ as feed mode.
 - An optional cross-encoder rerank (`BAAI/bge-reranker-base` or `cross-encoder/ms-marco-MiniLM-L-6-v2`, compare both) is applied to the fused list. It is evaluated only in the retrieval benchmark and is **not** part of Core.
 - A search query can seed a topic shift: the query's top results are exposed to the session, matching Track 2's shift protocol.
 
@@ -219,7 +220,9 @@ One score, a small linear model over candidates in the pool. Every continuous fe
 
 $$\text{Score}(p) = w_{\text{pers}}\,\text{mm}\!\big[\cos(\mathbf{e}_p,\mathbf{v}^{\text{pers}}_u)\big] + w_{\text{sess}}\,\text{mm}\!\big[\cos(\mathbf{e}_p,\mathbf{v}^{\text{sess}}_t)\big] + w_{\text{cite}}\,\text{mm}\!\big[\log(1+\text{BC}+\text{CC})\big] + w_{\text{facet}}\,\text{mm}\big[S_{\text{facet}}\big] + w_{\text{nov}}\,\mathbb{1}_{\text{new-method}}(p) - \lambda_{\text{neg}}\,\text{Penalty}(p,\mathcal{S}^-_u)$$
 
-- **Facet match:** $S_{\text{facet}}(p,u)$ = weighted overlap of the candidate's canonical **task** and **dataset** facets with $\mathcal{F}_u$ (shared tasks and datasets).
+- **Facet match (frequency-weighted coverage):** for each type $\tau\in\{\text{task},\text{dataset}\}$,
+  $$S_\tau(p,u)=\frac{\sum_{f\in \mathcal{F}^\tau_p\cap\mathcal{F}^\tau_u}\text{freq}_u(f)}{|\mathcal{F}^\tau_p|}\quad(0\text{ if }\mathcal{F}^\tau_p=\emptyset),\qquad S_{\text{facet}}=\tfrac12\big(S_{\text{task}}+S_{\text{dataset}}\big)\in[0,1],$$
+  where $\text{freq}_u(f)$ is the share of the user's authored papers (for zero-publication users, of the 20 nearest papers) that contain canonical facet $f$. It rewards the user's core tasks and datasets and is not inflated by abstracts that list many facets.
 - **New-method indicator** (the explainer's "new Method" feature): $\mathbb{1}_{\text{new-method}}(p)=\mathbf{1}\big[\exists\,\text{task}\in\mathcal{F}_p\cap\mathcal{F}_u\ \text{ and }\ \exists\,\text{method}\in\mathcal{F}_p:\ \text{method}\notin\mathcal{F}_u\big]$ (a method of $p$ that is new to the user, on a task the user already works on). Matching on task/dataset and rewarding a new method are deliberate, so these two terms do not cancel each other.
 - **Penalty:** $\max_{n\in\mathcal{S}^-_u}\cos(\mathbf{e}_p,\mathbf{e}_n)$, and 0 when $\mathcal{S}^-_u=\emptyset$ (`prob.md` §5).
 - **When $\mathbf{v}^{\text{sess}}=\mathbf{0}$** the session term is dropped.
@@ -259,7 +262,7 @@ The set-level terms in `prob.md` §5 (Intra-List Diversity, Facet Novelty ratio,
 - **Method:** deterministic templates. The explanation is filled from the extracted facets, their verbatim spans and evidence sentences, and verified citation edges. No LLM paraphrasing, no external API, **no NLI verification** (it would be near-tautological on template output).
 - **Faithfulness rule:** the explainer takes the feature with the highest positive **scaled** contribution $w_k\,\text{mm}_k$ (binary indicators contribute $w_k\cdot\{0,1\}$) to the paper's score among {facet match, new method, citation, session, persona} and maps it to a template, for example:
   - new method: *"Proposes **{method}**, which is new to your work, for **{task}** that you work on"*
-  - facet match: *"Evaluates on **{dataset}** / addresses **{task}**, both in your publications"*
+  - facet match: *"Evaluates on **{dataset}**, used in {n} of your papers"* / *"Addresses **{task}**, studied in {n} of your papers"* (the matched facet with the highest $\text{freq}_u$)
   - citation (bibliographic coupling): *"Shares **{n}** references with your paper *{title}*"*; citation (co-citation): *"Frequently cited together with your paper *{title}*"* (both edge-verified; the template follows whichever of BC / CC contributes more)
   - session / persona: *"Similar to **{session paper most similar to it}** you opened"* / *"Close to your overall research profile"*
 - **Two criteria** (prob.md §2.4): factual grounding (every displayed span exists verbatim in the abstract, every citation relation is a real ≤ T edge) and ranking faithfulness (the shown feature is the dominant positive contribution, checked also by the counterfactual test in §13.6).
@@ -293,6 +296,7 @@ Everything in this section follows `prob.md` §4 and §6E. Only the implementati
 **Secondary / independent metrics (circularity guard):**
 - *Topic Entropy* of the Top-10 over OpenAlex primary **Topics** (primary diversity metric), also reported normalized by $\log_2 10$ so its range is $[0,1]$.
 - *Topic Discovery Rate*: share of Top-10 whose OpenAlex primary Topic never appeared in $u$'s papers $\le T$ (primary novelty metric). OpenAlex Topics (not the deprecated Concepts) are used for every external label; Track 2 uses the Topic hierarchy's subfield level for Topic A / B.
+- *Missing topics* fall back as in §4.3. `UNKNOWN` is one category in Topic Entropy, never "new" in the Discovery Rate, neither Topic A nor B in Track 2, and never a Popularity domain; its share is reported.
 - Embedding ILD (secondary) and Facet Novelty (secondary).
 
 **Diagnostic run.** Re-citation Recall@10 with $\text{Citations}(u,\le T)$ removed from $\mathcal{E}_u$. A baseline "re-recommend the author's own past references" is reported only here.
@@ -329,11 +333,12 @@ Everything in this section follows `prob.md` §4 and §6E. Only the implementati
 - **Personas:** 30, seeded from real OpenAlex author profiles, run with 5 simulator seeds (the recommender is deterministic, so seeds vary only the LLM's sampling). Cite Agent4Rec and RecAgent as the simulation paradigm.
 - **Click policy:** rating ≥ 4/5 → `click`, 5/5 → `save`, ≤ 2/5 → `skip`.
 - **Shift protocol:** Topic A (persona's subfield) and Topic B (different OpenAlex subfield) are labelled with **OpenAlex topic IDs**, never GLiNER or SPECTER2. The agent issues a search query for Topic B (§8.2); the agent's clicks on those search results update the session like any other click. Topic B is chosen among subfields with at least ~500 papers in the corpus so that Topic B candidates exist.
-- **Metrics:** Pivot Latency $k_{\text{pivot}}$ (steps until Topic B ≥ 50% of the Top-10; censored at the maximum number of turns if never reached, so Persona-Only is reported as censored, not infinite) and unforced Retention@$k$ (share of Topic A in the Top-10 $k$ steps after the user re-engages with a Topic A paper, with no reset button).
+- **Metrics:** Pivot Latency $k_{\text{pivot}}$ (steps until Topic B ≥ 50% of the Top-10; censored at the maximum number of turns if never reached, so Persona-Only is reported as censored, not infinite) and unforced Retention@$k$ (share of Topic A in the Top-10 $k$ steps after re-engagement, with no reset button).
+- **Re-engagement:** the agent's goal switches back to Topic A and it runs a fixed Topic A search query, clicking the results it rates ≥ 4; if none qualify, it clicks the highest-rated Topic A result. Search mode does not depend on the arm, so every arm can re-engage.
 - **Arms** (identical candidate generator, citation / facet signals and MMR; only the user-state terms differ — E4). The first feed (turn 0) of every arm is built from the persona, since no clicks exist yet; arms diverge from the first click:
-  1. Persona-Only Static ($w_{\text{sess}}=0$).
-  2. Session-Only Decay ($w_{\text{pers}}=0$, $\rho=0$).
-  3. Static Uniform Blend (50/50 persona and un-decayed session mean).
+  1. Persona-Only Static: $\rho=1$, $w_{\text{sess}}=0$, $\lambda_{\text{neg}}=0$, and the pseudo-query uses authored titles only (no session input anywhere).
+  2. Session-Only Decay: $\rho=0$, $w_{\text{pers}}=0$, skip penalty on.
+  3. Static Uniform Blend: $\mathbf{q}_t$ and score use a fixed 50/50 blend of persona and un-decayed session mean ($w_{\text{pers}}=w_{\text{sess}}$), skip penalty on.
   4. **Hybrid** (proposed: EMA session + recency-weighted persona + negative penalty).
   5. Hybrid + pivot gate (`use_gate=true`) — the optional gated variant.
 - **$H_3$** as in `prob.md`: the Hybrid has lower Pivot Latency than Persona-Only and Static Blend and higher unforced retention than Session-Only, each supported if the 95% paired-bootstrap CI of the difference (over persona × seed units) excludes 0. Absolute levels such as Retention@3 around 70% are descriptive targets reported honestly, not pass/fail criteria. The simulation is circular by nature (E7), so it is described as a sanity check and no number from it is a headline claim.
@@ -472,7 +477,7 @@ Clean + abstract reconstruction ──► time-bounded citation graph (citing ye
 
 ### Fixed
 - Recommendation target: papers. Corpus: OpenAlex only, author-first, ≤ T, ~100k.
-- First stage: BM25s + SPECTER2 (`proximity`, `adhoc_query`) + RRF ($k=60$), $M=100$. Exact FAISS. SPECTER2 is the default encoder; the Extended study (§13.8) may replace it, decided on tuning data only.
+- First stage: BM25s + SPECTER2 (`proximity`, `adhoc_query`) + RRF ($k=60$), $M_{\text{channel}}=200$ per channel, $M=100$. Exact FAISS. SPECTER2 is the default encoder; the Extended study (§13.8) may replace it, decided on tuning data only.
 - Facets: GLiNER (`gliner_medium-v2.1`), 5 facets, canonicalized.
 - Scoring: linear min-max-scaled score of §9; MMR after novelty; template explanations; no NLI.
 - Evaluation: `prob.md` Track 1 / Track 2 / retrieval / extraction / faithfulness audit, with the leakage rules of §4.

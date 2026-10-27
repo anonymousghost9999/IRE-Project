@@ -66,7 +66,7 @@ To understand and predict what a researcher wants, the system operates across th
        - **Resolution of Discovery vs. Re-Citation:**
          - The **headline evaluation objective** is strictly **Discovery Recall@10** and **Discovery NDCG@10**, evaluated on the set of previously uncited references:
            $$\text{Discovery}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \notin \text{Citations}(u, \leq T) \cup \text{Authored}(u, \leq T) \}$$
-         - Re-citations ($\text{ReCitation}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \in \text{Citations}(u, \leq T) \}$) are evaluated strictly in a separate **diagnostic ablation** where the past citation filter is temporarily lifted, measuring the citation graph's capacity to retrieve familiar foundation papers.
+         - Re-citations ($\text{ReCitation}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \in \text{Citations}(u, \leq T) \setminus \text{Authored}(u, \leq T) \}$) are evaluated strictly in a separate **diagnostic ablation** where the past citation filter is temporarily lifted, measuring the citation graph's capacity to retrieve familiar foundation papers.
        - **Leakage-Free Corpus Construction:** 
          - The candidate corpus $\mathcal{C}$ (~100,000 papers) is constructed strictly outward from the evaluation authors' publication and citation neighborhoods **as of $\leq T$**, supplemented with random CS/AI papers published $\leq T$.
          - The crawl **never** traverses the reference list of target paper $B$ ($T+1$), preventing ground-truth stuffing.
@@ -170,6 +170,7 @@ Local SQLite database storing structured records:
     $$\text{TopicEntropy}(\mathcal{R}_u) = - \sum_{c \in \mathcal{T}} P(c) \log_2 P(c)$$
     where $P(c)$ is the proportion of Top-10 papers whose primary OpenAlex **Topic** is $c$. OpenAlex Topics (not the deprecated Concepts) are used for every external label in this project. Entropy is also reported normalized by $\log_2 10$ so that its range is $[0,1]$.
   - **External Topic Discovery Rate (Primary Novelty Metric):** Fraction of Top-10 recommendations whose primary OpenAlex Topic was never associated with author $u$'s past publications $\le T$.
+  - **Missing topics:** a paper's topic is its `primary_topic`, else the highest-scoring entry in its `topics` list, else a single `UNKNOWN` label. `UNKNOWN` counts as one category in Topic Entropy and never as new in the Topic Discovery Rate.
 * **Diagnostic Ablation (Re-citation Recovery):** Evaluates Re-citation Recall@10 in a separate run where $\text{Citations}(u, \le T)$ is omitted from $\mathcal{E}_u$, testing graph retrieval capacity for known foundation papers.
 * **Cold-Start Stratification:** Slices 1–3 partition the test cohort by history size. Slice 4 is a re-run of the whole test cohort with a seed-only profile, and slice 5 is a cut over candidate items, so slices 4 and 5 overlap with the others and are reported separately, each with its $n$.
   1. *Warm Authors:* $\ge 5$ historical papers prior to $T$.
@@ -200,11 +201,11 @@ Local SQLite database storing structured records:
   - The shift to Topic B is initiated by the agent executing an ad-hoc keyword query for Topic B, exposing initial Topic B candidates in the candidate pool.
 * **Metrics:**
   - **Pivot Latency ($k_{\text{pivot}}$):** Number of interaction steps following the query until Topic B papers represent $\ge 50\%$ of the Top-10 feed.
-  - **Unforced Topic Retention ($\text{Retention}@k$):** The percentage of Top-10 papers belonging to core Topic A measured $k$ interaction steps after the user re-engages with a Topic A paper (without relying on an artificial session reset button).
+  - **Unforced Topic Retention ($\text{Retention}@k$):** The percentage of Top-10 papers belonging to core Topic A measured $k$ interaction steps after re-engagement, without any session reset button. **Re-engagement:** the agent's goal switches back to Topic A and it runs a fixed Topic A search query, clicking the results it rates $\ge 4$; if none qualify, it clicks the highest-rated Topic A result.
 * **Track 2 Comparison Arms:**
-  1. *Persona-Only Static:* Recommendations driven purely by $\mathbf{p}_u$ (zero session adaptation).
-  2. *Session-Only Decay:* Recommendations driven purely by decayed session clicks $\mathbf{v}_t^{\text{session}}$ (zero persona retention).
-  3. *Static Uniform Blend:* Fixed 50/50 linear blend of persona and un-decayed session mean.
+  1. *Persona-Only Static:* Retrieval and scoring use only $\mathbf{p}_u$: no session vector in retrieval or score, no session titles in the pseudo-query, no skip penalty (zero session adaptation).
+  2. *Session-Only Decay:* Retrieval and scoring use only the decayed session vector $\mathbf{v}_t^{\text{session}}$, with the skip penalty (zero persona retention).
+  3. *Static Uniform Blend:* Fixed 50/50 blend of persona and un-decayed session mean in both retrieval and scoring, with the skip penalty.
   4. *Proposed Hybrid Recommender:* Dynamic EMA session state combined with recency-weighted persona and negative feedback penalty.
   5. *Hybrid + Pivot Gate (optional variant):* The Hybrid with a divergence-gated session reset (hard reset when the clicked paper is far from the current session vector). Included only to test whether the gate helps; $H_3$ is stated for arm 4.
   - All arms share the same candidate generator, citation / facet signals and MMR, and differ only in the user-state terms. Every arm's first feed (turn 0) is built from the persona; Pivot Latency is censored at the maximum number of turns if Topic B is never reached.
