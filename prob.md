@@ -117,18 +117,18 @@ To ensure crisp project delivery, components are formally partitioned into **Cor
   2. Two-Stage Recommendation Engine (Hybrid retrieval, multi-signal scoring, MMR diversification, faithful explanations).
   3. Track 1 LFO Benchmark on OpenAlex (all baselines, ablations, cold-start stratification, statistical significance tests).
   4. First-Stage Candidate Retrieval Benchmark (CSFCube & LitSearch).
+  5. Profile & Explanation Faithfulness Audit (§6E.5), since faithful explanations are a stated primary objective of the project.
 * **Extended (Supplementary Analysis):**
   1. Track 2 Multi-Turn LLM Session Dynamics Simulation.
   2. Extraction Evaluation against SciERC Gold Standard.
-  3. Counterfactual Faithfulness Audit.
-  4. Lightweight Interactive UI (Streamlit or minimal local web app) for demonstration and auditing.
+  3. Lightweight Interactive UI (Streamlit or minimal local web app) for demonstration and auditing.
 
 ---
 
 ### B. Core Recommendation Engine (Python)
 * **Session Vector Dynamic Updater:** Updates $\mathbf{v}_t^{\text{session}} = \alpha \mathbf{v}_{t-1}^{\text{session}} + (1 - \alpha) \mathbf{e}_{\text{clicked}}$ upon positive actions (`click`, `save`); adds dismissed papers to $\mathcal{S}_u^{-}$.
 * **Candidate Generator (First Stage):** Hybrid lexical (BM25s) and dense kNN (SPECTER2) candidate retrieval producing $M=100$ candidate items.
-* **Multi-Signal Scorer (Second Stage):** Computes linear combination of session similarity, persona alignment, time-bounded citation graph strength ($\text{BC}$ and co-citation), and facet novelty.
+* **Multi-Signal Scorer (Second Stage):** Computes linear combination of session similarity, persona alignment, time-bounded citation graph strength ($\text{BC}$ and co-citation), and facet novelty (the per-paper new-Method indicator $\mathbf{1}[\text{method}_p \notin \mathcal{F}_u]$ used by the explainer, alongside the §5 Novelty ratio).
 * **MMR Diversification:** Maximal Marginal Relevance greedy selection to optimize intra-list diversity.
 * **Deterministic Faithful Explainer:** Identifies the feature with the highest normalized score contribution $\Delta \text{Score}$ and maps it to a factual template grounded in extracted abstract spans.
 
@@ -160,7 +160,7 @@ Local SQLite database storing structured records:
 #### 1. Leave-Future-Out (LFO) Recommendation Evaluation Harness (OpenAlex)
 * **Cohort Scale & Partitioning:**
   - Full cohort of $N = 400$ verified single or first authors with target paper $B$ ($T+1$) having $\ge 5$ in-corpus Discovery references ($|\text{Discovery}(B \mid u) \cap \mathcal{C}| \ge 5$).
-  - **Tuning / Test Split:** Cohort is split into a **Tuning Set ($N_{\text{tune}}=80$, 20%)** used exclusively for tuning scoring hyper-parameters ($w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}, \lambda_{\text{neg}}, \alpha$) and a **Held-Out Test Set ($N_{\text{test}}=320$, 80%)** on which all baseline comparisons and final results are evaluated.
+  - **Tuning / Test Split:** Cohort is split into a **Tuning Set ($N_{\text{tune}}=80$, 20%)** used exclusively for tuning the Track 1 scoring hyper-parameters ($w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$; the session-dependent parameters $\alpha$ and $\lambda_{\text{neg}}$ are inactive in LFO and are instead tuned in Track 2 on a small pilot set of personas disjoint from the 30 evaluation personas) and a **Held-Out Test Set ($N_{\text{test}}=320$, 80%)** on which all baseline comparisons and final results are evaluated.
 * **Primary Metrics (Headline):** 
   - **Discovery NDCG@10**, **Discovery Recall@10 / HitRate@10**, and **Discovery MRR**, evaluated strictly against $\text{Discovery}(B \mid u)$ with $\mathcal{E}_u$ active. Both unconstrained Recall and in-corpus Recall are reported alongside the Corpus Coverage Ceiling.
   - **Embedding ILD (Secondary):** Mean pairwise cosine distance between Top-10 papers.
@@ -189,7 +189,7 @@ Local SQLite database storing structured records:
   - **$H_2$ (Diversity):** MMR diversification significantly increases OpenAlex Topic Entropy with $\le 3\%$ relative degradation in Discovery NDCG@10.
 
 #### 2. LLM-Based User Simulation Harness (Track 2: Interactive Session Dynamics)
-* **Simulation Framework:** Follows established simulation paradigms (Agent4Rec, RecAgent). Instantiates 30 LLM researcher personas seeded from actual OpenAlex author profiles using a fixed LLM checkpoint (e.g., Claude 3.5 Haiku or GPT-4o-mini, evaluated across 5 random seeds with 95% bootstrap confidence intervals).
+* **Simulation Framework:** Follows established simulation paradigms (Agent4Rec, RecAgent). Instantiates 30 LLM researcher personas seeded from actual OpenAlex author profiles using a single fixed LLM checkpoint (exact model name and version recorded in the report) that is not used anywhere in the recommendation pipeline, evaluated across 5 random seeds with 95% bootstrap confidence intervals.
 * **Simulated Agent Click Policy:** For each feed turn, the agent evaluates displayed paper titles and abstracts against its active persona goal. Papers rated $\ge 4/5$ receive a `click`, papers rated $5/5$ receive a `save`, and papers rated $\le 2/5$ receive a `skip`.
 * **Independent Topic Labeling & Shift Protocol:** 
   - Topic A (core persona) and Topic B (exploration topic) are distinct OpenAlex subfields within CS/AI (e.g., NLP moving to Information Retrieval).
@@ -210,7 +210,7 @@ Local SQLite database storing structured records:
 #### 4. Extraction Benchmark (SciERC Gold Standard)
 * Evaluates GLiNER on SciERC across Strict and Relaxed Span $F_1$, mapping `task` $\leftrightarrow$ `Task`, `method` $\leftrightarrow$ `Method`, `metric` $\leftrightarrow$ `Metric`, `dataset` $\leftrightarrow$ `Material`, `topic` $\leftrightarrow$ `OtherScientificTerm`.
 
-#### 5. Profile & Explanation Faithfulness Audit (Extended)
+#### 5. Profile & Explanation Faithfulness Audit (Core)
 * CLI script sampling 100 recommendation explanations:
   - **Extractive Grounding Rate:** Percentage of displayed facet spans and evidence sentences existing verbatim in the abstract (Target: 100%).
   - **Feature Normalization:** Raw score contributions are z-score normalized across the candidate pool $M=100$ so feature scales do not distort explanation ranking.
