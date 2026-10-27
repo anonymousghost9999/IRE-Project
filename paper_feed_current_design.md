@@ -11,7 +11,7 @@
 
 ## 1. Overview
 
-Paper Feed is a personalized academic-paper recommendation system.
+Paper Feed is a personalized academic-paper recommendation system that we want to build.
 
 The intended pipeline is:
 
