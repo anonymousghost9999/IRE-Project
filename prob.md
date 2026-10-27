@@ -16,28 +16,31 @@ A good academic paper recommender must deliver on four primary objectives:
    - If a researcher temporarily explores a new sub-topic today (e.g., an NLP researcher investigating *"LoRA quantization"* this morning), the feed must adapt rapidly to their active focus within the session without wiping out their broader background.
 3. **Genuine Discovery (Not Just What They Already Know):**
    - Simply recommending papers they have already cited or read is useless. The system must surface **new discoveries**—papers introducing fresh methods or alternative perspectives to their research area.
-4. **Transparency & Trust ("Why am I seeing this?"):**
-   - Researchers are skeptical users. Every recommendation must feature an inspectable, grounded reason (e.g., *"Recommended because this paper tests a new Method on the SciERC dataset you frequently read about"*).
+4. **Transparency & Inspectability ("Why am I seeing this?"):**
+   - Researchers are skeptical users. Explanations must satisfy two criteria:
+     * **Factual Grounding:** The claimed facet or citation relation must be grounded in verbatim abstract text or verified graph edges (never hallucinated).
+     * **Ranking Faithfulness:** The stated explanation must be *mechanistically faithful*—meaning the highlighted feature was actually the dominant mathematical signal that elevated the paper into the Top-10 feed (e.g., introducing a *"new Method"* formally defined as $\text{method}_p \notin \mathcal{F}_u$ for a task the user actively studies).
 
 ---
 
 ## 3. What Information (Signals) Can We Use?
 
-To understand and predict what a researcher wants, the system operates on two complementary signal types:
+To understand and predict what a researcher wants, the system operates across three distinct information categories:
 
-### A. Explicit Signals (Direct User Inputs)
-* **Onboarding Selections:** Research domains and seed topics chosen during sign-up (e.g., *Information Retrieval, Dense Passage Retrieval*).
-* **Direct Feedback Actions:** Bookmarking / saving to library, "thumbs up" (interested), or "skip / dismiss" (pushing similar items down).
-* **Authored Publications:** Past papers written by the user (providing initial author identity and reference history).
+### A. User Explicit & Behavioral Signals
+* **Explicit Onboarding Inputs:** Research domains and seed topics chosen during sign-up (e.g., *Information Retrieval, Dense Passage Retrieval*).
+* **Explicit Feedback Actions:** Bookmarking / saving to library, "thumbs up" (positive interest), or "skip / dismiss" (negative penalty).
+* **Authored Publications:** Past papers written by the user (providing initial author identity and baseline research profile).
+* **Real-Time Session Browsing:** Which paper abstracts the user clicked, expanded, or read during their active browsing session.
 
-### B. Implicit Signals (Behavioral & Network Telemetry)
-* **Real-Time Session Browsing:** Which paper abstracts the user clicked, expanded, or lingered on (dwell time) during their active session.
-* **Citation Graph Structure:**
-  * Papers the user has cited in past publications.
-  * Papers sharing references with the user's reading history (**bibliographic coupling**).
-  * Papers frequently co-cited alongside the user's core reading list (**co-citation**).
-* **Extracted Scientific Facets:**
-  * Fine-grained, typed scientific entities extracted from paper abstracts: **Tasks**, **Methods**, **Datasets**, **Metrics**, and **Topics**.
+### B. Graph Topological Signals (Citation Structure)
+* **Direct Historical Citations:** Papers the user personally cited in their past publications ($t \leq T$).
+* **Bibliographic Coupling:** Papers sharing references with the user's reading history ($|\text{Refs}(p) \cap \text{Refs}(\mathcal{H}_u)| \ge 1$).
+* **Co-Citation Proximity:** Papers frequently cited alongside the user's core publications by third-party papers.
+
+### C. Document Content & Extracted Facets
+* **Dense Semantic Embeddings:** 768-dimensional document vectors encoded via SPECTER2 (`proximity` adapter).
+* **Extracted Scientific Facets:** Fine-grained, typed scientific entities extracted from paper abstracts via GLiNER: **Tasks**, **Methods**, **Datasets**, **Metrics**, and **Topics**.
 
 ---
 
@@ -45,34 +48,42 @@ To understand and predict what a researcher wants, the system operates on two co
 
 1. **Dual-Horizon Interests (Long-Term Persona vs. Short-Term Drift):**
    - Balancing a permanent profile $\mathbf{p}_u$ with transient session exploration $\mathbf{s}_u$ so that temporary curiosity doesn't permanently ruin future recommendations.
-2. **The Cold-Start Problem:**
-   - How to serve meaningful recommendations to a brand-new user with zero clicks and no publications (resolved via onboarding seed topics + recent high-impact benchmark papers).
+2. **The User & Item Cold-Start Problems:**
+   - **User Cold-Start:** Serving high-quality recommendations to a brand-new user with zero clicks and no publications (resolved via onboarding seed topics + recent high-impact benchmark papers forming initial $\mathbf{p}_u$).
+   - **Item Cold-Start & Overcoming Citation Bias:** Newly published papers have zero historical citations. Relying solely on citation strength biases recommendations toward older papers. To surface fresh papers, the ranking engine pairs citation signals with citation-independent **content signals** (SPECTER2 semantic proximity and exact facet alignment), allowing zero-citation preprints to rank high if their methodology matches the user's focus.
 3. **Avoiding Echo Chambers (Relevance vs. Diversity):**
    - Ensuring the Top-10 feed doesn't collapse into 10 minor variations of the exact same model (resolved via Maximal Marginal Relevance diversification).
-4. **The Evaluation Dilemma & The LLM Simulation Solution:**
-   - **The Problem:** Commercial paper platforms (Google Scholar, Semantic Scholar) keep researcher clickstreams strictly private. OpenAlex provides publication and citation history, but **zero real-time click logs, skips, or dwell times**.
-   - **The Solution (Two-Track Evaluation):**
-     * **Track 1 (Offline Macro-Benchmark on OpenAlex):** Evaluates long-term discovery using the **Leave-Future-Out (LFO)** protocol. Historical papers up to year $T$ form the user profile; the reference list of their next paper published at $T+1$ serves as the ground-truth oracle for papers they needed to read.
-     * **Track 2 (Session Dynamics via LLM User Simulation):** Following the established **Agent4Rec / RecAgent / PaperFlow** methodology, an automated cohort of diverse LLM-simulated researcher personas browses the system, emitting realistic click, skip, and dwell-time events across multi-step episodes to benchmark session adaptation and drift.
+4. **The Evaluation Dilemma & The Ground-Truth Solution:**
+   - **The Challenge:** Commercial academic search engines (Google Scholar, Semantic Scholar) keep researcher clickstreams strictly private. OpenAlex provides publication and citation metadata, but zero real-time click logs, skips, or dwell times.
+   - **The Two-Track Evaluation Solution:**
+     * **Track 1 (Macro-Evaluation on Real Human Behavior via LFO):**
+       - Evaluates whether the system can discover and recommend the papers a real researcher ended up citing in their next publication.
+       - **Temporal Guard ($\leq T$):** Historical papers up to year $T=2023$ build the user profile $\mathbf{p}_u$. For target Paper $B$ published in $T+1=2024$, its ground truth references are strictly restricted to papers published $\leq T$ (excluding references published in $T+1$ which could not have been known at time $T$).
+       - **Formal Definition of Discovery vs. Re-Citation:**
+         $$\text{Discovery}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \notin \text{Citations}(u, \leq T) \cup \text{Authored}(u, \leq T) \}$$
+         $$\text{ReCitation}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \in \text{Citations}(u, \leq T) \}$$
+         *(Self-citations authored by $u$ are strictly filtered out to prevent trivial memorization).*
+       - **Corpus Coverage Guard:** The 100k corpus is constructed outward from the evaluation authors' citation neighborhoods to ensure their references are well-represented. Both unconstrained Recall and in-corpus Recall are reported alongside the Corpus Coverage Ceiling.
+       - **Author Disambiguation Guard:** Evaluated on single or first authors with clean publication histories to ensure $\text{Ref}(B)$ genuinely reflects user $u$'s research focus rather than co-author noise.
+     * **Track 2 (Interactive Session Dynamics via LLM Simulation):**
+       - Evaluates real-time session adaptation and click response (detailed below).
 
 ---
 
 ## 5. Formal Problem Definition
 
 > **Given:**
-> 1. A user $u$ defined by:
->    - A long-term profile $\mathbf{p}_u$ (past publications, explicit onboarding topics, and preferred facets).
->    - A dynamic session state $\mathbf{s}_u$ (chronological sequence of papers clicked, read, or skipped in the current session).
-> 2. A corpus $\mathcal{C}$ of academic papers (e.g., 100,000 CS/AI papers with titles, abstracts, citation edges, and extracted facets).
-> 3. An exclusion set $\mathcal{E}_u$ containing papers authored by $u$ and papers already consumed/saved in the current session.
+> 1. A user $u$ modeled by two components:
+>    - **Long-Term Persona Profile:** $\mathbf{p}_u = (\mathbf{v}_u^{\text{persona}}, \mathcal{F}_u)$, where $\mathbf{v}_u^{\text{persona}} \in \mathbb{R}^d$ is the normalized dense persona embedding (derived from past publications and onboarding seed topics), and $\mathcal{F}_u$ is the set of historical preferred facets (tasks, methods, datasets).
+>    - **Dynamic Session State:** $\mathbf{s}_u = (\mathbf{v}_t^{\text{session}}, \mathcal{S}_u^{-})$, where $\mathbf{v}_t^{\text{session}} \in \mathbb{R}^d$ is the position-decayed representation of positive interactions (clicked/liked papers), and $\mathcal{S}_u^{-} = \{d_1^{-}, d_2^{-}, \dots\}$ is the set of skipped/dismissed papers acting as negative feedback.
+> 2. A corpus $\mathcal{C}$ of academic papers, where each paper $p \in \mathcal{C}$ has title/abstract embedding $\mathbf{e}_p \in \mathbb{R}^d$, citation edges $\mathcal{G}$, and extracted scientific facets $\mathcal{F}_p$.
+> 3. An explicit exclusion set $\mathcal{E}_u = \text{Authored}(u) \cup \text{Citations}(u, \leq T) \cup \text{SessionConsumed}(u)$, guaranteeing that already written, cited, or read papers are never re-recommended.
 >
-> **Goal:**
-> For any interaction step $t$, execute a two-stage recommendation funnel:
-> 1. **Candidate Retrieval:** Rapidly filter $\mathcal{C} \setminus \mathcal{E}_u$ down to a Top-100 candidate pool using dense semantic similarity and citation graph expansion.
-> 2. **Multi-Signal Reranking & Diversification:** Rank the candidate pool by balancing session momentum, persona alignment, citation strength, and novelty, followed by MMR diversification to output a final list $\mathcal{R}_u$ of size $K=10$ that:
->    - Maximizes relevance to both $\mathbf{p}_u$ and $\mathbf{s}_u$.
->    - Maximizes diversity and discovery (covering distinct methods and unread facets).
->    - Provides an inspectable, factual template explanation for every surfaced paper.
+> **Optimization Objective:**
+> For any user state $(\mathbf{p}_u, \mathbf{s}_u)$, select a ranked list $\mathcal{R}_u \subset \mathcal{C} \setminus \mathcal{E}_u$ of size $K$ (e.g., $K=10$) that maximizes the multi-objective utility:
+> $$\max_{\mathcal{R}_u, |\mathcal{R}_u|=K} \left[ \sum_{p \in \mathcal{R}_u} \text{Score}(p \mid \mathbf{p}_u, \mathbf{s}_u, \mathcal{G}) + \lambda_{\text{div}} \cdot \text{Diversity}(\mathcal{R}_u) + \lambda_{\text{nov}} \cdot \text{Novelty}(\mathcal{R}_u \mid \mathcal{F}_u) - \lambda_{\text{neg}} \cdot \sum_{p \in \mathcal{R}_u} \max_{n \in \mathcal{S}_u^{-}} \cos(\mathbf{e}_p, \mathbf{e}_n) \right]$$
+> accompanied by an inspectable, faithful justification for every paper $p \in \mathcal{R}_u$.
+> *(In our two-stage architecture, this optimization is solved efficiently by first retrieving $M=100$ candidate papers via hybrid dense+sparse retrieval, then executing multi-signal scoring and MMR greedy diversification).*
 
 ---
 
@@ -171,18 +182,37 @@ A clean, local relational database storing all structured records:
 The scientific harness to measure, ablate, and prove the system's performance:
 
 1. **Leave-Future-Out (LFO) Recommendation Evaluation Harness (OpenAlex):**
-   - Automatically builds author histories up to year $T=2023$ and tests predictions against references in their next paper $B$ published in $T+1=2024$.
-   - Calculates **NDCG@10**, **Recall@10 / HitRate@10**, and **MRR**.
+   - Automatically builds author histories up to year $T=2023$ and tests predictions against references in their next paper $B$ published in $T+1=2024$ (filtered strictly to references published $\leq T$).
+   - Calculates **NDCG@10**, **Recall@10 / HitRate@10**, and **MRR** against both the full reference set and the in-corpus subset (reporting the Corpus Coverage Ceiling).
    - Evaluates non-accuracy metrics: **Intra-List Diversity (ILD)** and **Facet Coverage Rate (Novelty)**.
-   - Evaluates **Discoveries** (new references) and **Re-citations** separately while filtering out self-citations.
-   - Runs the **3-way ablation** (`Session-Only` vs. `Persona-Only` vs. `Hybrid V-PaperFlow`).
+   - Evaluates **Discoveries** (first-time cited papers) and **Re-citations** separately while strictly filtering out self-citations.
+   - **Core Baseline Comparisons to Beat:**
+     1. *Popularity Baseline:* Most-cited recent papers in the user's primary domain (counts $\leq T$).
+     2. *Lexical Baseline:* BM25s retrieval using the user's combined past paper titles/abstracts as a query.
+     3. *Dense Centroid Baseline:* Unweighted mean of SPECTER2 embeddings across user's past papers (no persona weights, no decay).
+     4. *Citation-Only Baseline:* Pure bibliographic coupling and co-citation graph score without text features.
+   - **Component Ablations (Isolating Model Features):**
+     * *No-MMR:* Disables diversity re-ranking (measures drop in Intra-List Diversity).
+     * *No-Graph ($w_{\text{cite}} = 0$):* Content-only ranking (measures drop in discovery of authoritative papers).
+     * *No-Facets ($w_{\text{facet}} = 0$):* Dense-only ranking without GLiNER task/method alignment.
+   - **Formal Success Hypotheses (Project Acceptance Criteria):**
+     * **$H_1$ (Accuracy):** The proposed hybrid model achieves statistically significant improvements in NDCG@10 and Discovery Recall@10 over all four baselines (paired bootstrap test, $p < 0.05$).
+     * **$H_2$ (Diversity):** MMR diversification significantly increases Intra-List Diversity (ILD) with $\le 3\%$ degradation in NDCG@10.
+     * **$H_3$ (Session Adaptation in Track 2):** Position decay achieves lower Pivot Latency ($k_{\text{pivot}}$) than static persona matching during topic shifts.
 2. **LLM-Based User Simulation Harness (Agent4Rec / RecAgent Paradigm):**
-   - Instantiates a cohort of 20–50 LLM researcher personas with defined research goals.
-   - Simulates multi-turn feed browsing, generating realistic click, dwell-time, and skip events stored directly in SQLite.
-   - Evaluates **Session Drift Adaptation Speed**: Measures how many clicks it takes for the recommender to pivot when a user abruptly changes research topics.
+   - **Role:** Serves strictly as a behavioral *sanity check on interactive session dynamics* (not proof of human relevance), testing how the algorithm adapts to real-time feedback.
+   - Instantiates a cohort of 20–50 LLM researcher personas with defined research goals, seeded from actual OpenAlex author profiles.
+   - Evaluates discrete interaction choices (`click`, `skip`, `save`) across multi-turn sessions (discarding arbitrary dwell-time integers).
+   - **Core Metric — Pivot Latency ($k_{\text{pivot}}$):** When a user abruptly switches research intent from Topic A to Topic B, counts the exact number of clicks until Topic B papers represent $\ge 50\%$ of the Top-10 feed.
+   - **Track 2 Ablation Suite (Session Dynamics):** Compares *Pure Session-Only Decay* vs. *Pure Persona-Only Static* vs. *Hybrid V-PaperFlow* to prove the hybrid adapts to session drift faster without permanently losing long-term focus.
 3. **First-Stage Retrieval Benchmark Script:**
    - Tests candidate retrieval on **CSFCube** and **LitSearch** evaluating **Recall@100** (BM25s vs. SPECTER2 vs. Hybrid RRF).
-4. **Extraction Evaluation Script:**
-   - Runs GLiNER against the **SciERC** gold-standard dataset to report Strict and Relaxed Span $F_1$.
-5. **Manual Profile Audit Tool:**
-   - CLI script to inspect a random sample of 100 extracted profiles to manually check precision and verify 100% zero-hallucination evidence.
+4. **Extraction Evaluation Script (SciERC Benchmark):**
+   - Runs GLiNER against the **SciERC** gold-standard dataset across both **Strict Span $F_1$** (exact offsets + type) and **Relaxed Span $F_1$** (token overlap $\ge 1$ + type).
+   - Formally maps profile schema to SciERC annotations: `task` $\leftrightarrow$ `Task`, `method` $\leftrightarrow$ `Method`, `metric` $\leftrightarrow$ `Metric`, `dataset` $\leftrightarrow$ `Material`, `topic` $\leftrightarrow$ `OtherScientificTerm` (acknowledging `Material` and `OtherScientificTerm` as broader approximations).
+5. **Manual Profile & Explanation Faithfulness Audit Tool:**
+   - CLI script to inspect a random sample of 100 extracted profiles and recommendations:
+     - **Extractive Grounding Verification:** Verifies that all extracted spans and evidence sentences exist verbatim in the abstract text (preventing generative token fabrication, though label classification accuracy is measured separately via F1).
+     - **Explanation Faithfulness:** Verifies that the displayed reason corresponds to the highest positive feature contribution in the ranking score.
+     - **Explanation Coverage:** Measures percentage of Top-10 recommendations successfully annotated with a grounded explanation (Target: $\ge 90\%$).
+     - Optional qualitative pilot ($n=8\text{--}10$ peers) scoring explanation clarity and helpfulness on a 1–5 Likert scale.
