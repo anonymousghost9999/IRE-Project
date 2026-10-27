@@ -88,7 +88,7 @@ To understand and predict what a researcher wants, the system operates across th
 >    - **Long-Term Persona Profile:** $\mathbf{p}_u = (\mathbf{v}_u^{\text{persona}}, \mathcal{F}_u)$, where $\mathbf{v}_u^{\text{persona}} \in \mathbb{R}^d$ is the recency-weighted dense persona embedding:
 >      $$\mathbf{v}_u^{\text{persona}} = \frac{\sum_{p \in \text{Authored}(u, \le T)} \gamma^{T - \text{year}(p)} \mathbf{e}_p}{\left\| \sum_{p \in \text{Authored}(u, \le T)} \gamma^{T - \text{year}(p)} \mathbf{e}_p \right\|_2}$$
 >      (with decay factor $\gamma \in (0, 1]$, e.g., $\gamma=0.9$, or unweighted average of onboarding seeds when $\text{Authored} = \emptyset$), and $\mathcal{F}_u$ is the set of historical preferred facets (tasks, methods, datasets).
->    - **Dynamic Session State:** $\mathbf{s}_u = (\mathbf{v}_t^{\text{session}}, \mathcal{S}_u^{-})$, where $\mathbf{v}_t^{\text{session}} \in \mathbb{R}^d$ is the position-decayed representation of positive interactions (`click`, `save`), and $\mathcal{S}_u^{-} = \{d_1^{-}, d_2^{-}, \dots\}$ is the set of skipped/dismissed papers acting as negative feedback.
+>    - **Dynamic Session State:** $\mathbf{s}_u = (\mathbf{v}_t^{\text{session}}, \mathcal{S}_u^{-})$, where $\mathbf{v}_t^{\text{session}} \in \mathbb{R}^d$ is the exponentially decayed (EMA) representation of positive interactions, which weights recent items most (`click`, `save`), and $\mathcal{S}_u^{-} = \{d_1^{-}, d_2^{-}, \dots\}$ is the set of skipped/dismissed papers acting as negative feedback.
 > 2. A corpus $\mathcal{C}$ of academic papers published $\leq T$, where each paper $p \in \mathcal{C}$ has title/abstract embedding $\mathbf{e}_p \in \mathbb{R}^d$, citation graph edges $\mathcal{G}$, and extracted scientific facets $\mathcal{F}_p$.
 > 3. An explicit exclusion set $\mathcal{E}_u = \text{Authored}(u, \le T) \cup \text{Citations}(u, \leq T) \cup \text{SessionConsumed}(u)$, guaranteeing that already written, cited, or read papers are never re-recommended in discovery mode.
 >
@@ -122,13 +122,15 @@ To ensure crisp project delivery, components are formally partitioned into **Cor
   1. Track 2 Multi-Turn LLM Session Dynamics Simulation.
   2. Extraction Evaluation against SciERC Gold Standard.
   3. Lightweight Interactive UI (Streamlit or minimal local web app) for demonstration and auditing.
+  4. Small user pilot ($n \approx 10\text{--}15$, 1–5 Likert ratings of relevance and explanation clarity, with consent).
+  5. SOTA variant experiments, compared with the Core system and selected on the tuning split only: alternative pretrained dense encoders, cross-encoder reranking in feed mode, and a small learned (gradient-boosted) ranker. The Core linear scorer remains the system of record.
 
 ---
 
 ### B. Core Recommendation Engine (Python)
 * **Session Vector Dynamic Updater:** Updates $\mathbf{v}_t^{\text{session}} = \alpha \mathbf{v}_{t-1}^{\text{session}} + (1 - \alpha) \mathbf{e}_{\text{clicked}}$ upon positive actions (`click`, `save`); adds dismissed papers to $\mathcal{S}_u^{-}$.
 * **Candidate Generator (First Stage):** Hybrid lexical (BM25s) and dense kNN (SPECTER2) candidate retrieval producing $M=100$ candidate items.
-* **Multi-Signal Scorer (Second Stage):** Computes linear combination of session similarity, persona alignment, time-bounded citation graph strength ($\text{BC}$ and co-citation), and facet novelty (the per-paper new-Method indicator $\mathbf{1}[\text{method}_p \notin \mathcal{F}_u]$ used by the explainer, alongside the §5 Novelty ratio).
+* **Multi-Signal Scorer (Second Stage):** Computes linear combination of session similarity, persona alignment, time-bounded citation graph strength ($\text{BC}$ and co-citation), and facet novelty (the per-paper new-Method indicator $\mathbf{1}[\exists\,\text{task}\in\mathcal{F}_p\cap\mathcal{F}_u,\ \exists\,\text{method}\in\mathcal{F}_p\setminus\mathcal{F}_u]$, which is the per-item realization of the §5 set-level Novelty term and the feature the explainer reports; the §5 Novelty ratio itself is a secondary evaluation metric). All continuous score features are min-max scaled to $[0,1]$ across the candidate pool; binary indicators stay raw 0/1 and a constant feature scales to 0. (Min-max is used instead of z-scores because a rare binary feature that fires once among 100 candidates would get $z\approx 10$ and always look dominant.)
 * **MMR Diversification:** Maximal Marginal Relevance greedy selection to optimize intra-list diversity.
 * **Deterministic Faithful Explainer:** Identifies the feature with the highest normalized score contribution $\Delta \text{Score}$ and maps it to a factual template grounded in extracted abstract spans.
 
@@ -160,36 +162,38 @@ Local SQLite database storing structured records:
 #### 1. Leave-Future-Out (LFO) Recommendation Evaluation Harness (OpenAlex)
 * **Cohort Scale & Partitioning:**
   - Full cohort of $N = 400$ verified single or first authors with target paper $B$ ($T+1$) having $\ge 5$ in-corpus Discovery references ($|\text{Discovery}(B \mid u) \cap \mathcal{C}| \ge 5$).
-  - **Tuning / Test Split:** Cohort is split into a **Tuning Set ($N_{\text{tune}}=80$, 20%)** used exclusively for tuning the Track 1 scoring hyper-parameters ($w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$; the session-dependent parameters $\alpha$ and $\lambda_{\text{neg}}$ are inactive in LFO and are instead tuned in Track 2 on a small pilot set of personas disjoint from the 30 evaluation personas) and a **Held-Out Test Set ($N_{\text{test}}=320$, 80%)** on which all baseline comparisons and final results are evaluated.
+  - **Tuning / Test Split:** Cohort is split into a **Tuning Set ($N_{\text{tune}}=80$, 20%)** used exclusively for tuning the Track 1 scoring hyper-parameters and for selecting among Extended variants ($w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$; the session-dependent parameters $\alpha$ and $\lambda_{\text{neg}}$ are inactive in LFO and are instead tuned in Track 2 on a small pilot set of personas disjoint from the 30 evaluation personas) and a **Held-Out Test Set ($N_{\text{test}}=320$, 80%)** on which all baseline comparisons and final results are evaluated.
 * **Primary Metrics (Headline):** 
-  - **Discovery NDCG@10**, **Discovery Recall@10 / HitRate@10**, and **Discovery MRR**, evaluated strictly against $\text{Discovery}(B \mid u)$ with $\mathcal{E}_u$ active. Both unconstrained Recall and in-corpus Recall are reported alongside the Corpus Coverage Ceiling.
+  - **Discovery NDCG@10**, **Discovery Recall@10 / HitRate@10**, and **Discovery MRR**, evaluated strictly against $\text{Discovery}(B \mid u)$ with $\mathcal{E}_u$ active. Both unconstrained Recall and in-corpus Recall are reported alongside the Corpus Coverage Ceiling. Each metric is also reported as a percentage of the **Oracle@10** value (all in-corpus Discovery references ranked first), and the first stage's **Discovery Recall@100** is reported as the ceiling that reranking can reach.
   - **Embedding ILD (Secondary):** Mean pairwise cosine distance between Top-10 papers.
   - **External Topic Entropy (Primary Diversity Metric):** To avoid circularity with the MMR embedding objective, diversity is measured independently via OpenAlex Topic Categorical Entropy:
     $$\text{TopicEntropy}(\mathcal{R}_u) = - \sum_{c \in \mathcal{T}} P(c) \log_2 P(c)$$
-    where $P(c)$ is the proportion of Top-10 papers belonging to OpenAlex primary Concept/Topic $c$.
-  - **External Concept Discovery Rate (Primary Novelty Metric):** Fraction of Top-10 recommendations whose primary OpenAlex Concept was never associated with author $u$'s past publications $\le T$.
+    where $P(c)$ is the proportion of Top-10 papers whose primary OpenAlex **Topic** is $c$. OpenAlex Topics (not the deprecated Concepts) are used for every external label in this project. Entropy is also reported normalized by $\log_2 10$ so that its range is $[0,1]$.
+  - **External Topic Discovery Rate (Primary Novelty Metric):** Fraction of Top-10 recommendations whose primary OpenAlex Topic was never associated with author $u$'s past publications $\le T$.
 * **Diagnostic Ablation (Re-citation Recovery):** Evaluates Re-citation Recall@10 in a separate run where $\text{Citations}(u, \le T)$ is omitted from $\mathcal{E}_u$, testing graph retrieval capacity for known foundation papers.
-* **Cold-Start Stratification (Complete Non-Overlapping Slices):**
+* **Cold-Start Stratification:** Slices 1–3 partition the test cohort by history size. Slice 4 is a re-run of the whole test cohort with a seed-only profile, and slice 5 is a cut over candidate items, so slices 4 and 5 overlap with the others and are reported separately, each with its $n$.
   1. *Warm Authors:* $\ge 5$ historical papers prior to $T$.
   2. *Moderate History Authors:* $3\text{--}4$ historical papers prior to $T$.
   3. *Sparse History Authors:* $1\text{--}2$ historical papers prior to $T$.
-  4. *Zero-Publication Seed-Only Slice:* Profile $\mathbf{p}_u$ built strictly from 3 onboarding seed topics derived from the author's primary OpenAlex concepts (0 historical papers provided), directly validating user cold-start.
+  4. *Zero-Publication Seed-Only Slice:* Profile $\mathbf{p}_u$ built strictly from 3 onboarding seed topics derived from the author's primary OpenAlex Topics (0 historical papers provided), directly validating user cold-start. **No oracle information:** in this slice $\mathcal{E}_u=\emptyset$ (the system knows nothing about the user) and the ground truth is $\text{Ref}(B)\cap\{\text{year}\le T\}\setminus\text{Authored}(u,\le T)$, i.e. past citations are not removed because a new user has none. Results are compared only with baselines run in the same slice, not with slices 1–3.
   5. *Item Cold-Start Slice:* Recall stratified by candidate citation count at time $T$: Fresh / zero-citation preprints ($\le 1$ citation) vs. Established papers ($\ge 20$ citations).
 * **Core Baselines to Beat:**
   1. *Popularity Baseline:* Most-cited recent papers in the user's primary domain (counts $\leq T$).
   2. *Lexical Baseline:* BM25s retrieval using the user's combined past paper titles/abstracts as a query.
   3. *Dense Centroid Baseline:* Unweighted mean of SPECTER2 embeddings across user's past papers (no recency weighting, no decay).
   4. *Citation-Only Baseline:* Pure bibliographic coupling and co-citation graph score without text features.
+  5. *Hybrid-Persona Baseline (strongest simple baseline):* SPECTER2 persona vector plus a BM25s pseudo-query fused by RRF, i.e. the system with no citation signal, no facet features and no MMR, given the same tuning budget on the tuning set ($\gamma_{\text{rec}}$ and pseudo-query length). It isolates what graph, facets and MMR add beyond a well-tuned hybrid retriever.
+* **Reference Points (anchors, not baselines to beat):** *Random* (10 papers drawn uniformly from the eligible pool, averaged over 100 draws) is the floor; *Oracle@10* (all in-corpus Discovery references ranked first) is the ceiling that coverage and $K=10$ allow.
 * **Component Ablations:**
   - *No-MMR:* Disables diversity re-ranking ($\lambda_{\text{div}} = 0$).
   - *No-Graph:* Content-only ranking ($w_{\text{cite}} = 0$).
-  - *No-Facets:* Dense-only ranking without GLiNER task/method alignment ($w_{\text{facet}} = 0$).
+  - *No-Facets:* Dense-only ranking without any GLiNER-facet-driven feature ($w_{\text{facet}} = w_{\text{nov}} = 0$).
 * **Formal Success Hypotheses:**
-  - **$H_1$ (Accuracy):** The proposed hybrid model achieves statistically significant improvements in Discovery NDCG@10 and Discovery Recall@10 over all four baselines on the held-out test cohort using paired bootstrap testing with Benjamini-Hochberg (FDR) multiple-testing correction at $\alpha = 0.05$. Effect sizes (Cohen's $d$) are reported.
-  - **$H_2$ (Diversity):** MMR diversification significantly increases OpenAlex Topic Entropy with $\le 3\%$ relative degradation in Discovery NDCG@10.
+  - **$H_1$ (Accuracy):** The proposed hybrid model achieves statistically significant improvements in Discovery NDCG@10 and Discovery Recall@10 over all five baselines (Popularity, Lexical, Dense Centroid, Citation-Only, Hybrid-Persona) on the held-out test cohort using paired bootstrap testing with Benjamini-Hochberg (FDR) multiple-testing correction at $\alpha = 0.05$. Effect sizes (Cohen's $d$) are reported.
+  - **$H_2$ (Diversity, non-inferiority):** MMR diversification increases OpenAlex Topic Entropy (paired bootstrap, one-sided, BH-corrected), and Discovery NDCG@10 is non-inferior: the upper end of the 95% bootstrap CI of the relative NDCG@10 loss is $\le 3\%$. The minimum detectable effect at $N_{\text{test}}=320$ is reported alongside, so a non-significant result is read as "inconclusive", not "no effect".
 
 #### 2. LLM-Based User Simulation Harness (Track 2: Interactive Session Dynamics)
-* **Simulation Framework:** Follows established simulation paradigms (Agent4Rec, RecAgent). Instantiates 30 LLM researcher personas seeded from actual OpenAlex author profiles using a single fixed LLM checkpoint (exact model name and version recorded in the report) that is not used anywhere in the recommendation pipeline, evaluated across 5 random seeds with 95% bootstrap confidence intervals.
+* **Simulation Framework:** Follows established simulation paradigms (Agent4Rec, RecAgent). Instantiates 30 LLM researcher personas seeded from actual OpenAlex author profiles using a single fixed LLM checkpoint (exact model name and version recorded in the report) that is not used anywhere in the recommendation pipeline, evaluated across 5 simulator seeds (the recommender is deterministic, so seeds vary only the LLM's sampling) with 95% bootstrap confidence intervals.
 * **Simulated Agent Click Policy:** For each feed turn, the agent evaluates displayed paper titles and abstracts against its active persona goal. Papers rated $\ge 4/5$ receive a `click`, papers rated $5/5$ receive a `save`, and papers rated $\le 2/5$ receive a `skip`.
 * **Independent Topic Labeling & Shift Protocol:** 
   - Topic A (core persona) and Topic B (exploration topic) are distinct OpenAlex subfields within CS/AI (e.g., NLP moving to Information Retrieval).
@@ -201,8 +205,10 @@ Local SQLite database storing structured records:
   1. *Persona-Only Static:* Recommendations driven purely by $\mathbf{p}_u$ (zero session adaptation).
   2. *Session-Only Decay:* Recommendations driven purely by decayed session clicks $\mathbf{v}_t^{\text{session}}$ (zero persona retention).
   3. *Static Uniform Blend:* Fixed 50/50 linear blend of persona and un-decayed session mean.
-  4. *Proposed Hybrid Recommender:* Dynamic position-decay session state combined with recency-weighted persona and negative feedback penalty.
-* **Success Hypothesis $H_3$:** The Hybrid Recommender achieves significantly lower Pivot Latency ($k_{\text{pivot}}$) than Persona-Only and Static Blend, while maintaining significantly higher unforced retention ($\text{Retention}@3 \ge 70\%$) than Session-Only upon re-engaging with Topic A.
+  4. *Proposed Hybrid Recommender:* Dynamic EMA session state combined with recency-weighted persona and negative feedback penalty.
+  5. *Hybrid + Pivot Gate (optional variant):* The Hybrid with a divergence-gated session reset (hard reset when the clicked paper is far from the current session vector). Included only to test whether the gate helps; $H_3$ is stated for arm 4.
+  - All arms share the same candidate generator, citation / facet signals and MMR, and differ only in the user-state terms. Every arm's first feed (turn 0) is built from the persona; Pivot Latency is censored at the maximum number of turns if Topic B is never reached.
+* **Success Hypothesis $H_3$:** The Hybrid Recommender (arm 4) has lower Pivot Latency ($k_{\text{pivot}}$) than Persona-Only and Static Blend, and higher unforced retention than Session-Only upon re-engaging with Topic A. Each claim is supported if the 95% paired-bootstrap CI of the difference (over persona × seed units) excludes 0. Absolute levels (for example $\text{Retention}@3$ around 70%) are **descriptive targets**, reported honestly, not pass/fail criteria.
 
 #### 3. First-Stage Retrieval Benchmark (CSFCube & LitSearch)
 * Evaluates candidate generation Recall@100 across BM25s, SPECTER2, and Hybrid RRF.
@@ -213,6 +219,19 @@ Local SQLite database storing structured records:
 #### 5. Profile & Explanation Faithfulness Audit (Core)
 * CLI script sampling 100 recommendation explanations:
   - **Extractive Grounding Rate:** Percentage of displayed facet spans and evidence sentences existing verbatim in the abstract (Target: 100%).
-  - **Feature Normalization:** Raw score contributions are z-score normalized across the candidate pool $M=100$ so feature scales do not distort explanation ranking.
+  - **Feature Normalization:** Score contributions ($\text{weight}\times$ min-max-scaled feature value, binary indicators raw 0/1) are computed on the $[0,1]$ scale across the candidate pool $M=100$ so feature scales do not distort explanation ranking and a single rare hit is not inflated into a dominant contribution.
   - **Counterfactual Necessity Test (Drop-Out Rate):** When the explained feature is zeroed out ($\Delta \text{Score} = 0$), measures the percentage of papers that drop out of the Top-10 feed or drop $\ge 3$ ranks (verifying that the explanation highlights a necessary ranking signal, accounting for MMR re-ordering).
   - **Explanation Coverage:** Percentage of Top-10 recommendations successfully annotated with grounded explanations (Target: $\ge 90\%$).
+
+---
+
+## 7. Known Limitations (Explicitly Out of Scope)
+
+The following are acknowledged limitations. They are not mitigated in this project and must be stated in the final report:
+1. **OpenAlex data quality.** Author merges/splits, incomplete `referenced_works`, and date semantics (preprint vs journal vs indexing date) are not audited. OpenAlex is used as-is, with only the cohort filters described in §4.
+2. **Pretrained-model contamination.** SPECTER2 (trained on citation data), GLiNER and any alternative encoder may have seen test-period papers or links. BM25 is the only fully clean reference; no further mitigation is attempted.
+3. **Proxy validity.** The references of paper $B$ are a proxy for reading need, not a human-judged relevance set; relevant papers the author did not cite count as misses.
+4. **Coverage-based cohort selection.** The cohort is restricted to authors whose references the crawl reached and who are first or single authors (early-career skew), and the corpus is built around them, so absolute metrics describe this constructed corpus, not open-web retrieval. The realized cohort size is reported as obtained.
+5. **Simulator reproducibility.** Track 2 is a circular sanity check that relies on one hosted LLM whose behaviour may change across versions, so it may not reproduce exactly even when cached responses are released.
+6. **Feasibility not pre-verified.** Compute time, realized corpus size and cohort size are not verified before implementation, and there are no formal go/no-go gates.
+7. **Ethics and licences.** No formal ethics review is performed beyond consent for the small user pilot; OpenAlex terms and model licences are used as documented by their providers.
