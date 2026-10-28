@@ -6,6 +6,7 @@ from pathlib import Path
 import time
 from typing import Any, Dict, Generator, List, Optional
 import httpx
+from paperfeed.common.config import load_dotenv_file
 from paperfeed.common.logger import get_logger
 
 logger = get_logger("openalex.client")
@@ -29,7 +30,7 @@ DEFAULT_SELECT_FIELDS = [
 
 
 class OpenAlexClient:
-    """Robust OpenAlex API client supporting polite pool, rate limiting, and caching."""
+    """Robust OpenAlex API client supporting polite pool, API keys, rate limiting, and caching."""
 
     def __init__(
         self,
@@ -41,6 +42,7 @@ class OpenAlexClient:
         timeout_seconds: float = 30.0,
         max_retries: int = 5,
     ) -> None:
+        load_dotenv_file()
         self.base_url = base_url.rstrip("/")
         self.email = email or os.environ.get("OPENALEX_EMAIL", "researcher@example.edu")
         self.api_key = api_key or os.environ.get("OPENALEX_API_KEY")
@@ -57,6 +59,7 @@ class OpenAlexClient:
         }
         if self.api_key:
             headers["api_key"] = self.api_key
+            headers["Authorization"] = f"Bearer {self.api_key}"
 
         self.session = httpx.Client(headers=headers, timeout=self.timeout_seconds)
 
@@ -73,6 +76,8 @@ class OpenAlexClient:
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         if "mailto" not in params and self.email:
             params["mailto"] = self.email
+        if self.api_key and "api_key" not in params:
+            params["api_key"] = self.api_key
 
         delay = 1.0
         for attempt in range(1, self.max_retries + 1):
@@ -82,7 +87,22 @@ class OpenAlexClient:
                 if response.status_code == 200:
                     return response.json()
                 elif response.status_code == 429:
-                    logger.warning(f"Rate limited (429) by OpenAlex. Backing off for {delay:.1f}s...")
+                    error_msg = ""
+                    try:
+                        error_data = response.json()
+                        error_msg = f": {error_data.get('message', '')}"
+                    except Exception:
+                        pass
+                    
+                    if "Insufficient budget" in error_msg:
+                        logger.error(
+                            f"OpenAlex 429 Insufficient Budget{error_msg}. "
+                            "Please set your free OpenAlex API key via OPENALEX_API_KEY environment variable "
+                            "or in configs/default.yaml. Obtain one free at https://openalex.org"
+                        )
+                    else:
+                        logger.warning(f"Rate limited (429) by OpenAlex{error_msg}. Backing off for {delay:.1f}s...")
+                    
                     time.sleep(delay)
                     delay *= 2.0
                 elif 500 <= response.status_code < 600:
@@ -167,4 +187,3 @@ class OpenAlexClient:
     def close(self) -> None:
         """Close underlying HTTP client."""
         self.session.close()
-

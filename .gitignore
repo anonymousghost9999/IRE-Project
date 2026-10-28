@@ -25,6 +25,11 @@ wheels/
 *.egg
 .pytest_cache/
 
+# Environment secrets
+.env
+*.env
+.env.*
+
 # IDE & OS
 .vscode/
 .idea/
