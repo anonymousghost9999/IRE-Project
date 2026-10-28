@@ -23,6 +23,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+.pytest_cache/
 
 # IDE & OS
 .vscode/
@@ -32,16 +33,25 @@ wheels/
 .DS_Store
 Thumbs.db
 
-# Data & Models cache
-*.sqlite3
-data/
+# Data & Models cache (ignored except .gitkeep)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/artifacts/*
+!data/artifacts/.gitkeep
+data/*.sqlite3
 cache/
 models/
 artifacts/
 scratch/
-council-report-20261027-1357.html
-council-report-20261027-1357.md
-council-transcript-20261027-1357.md
-council-transcript-20261026-2051.md
 
+# Results & Runs (ignored except .gitkeep)
+results/runs/*
+!results/runs/.gitkeep
 
+# Council / temporary review files
+council-report-*
+council-transcript-*

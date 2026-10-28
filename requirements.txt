@@ -1,0 +1,28 @@
+# Core Runtime & Data
+httpx>=0.27.0
+requests>=2.31.0
+numpy>=1.24.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+scipy>=1.11.0
+pyyaml>=6.0.0
+tqdm>=4.66.0
+pydantic>=2.0.0
+pytest>=8.0.0
+
+# Retrieval & NLP
+bm25s>=0.1.10
+faiss-cpu>=1.8.0
+scikit-learn>=1.4.0
+torch>=2.2.0
+transformers>=4.40.0
+sentence-transformers>=3.0.0
+
+# Information Extraction (GLiNER & SciSpaCy)
+gliner>=0.2.0
+
+# Extended Scope
+lightgbm>=4.3.0
+shap>=0.45.0
+streamlit>=1.35.0
+
