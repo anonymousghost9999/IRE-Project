@@ -14,9 +14,9 @@ logger = get_logger("data.db")
 class DatabaseManager:
     """Manages SQLite connection, schema lifecycle, batch insertions, and queries."""
 
-    def __init__(self, db_path: Optional[str | Path] = None, cutoff_year: int = 2023) -> None:
+    def __init__(self, db_path: Optional[str | Path] = None, cutoff_year: Optional[int] = None) -> None:
+        cfg = load_config()
         if db_path is None:
-            cfg = load_config()
             db_path = cfg.get("paths", {}).get("sqlite_db", "data/processed/paperfeed.sqlite3")
         
         self.db_path = Path(db_path)
@@ -24,7 +24,7 @@ class DatabaseManager:
             self.db_path = find_project_root() / self.db_path
 
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.cutoff_year = cutoff_year
+        self.cutoff_year = cutoff_year if cutoff_year is not None else cfg.get("project", {}).get("cutoff_year", 2024)
         self.init_db()
 
     def get_connection(self) -> sqlite3.Connection:

@@ -74,12 +74,12 @@ def test_select_target_paper_b():
 
 
 def test_filter_author_plausibility_temporal_guard():
-    # Contains future paper > 2023 -> Must reject
+    # Contains future paper > 2024 -> Must reject
     leaked_history = [
-        {"id": "W1", "publication_year": 2022, "primary_topic": {"field": {"id": "fields/17"}}},
-        {"id": "W2", "publication_year": 2024, "primary_topic": {"field": {"id": "fields/17"}}},
+        {"id": "W1", "publication_year": 2023, "primary_topic": {"field": {"id": "fields/17"}}},
+        {"id": "W2", "publication_year": 2025, "primary_topic": {"field": {"id": "fields/17"}}},
     ]
-    assert filter_author_plausibility(leaked_history, cutoff_year=2023) is False
+    assert filter_author_plausibility(leaked_history, cutoff_year=2024) is False
 
 
 def test_filter_author_plausibility_volume_and_domain():
@@ -152,7 +152,7 @@ class MockOpenAlexClient:
         self.history_works_by_author = history_works_by_author
 
     def paginate_works(self, filter_str: str, **kwargs):
-        if "publication_year:2024" in filter_str:
+        if "publication_year:2025" in filter_str:
             for w in self.target_works:
                 yield w
         elif "author.id:" in filter_str:
@@ -167,9 +167,9 @@ def test_cohort_miner_pipeline(tmp_path: Path):
     mock_target_works = [
         {
             "id": "https://openalex.org/W_TARGET_1",
-            "title": "2024 Target Paper A",
-            "publication_year": 2024,
-            "publication_date": "2024-03-01",
+            "title": "2025 Target Paper A",
+            "publication_year": 2025,
+            "publication_date": "2025-03-01",
             "authorships": [{"author": {"id": "https://openalex.org/A100", "display_name": "Author 100"}, "author_position": "first"}],
             "referenced_works": ["https://openalex.org/W_REF_1"],
             "primary_topic": {"display_name": "Natural Language Processing", "field": {"id": "fields/17"}},
@@ -180,19 +180,19 @@ def test_cohort_miner_pipeline(tmp_path: Path):
         "A100": [
             {
                 "id": "https://openalex.org/W_HIST_1",
-                "publication_year": 2021,
+                "publication_year": 2022,
                 "primary_topic": {"field": {"id": "fields/17", "display_name": "Computer Science"}},
             },
             {
                 "id": "https://openalex.org/W_HIST_2",
-                "publication_year": 2022,
+                "publication_year": 2024,
                 "primary_topic": {"field": {"id": "fields/17", "display_name": "Computer Science"}},
             },
         ]
     }
 
     mock_client = MockOpenAlexClient(mock_target_works, mock_history)
-    miner = CohortMiner(client=mock_client, cutoff_year=2023, target_year=2024)
+    miner = CohortMiner(client=mock_client, cutoff_year=2024, target_year=2025)
 
     out_file = tmp_path / "candidate_authors.jsonl"
     candidates = miner.mine_candidate_authors(max_candidates=5, output_file=out_file)

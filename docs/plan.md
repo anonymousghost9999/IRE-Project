@@ -78,7 +78,7 @@ A disk cache keyed by `(item id, model name/version, config hash)` (D§15.3), us
 
 ## Phase 1 — Data Acquisition, Corpus and Ground Truth
 
-**Goal:** a frozen, leakage-free corpus of about 100,000 CS/AI papers published up to $T$, a time-bounded citation graph, and the evaluation cohort with ground truth (D§4, P§4).
+**Goal:** a frozen, leakage-free corpus of about 120,000 CS/AI/IR papers published up to $T$ (2024), a time-bounded citation graph, and the evaluation cohort with ground truth (D§4, P§4).
 
 ### 1.1 OpenAlex client
 - Base: `https://api.openalex.org`, endpoint `/works` (and `/authors` where useful).
@@ -90,23 +90,24 @@ A disk cache keyed by `(item id, model name/version, config hash)` (D§15.3), us
 **Fields to request per work:** `id`, `doi`, `title`, `publication_year`, `publication_date`, `type`, `language`, `authorships` (author ID, `author_position`), `primary_location` (venue), `referenced_works`, `counts_by_year`, `abstract_inverted_index`, `primary_topic` (with its subfield, field and domain), `topics`.
 
 ### 1.2 Candidate evaluation authors (D§4.1 step 1, D§13.1)
-1. Query works with `publication_year = T+1` (2024) whose primary topic is in Computer Science.
+1. Query works with `publication_year = T+1` (2025) whose primary topic is in Computer Science.
 2. For each such work, take the **first author** (`author_position = "first"`), or the only author of a single-author paper. One seed author per paper $B$.
-3. If an author has several qualifying 2024 papers, choose one $B$ by a fixed rule (for example the earliest `publication_date`) and record the rule.
-4. Keep authors with at least one paper published $\le T$ (cold-start slices need 1+ papers; the zero-publication slice is a re-run, Phase 6).
+3. If an author has several qualifying 2025 papers, choose one $B$ by a fixed rule (for example the earliest `publication_date`, tie-broken by lowest work ID) and record the rule.
+4. Keep authors with at least one paper published $\le T$ (2024) (cold-start slices need 1+ papers; the zero-publication slice is a re-run, Phase 6).
 5. Filter implausible author records (for example, too many papers per year, or papers spread over unrelated fields). Record the thresholds.
 6. Over-sample to about **1,000** candidate authors.
 
 **Output:** `candidate_authors.jsonl` (author ID, chosen paper $B$, rule used).
 
 ### 1.3 Author histories
-For each candidate author, fetch all works with `publication_year` $\le T$ (`Authored(u, ≤T)`) and their `referenced_works` (gives $\text{Citations}(u,\le T)$).
+For each candidate author, fetch all works with `publication_year` $\le T$ (2024) (`Authored(u, ≤T)`) and their `referenced_works` (gives $\text{Citations}(u,\le T)$).
 
 ### 1.4 Corpus expansion (D§4.1 steps 2–3)
 - **Hop 1:** the references of every authored paper, plus papers published $\le T$ that cite an authored paper.
-- **Hop 2:** references of hop-1 papers, with a per-author cap so the corpus stays near 100k.
-- **Fill:** random CS/AI papers published $\le T$ (OpenAlex `sample` with a fixed `seed`), up to about 100,000 papers in total.
-- **Rules:** never add a paper with year $> T$; never use paper $B$ (or any work with year $> T$) as a traversal source. $\text{Ref}(B)$ is fetched only for ground truth and coverage (1.9).
+- **Hop 2:** references of hop-1 papers, with a per-author cap (150) so the corpus stays near 120k.
+- **Foundational CS/AI/IR Anchors:** top-cited classic papers published $\le T$ in CS, AI, ML, and IR (e.g. ~15k papers) ensuring high graph connectivity.
+- **Fill:** random and topic-stratified CS/AI/IR papers published $\le T$ (OpenAlex `sample` with a fixed `seed`), up to about 120,000 papers in total.
+- **Rules:** never add a paper with year $> T$ (2024); never use paper $B$ (2025) (or any work with year $> T$) as a traversal source. $\text{Ref}(B)$ is fetched only for ground truth and coverage (1.9).
 - Keep `type` in {article, preprint, proceedings paper} and English language; record what was dropped.
 
 ### 1.5 Abstract reconstruction (D§4.2)

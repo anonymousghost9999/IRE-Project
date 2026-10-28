@@ -62,13 +62,13 @@ To understand and predict what a researcher wants, the system operates across th
      * **Track 1 (Macro-Evaluation on Real Human Behavior via LFO):**
        - Evaluates whether the system can discover and recommend the papers a real researcher ended up citing in their next publication $B$.
        - *Offline Session Inactive Note:* In Track 1 (LFO), because evaluation is performed against historical publication records without a live interactive clickstream, the session vector is inactive ($\mathbf{v}_t^{\text{session}} = \mathbf{0}$, $\mathcal{S}_u^{-} = \emptyset$). Session dynamics are tested explicitly in Track 2.
-       - **Temporal Guard ($\leq T$):** Historical papers published up to year $T=2023$ build the user profile $\mathbf{p}_u$. For target Paper $B$ published in $T+1=2024$, its ground truth references are strictly restricted to papers published $\leq T$ (excluding references published in $T+1$ which could not have been known at time $T$).
+       - **Temporal Guard ($\leq T$):** Historical papers published up to year $T=2024$ build the user profile $\mathbf{p}_u$. For target Paper $B$ published in $T+1=2025$, its ground truth references are strictly restricted to papers published $\leq T$ (excluding references published in $T+1$ which could not have been known at time $T$).
        - **Resolution of Discovery vs. Re-Citation:**
          - The **headline evaluation objective** is strictly **Discovery Recall@10** and **Discovery NDCG@10**, evaluated on the set of previously uncited references:
            $$\text{Discovery}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \notin \text{Citations}(u, \leq T) \cup \text{Authored}(u, \leq T) \}$$
          - Re-citations ($\text{ReCitation}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \in \text{Citations}(u, \leq T) \setminus \text{Authored}(u, \leq T) \}$) are evaluated strictly in a separate **diagnostic ablation** where the past citation filter is temporarily lifted, measuring the citation graph's capacity to retrieve familiar foundation papers.
        - **Leakage-Free Corpus Construction:** 
-         - The candidate corpus $\mathcal{C}$ (~100,000 papers) is constructed strictly outward from the evaluation authors' publication and citation neighborhoods **as of $\leq T$**, supplemented with random CS/AI papers published $\leq T$.
+         - The candidate corpus $\mathcal{C}$ (~120,000 papers) is constructed strictly outward from the evaluation authors' publication and citation neighborhoods **as of $\leq T$**, supplemented with random CS/AI papers published $\leq T$.
          - The crawl **never** traverses the reference list of target paper $B$ ($T+1$), preventing ground-truth stuffing.
          - Candidate retrieval is strictly restricted to papers with $\text{year} \leq T$.
          - Both unconstrained Recall and in-corpus Recall are reported alongside the empirical Corpus Coverage Ceiling.

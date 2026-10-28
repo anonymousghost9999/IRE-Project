@@ -89,11 +89,11 @@ If the schedule slips, the minimum deliverable is: corpus + LFO harness + BM25 /
 - **Author-first construction.**
   1. Select candidate evaluation authors (first or single authors; §13.1). Over-sample (for example ~1000) because the cohort is filtered after coverage is known.
   2. Crawl each author's papers with year $\le T$, their reference lists, and 1–2 hop citation neighbourhoods, **as of $\le T$**.
-  3. Fill to about 100,000 papers with random CS/AI papers published $\le T$.
-  4. The crawl **never** traverses the reference list of target paper $B$ ($T+1$). $\text{Ref}(B)$ is read only to compute coverage and ground truth.
+  3. Anchor with top-cited foundational CS/AI/IR papers plus thematic fill published $\le T$ (2024), scaling to $\ge 120,000$ papers.
+  4. The crawl **never** traverses the reference list of target paper $B$ ($T+1 = 2025$). $\text{Ref}(B)$ is read only to compute coverage and ground truth.
 - **Coverage report (before any model runs).** Fraction of $\text{Discovery}(B\mid u)$ present in $\mathcal{C}$ with an abstract, before and after cohort filtering. Recall is reported against the full reference set and the in-corpus subset, next to the empirical Corpus Coverage Ceiling.
 - **Selection bias to state in the report.** Keeping authors with $\ge 5$ in-corpus discovery references selects authors whose references the crawl happened to reach, and single/first authors skew early-career (prob.md §4).
-- **Candidate restriction.** Only papers with year $\le T$ are retrievable. Corpus ≥ 100,000 papers is the target size.
+- **Candidate restriction.** Only papers with year $\le T$ (2024) are retrievable. Corpus target is $\ge 120,000$ CS/AI/IR papers.
 
 ### 4.2 Abstracts (P5)
 OpenAlex stores abstracts as `abstract_inverted_index`. The ingestion step reconstructs plain text from word positions.

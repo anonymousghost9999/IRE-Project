@@ -2,9 +2,9 @@
 
 Governed by docs/prob.md §4 and docs/design.md §4.1, §13.1.
 Enforces:
-1. Target paper B selection strictly in T+1 (2024) in Computer Science.
+1. Target paper B selection strictly in T+1 (2025) in Computer Science.
 2. First/sole author extraction with deterministic tie-breaking (earliest date, lowest ID).
-3. Author history retrieval strictly <= T (2023) with temporal assertion guards.
+3. Author history retrieval strictly <= T (2024) with temporal assertion guards.
 4. Anomaly filtering (implausible productivity > 15 papers/year, non-CS profile).
 5. History slice stratification (Warm >= 5, Moderate 3-4, Sparse 1-2).
 """
@@ -123,7 +123,7 @@ def select_target_paper_b(
 
 def filter_author_plausibility(
     authored_works_T: List[Dict[str, Any]],
-    cutoff_year: int = 2023,
+    cutoff_year: int = 2024,
     max_papers_per_year: float = 15.0,
     require_cs_topic: bool = True,
 ) -> bool:
@@ -228,8 +228,8 @@ class CohortMiner:
     def __init__(
         self,
         client: OpenAlexClient,
-        cutoff_year: int = 2023,
-        target_year: int = 2024,
+        cutoff_year: int = 2024,
+        target_year: int = 2025,
         max_papers_per_year: float = 15.0,
     ) -> None:
         self.client = client

@@ -10,7 +10,8 @@ from paperfeed.common.cache import DiskCache
 
 def test_load_default_config():
     cfg = load_config("configs/default.yaml")
-    assert cfg["project"]["cutoff_year"] == 2023
+    assert cfg["project"]["cutoff_year"] == 2024
+    assert cfg["project"]["target_year"] == 2025
     assert cfg["retrieval"]["candidate_pool_size"] == 100
     assert cfg["retrieval"]["channel_depth"] == 200
     assert cfg["cohort"]["total_authors"] == 400

@@ -4,8 +4,8 @@
 project:
   name: "paperfeed"
   version: "0.1.0"
-  cutoff_year: 2023              # Evaluation cutoff T (papers <= T)
-  target_year: 2024              # Target future paper B year (T+1)
+  cutoff_year: 2024              # Evaluation cutoff T (papers <= T)
+  target_year: 2025              # Target future paper B year (T+1)
   random_seed: 42
 
 paths:
@@ -69,4 +69,23 @@ cohort:
   test_authors: 320              # 80% held-out test split
   min_discovery_references: 5    # |Discovery(B|u) cap C| >= 5
   max_neighborhood_per_author: 150 # bound Hop-2 neighborhood crawl
+
+corpus:
+  target_size: 120000            # Target corpus scale (120,000 papers)
+  hop2_per_author_cap: 150       # Bound hop-2 traversal per author
+  foundational_anchor_count: 15000 # Top-cited classic CS/AI/IR papers <= T
+  focus_subfields:
+    - "subfields/1702"           # Artificial Intelligence
+    - "subfields/1710"           # Information Systems
+  focus_topics:
+    - "T10286"                   # Information Retrieval and Search Behavior
+    - "T10203"                   # Recommender Systems and Techniques
+    - "T14435"                   # Information Retrieval and Data Mining
+    - "T12072"                   # Machine Learning and Algorithms
+    - "T12535"                   # Machine Learning and Data Classification
+    - "T10320"                   # Neural Networks and Applications
+    - "T10028"                   # Natural Language Processing & Topic Modeling
+    - "T12026"                   # Explainable Artificial Intelligence (XAI)
+    - "T13904"                   # Artificial Intelligence Applications
+
 
