@@ -11,12 +11,14 @@ from paperfeed.data.cohort import (
     save_candidate_authors,
     select_target_paper_b,
 )
+from paperfeed.data.crawl import CorpusCrawler
 from paperfeed.data.db import DatabaseManager
 
 __all__ = [
     "DatabaseManager",
     "CandidateAuthor",
     "CohortMiner",
+    "CorpusCrawler",
     "classify_history_slice",
     "clean_id",
     "extract_first_author",
