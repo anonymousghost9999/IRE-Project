@@ -12,12 +12,19 @@ from paperfeed.data.db import DatabaseManager
 class MockOpenAlexCrawlerClient:
     """Mock OpenAlex client for crawler testing without live network calls."""
 
-    def __init__(self, works_db: Dict[str, Dict[str, Any]]) -> None:
+    def __init__(self, works_db: Dict[str, Dict[str, Any]], raw_cache_dir: Optional[Path] = None) -> None:
         self.works_db = works_db
+        self.raw_cache_dir = raw_cache_dir or Path("/dummy/raw")
 
     def fetch_work(self, work_id: str, **kwargs) -> Optional[Dict[str, Any]]:
         clean = work_id.replace("https://openalex.org/", "").strip()
         return self.works_db.get(clean) or self.works_db.get(work_id)
+
+    def fetch_works_batch(self, work_ids: List[str], **kwargs):
+        for wid in work_ids:
+            work = self.fetch_work(wid)
+            if work:
+                yield work
 
     def paginate_works(self, filter_str: str, **kwargs):
         for w in self.works_db.values():

@@ -6,7 +6,7 @@ from pathlib import Path
 import time
 from typing import Any, Dict, Generator, List, Optional
 import httpx
-from paperfeed.common.config import load_dotenv_file
+from paperfeed.common.config import find_project_root, load_dotenv_file
 from paperfeed.common.logger import get_logger
 
 logger = get_logger("openalex.client")
@@ -39,14 +39,16 @@ class OpenAlexClient:
         api_key: Optional[str] = None,
         raw_cache_dir: str | Path = "data/raw",
         requests_per_second: float = 10.0,
-        timeout_seconds: float = 30.0,
-        max_retries: int = 5,
+        timeout_seconds: float = 20.0,
+        max_retries: int = 2,
     ) -> None:
         load_dotenv_file()
         self.base_url = base_url.rstrip("/")
         self.email = email or os.environ.get("OPENALEX_EMAIL", "researcher@example.edu")
         self.api_key = api_key or os.environ.get("OPENALEX_API_KEY")
         self.raw_cache_dir = Path(raw_cache_dir)
+        if not self.raw_cache_dir.is_absolute():
+            self.raw_cache_dir = find_project_root() / self.raw_cache_dir
         self.raw_cache_dir.mkdir(parents=True, exist_ok=True)
         self.min_delay = 1.0 / max(requests_per_second, 1.0)
         self.last_request_time = 0.0
@@ -131,6 +133,28 @@ class OpenAlexClient:
         except Exception as e:
             logger.warning(f"Unable to fetch work {work_id}: {e}")
             return None
+
+    def fetch_works_batch(
+        self,
+        work_ids: List[str],
+        chunk_size: int = 50,
+        select_fields: Optional[List[str]] = None,
+    ) -> Generator[Dict[str, Any], None, None]:
+        """Fetch multiple works in parallel batches using pipe-separated openalex_id filter."""
+        clean_ids = [w.replace("https://openalex.org/", "").strip() for w in work_ids if w]
+        clean_ids = list(dict.fromkeys(clean_ids))  # preserve order, unique
+        for i in range(0, len(clean_ids), chunk_size):
+            chunk = clean_ids[i : i + chunk_size]
+            filter_str = f"openalex_id:{'|'.join(chunk)}"
+            try:
+                for work in self.paginate_works(
+                    filter_str=filter_str,
+                    select_fields=select_fields,
+                    per_page=len(chunk),
+                ):
+                    yield work
+            except Exception as e:
+                logger.warning(f"Batch fetch error for chunk of {len(chunk)} works: {e}")
 
     def paginate_works(
         self,

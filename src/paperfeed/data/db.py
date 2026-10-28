@@ -164,10 +164,12 @@ class DatabaseManager:
         return len(valid_citations)
 
     def get_paper(self, paper_id: str) -> Optional[Dict[str, Any]]:
-        """Fetch single paper row as dict."""
+        """Fetch single paper row as dict, matching both bare ID and full OpenAlex URI."""
+        bare_id = paper_id.replace("https://openalex.org/", "").strip()
+        full_uri = f"https://openalex.org/{bare_id}"
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM papers WHERE paper_id = ?", (paper_id,))
+            cursor.execute("SELECT * FROM papers WHERE paper_id = ? OR paper_id = ?", (full_uri, bare_id))
             row = cursor.fetchone()
             return dict(row) if row else None
 

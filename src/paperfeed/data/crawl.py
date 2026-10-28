@@ -24,7 +24,17 @@ from paperfeed.openalex.client import OpenAlexClient
 
 logger = get_logger("data.crawl")
 
-ALLOWED_TYPES = {"article", "preprint", "proceedings-article", "book-chapter"}
+ALLOWED_TYPES = {
+    "article",
+    "conference-paper",
+    "proceedings-article",
+    "proceedings",
+    "preprint",
+    "book-chapter",
+    "review",
+    "book",
+    "dissertation",
+}
 
 
 class CorpusCrawler:
@@ -136,6 +146,8 @@ class CorpusCrawler:
     def crawl_authored_papers(self, candidate_authors: List[CandidateAuthor]) -> Set[str]:
         """
         Crawl and store all historical papers authored by the candidate authors <= T.
+        First ingests from already cached raw author history files on local disk (instant),
+        then fetches any remaining missing papers using batched OpenAlex requests.
         """
         logger.info(f"Crawling authored papers for {len(candidate_authors)} candidate authors.")
         all_authored_ids: Set[str] = set()
@@ -143,60 +155,98 @@ class CorpusCrawler:
             for pid in author.authored_paper_ids_T:
                 all_authored_ids.add(clean_id(pid))
 
-        # Check existing papers in DB
-        to_fetch = [pid for pid in all_authored_ids if not self.db.get_paper(pid)]
-        logger.info(f"{len(to_fetch)} authored papers need to be fetched.")
-
+        # 1. Fast local cache ingestion: load from existing author_history_*.json files
+        cached_files = list(self.client.raw_cache_dir.glob("author_history_*.json"))
+        logger.info(f"Scanning {len(cached_files)} local raw author history cache files...")
         batch: List[Dict[str, Any]] = []
-        fetched_count = 0
-        for pid in to_fetch:
-            work = self.client.fetch_work(pid)
-            if work:
-                batch.append(work)
-                if len(batch) >= 100:
-                    self.ingest_works_batch(batch)
-                    fetched_count += len(batch)
-                    batch = []
+        local_ingested = 0
+
+        for fpath in cached_files:
+            try:
+                with open(fpath, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                works = data.get("results", [])
+                for w in works:
+                    batch.append(w)
+                    if len(batch) >= 200:
+                        p_count, _ = self.ingest_works_batch(batch)
+                        local_ingested += p_count
+                        batch = []
+            except Exception as e:
+                logger.warning(f"Error reading cache file {fpath}: {e}")
 
         if batch:
-            self.ingest_works_batch(batch)
-            fetched_count += len(batch)
+            p_count, _ = self.ingest_works_batch(batch)
+            local_ingested += p_count
 
-        logger.info(f"Ingested {fetched_count} authored papers into corpus database.")
+        logger.info(f"Ingested {local_ingested} papers from local cache into database.")
+
+        # 2. Check remaining missing authored papers in DB
+        to_fetch = [pid for pid in all_authored_ids if not self.db.get_paper(pid)]
+        logger.info(f"{len(to_fetch)} authored papers still need to be fetched via network.")
+
+        if to_fetch:
+            batch = []
+            network_ingested = 0
+            for work in self.client.fetch_works_batch(to_fetch, chunk_size=50):
+                batch.append(work)
+                if len(batch) >= 100:
+                    p_count, _ = self.ingest_works_batch(batch)
+                    network_ingested += p_count
+                    batch = []
+            if batch:
+                p_count, _ = self.ingest_works_batch(batch)
+                network_ingested += p_count
+            logger.info(f"Fetched and ingested {network_ingested} papers via batched network calls.")
+
+        total_in_db = self.db.count_papers()
+        logger.info(f"Authored papers stage complete. Database now contains {total_in_db} papers.")
         return all_authored_ids
 
-    def crawl_hop1_neighborhood(self, authored_paper_ids: Set[str]) -> Set[str]:
+    def crawl_hop1_neighborhood(self, authored_paper_ids: Set[str], max_seed_papers: int = 500) -> Set[str]:
         """
         Hop 1 Expansion:
-        - Outgoing: references of authored papers.
-        - Incoming: papers published <= T that cite an authored paper.
+        - Outgoing: references of authored papers (automatically stored during paper ingestion).
+        - Incoming: papers published <= T citing active authored papers.
+        Prioritizes papers with 5-300 citations to avoid OpenAlex 504 gateway timeouts on mega-papers.
         """
-        logger.info(f"Starting Hop-1 expansion for {len(authored_paper_ids)} authored papers.")
+        logger.info(f"Starting fast Hop-1 citation expansion for up to {max_seed_papers} active authored papers.")
         hop1_ids: Set[str] = set()
 
-        for pid in authored_paper_ids:
-            paper = self.db.get_paper(pid)
-            if not paper:
-                continue
+        # Prioritize active authored papers with 5 to 300 citations
+        with self.db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT paper_id FROM papers 
+                WHERE in_candidates = 1 AND citation_count_T BETWEEN 5 AND 300 
+                ORDER BY year DESC, citation_count_T DESC 
+                LIMIT ?
+                """,
+                (max_seed_papers,),
+            )
+            seed_pids = [clean_id(r[0]) for r in cursor.fetchall()]
 
-            # Inbound citations: query works citing pid published <= cutoff_year
+        logger.info(f"Selected {len(seed_pids)} active authored papers for Hop-1 inbound citation query.")
+
+        for pid in seed_pids:
             filter_str = f"cites:{pid},to_publication_date:{self.cutoff_year}-12-31"
             citing_works: List[Dict[str, Any]] = []
             try:
                 for work in self.client.paginate_works(
                     filter_str=filter_str,
                     cache_prefix=f"cites_{pid}",
-                    max_results=100,
+                    max_results=30,
                 ):
                     citing_works.append(work)
                     hop1_ids.add(clean_id(work.get("id", "")))
             except Exception as e:
-                logger.warning(f"Failed to fetch citations for paper {pid}: {e}")
+                logger.warning(f"Skipping slow paper {pid}: {e}")
 
             if citing_works:
                 self.ingest_works_batch(citing_works)
 
-        logger.info(f"Hop-1 discovered {len(hop1_ids)} neighboring papers.")
+        logger.info(f"Hop-1 discovered and ingested {len(hop1_ids)} neighboring citing papers.")
         return hop1_ids
 
     def crawl_hop2_neighborhood(
@@ -206,33 +256,31 @@ class CorpusCrawler:
     ) -> Set[str]:
         """
         Hop 2 Expansion:
-        - References of Hop 1 papers, bounded by per_author_cap to prevent exponential explosion.
+        - References of Hop 1 papers, fetched in high-speed batches (chunk_size=50).
         """
         cap = per_author_cap or self.hop2_per_author_cap
-        logger.info(f"Starting Hop-2 expansion (cap {cap} per author).")
+        total_cap = min(cap * 100, 15000)
+        logger.info(f"Starting Hop-2 expansion (fetching up to {total_cap} referenced papers).")
         hop2_ids: Set[str] = set()
 
-        # Gather references of existing papers in DB up to cap
         with self.db.get_connection() as conn:
             cursor = conn.cursor()
             cursor.execute(
                 "SELECT DISTINCT target_paper_id FROM paper_citations LIMIT ?",
-                (cap * len(authored_paper_ids),),
+                (total_cap,),
             )
             rows = cursor.fetchall()
 
         target_refs = [clean_id(r[0]) for r in rows if not self.db.get_paper(clean_id(r[0]))]
-        logger.info(f"Found {len(target_refs)} Hop-2 target references to fetch.")
+        logger.info(f"Found {len(target_refs)} Hop-2 target references to fetch via batched network calls.")
 
         batch: List[Dict[str, Any]] = []
-        for ref_id in target_refs[: cap * len(authored_paper_ids)]:
-            work = self.client.fetch_work(ref_id)
-            if work:
-                batch.append(work)
-                hop2_ids.add(clean_id(ref_id))
-                if len(batch) >= 100:
-                    self.ingest_works_batch(batch)
-                    batch = []
+        for work in self.client.fetch_works_batch(target_refs, chunk_size=50):
+            batch.append(work)
+            hop2_ids.add(clean_id(work.get("id", "")))
+            if len(batch) >= 100:
+                self.ingest_works_batch(batch)
+                batch = []
 
         if batch:
             self.ingest_works_batch(batch)
