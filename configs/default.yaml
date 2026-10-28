@@ -73,6 +73,12 @@ cohort:
 corpus:
   target_size: 120000            # Target corpus scale (120,000 papers)
   hop2_per_author_cap: 150       # Bound hop-2 traversal per author
+  # Hop-1 inbound citations (feeds co-citation CC). Fair per-author budget, processed rank by rank.
+  hop1_seeds_per_author: 5       # best authored papers per author used as citation seeds
+  hop1_max_citing_per_paper: 40  # citing papers (<= T) fetched per seed paper
+  hop1_min_citations: 1          # skip seeds nobody cites yet
+  hop1_max_citations: 300        # skip mega-papers (OpenAlex 504 timeouts)
+  hop1_total_new_cap: 40000      # stop once this many new papers were added by hop-1
   foundational_anchor_count: 15000 # Top-cited classic CS/AI/IR papers <= T
   focus_subfields:
     - "subfields/1702"           # Artificial Intelligence

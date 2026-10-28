@@ -68,7 +68,7 @@ To understand and predict what a researcher wants, the system operates across th
            $$\text{Discovery}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \notin \text{Citations}(u, \leq T) \cup \text{Authored}(u, \leq T) \}$$
          - Re-citations ($\text{ReCitation}(B \mid u) = \{ p \in \text{Ref}(B) \mid \text{year}(p) \leq T \text{ and } p \in \text{Citations}(u, \leq T) \setminus \text{Authored}(u, \leq T) \}$) are evaluated strictly in a separate **diagnostic ablation** where the past citation filter is temporarily lifted, measuring the citation graph's capacity to retrieve familiar foundation papers.
        - **Leakage-Free Corpus Construction:** 
-         - The candidate corpus $\mathcal{C}$ (~120,000 papers) is constructed strictly outward from the evaluation authors' publication and citation neighborhoods **as of $\leq T$**, supplemented with random CS/AI papers published $\leq T$.
+         - The candidate corpus $\mathcal{C}$ (~120,000 papers) is constructed strictly outward from the evaluation authors' publication and citation neighborhoods **as of $\leq T$**, supplemented with CS/AI-focused fill papers published $\leq T$. Papers from other OpenAlex fields that enter through citation neighborhoods are kept, not filtered out.
          - The crawl **never** traverses the reference list of target paper $B$ ($T+1$), preventing ground-truth stuffing.
          - Candidate retrieval is strictly restricted to papers with $\text{year} \leq T$.
          - Both unconstrained Recall and in-corpus Recall are reported alongside the empirical Corpus Coverage Ceiling.
@@ -177,9 +177,9 @@ Local SQLite database storing structured records:
   2. *Moderate History Authors:* $3\text{--}4$ historical papers prior to $T$.
   3. *Sparse History Authors:* $1\text{--}2$ historical papers prior to $T$.
   4. *Zero-Publication Seed-Only Slice:* Profile $\mathbf{p}_u$ built strictly from 3 onboarding seed topics derived from the author's primary OpenAlex Topics (0 historical papers provided), directly validating user cold-start. **No oracle information:** in this slice $\mathcal{E}_u=\emptyset$ (the system knows nothing about the user) and the ground truth is $\text{Ref}(B)\cap\{\text{year}\le T\}\setminus\text{Authored}(u,\le T)$, i.e. past citations are not removed because a new user has none. Results are compared only with baselines run in the same slice, not with slices 1–3.
-  5. *Item Cold-Start Slice:* Recall stratified by candidate citation count at time $T$: Fresh / zero-citation preprints ($\le 1$ citation) vs. Established papers ($\ge 20$ citations).
+  5. *Item Cold-Start Slice:* Recall stratified by candidate citation count at time $T$: Fresh / zero-citation preprints ($\le 1$ citation and published in the last two years, $\text{year}\ge T-1$) vs. Established papers ($\ge 20$ citations, published since 2012) (window caveat: OpenAlex `counts_by_year` starts in 2012, so `citation_count_T` counts citations in 2012–$T$ only and is complete only for papers published from 2012 on.).
 * **Core Baselines to Beat:**
-  1. *Popularity Baseline:* Most-cited recent papers in the user's primary domain (counts $\leq T$).
+  1. *Popularity Baseline:* Most-cited recent papers in the user's primary domain (counts $\leq T$, restricted to papers published since 2012 so the citation window is complete).
   2. *Lexical Baseline:* BM25s retrieval using the user's combined past paper titles/abstracts as a query.
   3. *Dense Centroid Baseline:* Unweighted mean of SPECTER2 embeddings across user's past papers (no recency weighting, no decay).
   4. *Citation-Only Baseline:* Pure bibliographic coupling and co-citation graph score without text features.

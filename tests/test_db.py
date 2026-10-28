@@ -91,3 +91,19 @@ def test_temporal_citation_leakage_rejection(tmp_path):
     assert inserted == 1  # Only the 2022 citation was inserted
     assert db.count_citations() == 1
 
+
+
+def test_reingesting_a_paper_keeps_its_facets(tmp_path):
+    """INSERT OR REPLACE would delete the row and cascade-delete its facets; the upsert must not."""
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    row = {"paper_id": "https://openalex.org/W1", "title": "old", "abstract": "a", "authors": "[]", "year": 2020,
+           "publication_date": None, "venue": None, "doi": None, "url": None, "citation_count_T": 1,
+           "primary_topic_id": None, "subfield_id": None, "field_id": None, "in_candidates": 1}
+    db.insert_papers_batch([row])
+    with db.get_connection() as conn:
+        conn.execute("INSERT INTO paper_facets (paper_id, facet_type, facet_value) VALUES (?,?,?)", (row["paper_id"], "task", "retrieval"))
+    db.insert_papers_batch([dict(row, title="new", citation_count_T=9)])
+    with db.get_connection() as conn:
+        assert conn.execute("SELECT COUNT(*) FROM paper_facets").fetchone()[0] == 1
+    paper = db.get_paper("W1")
+    assert paper["title"] == "new" and paper["citation_count_T"] == 9

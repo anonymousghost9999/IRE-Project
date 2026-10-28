@@ -103,12 +103,13 @@ A disk cache keyed by `(item id, model name/version, config hash)` (D§15.3), us
 For each candidate author, fetch all works with `publication_year` $\le T$ (2024) (`Authored(u, ≤T)`) and their `referenced_works` (gives $\text{Citations}(u,\le T)$).
 
 ### 1.4 Corpus expansion (D§4.1 steps 2–3)
-- **Hop 1:** the references of every authored paper, plus papers published $\le T$ that cite an authored paper.
+- **Hop 1:** the references of every authored paper, plus papers published $\le T$ that cite an authored paper (the inbound citations that co-citation CC needs). Budget: up to 5 seed papers per author (most-cited first, with 1–300 citations; mega-papers time out), up to 40 citing papers per seed, processed rank by rank so every author gets their best seed before anyone gets a second, with a global cap of 40,000 newly added papers.
 - **Hop 2:** references of hop-1 papers, with a per-author cap (150) so the corpus stays near 120k.
-- **Foundational CS/AI/IR Anchors:** top-cited classic papers published $\le T$ in CS, AI, ML, and IR (e.g. ~15k papers) ensuring high graph connectivity.
+- **Foundational CS/AI/IR Anchors:** classic papers published $\le T$ in CS, AI, ML, and IR (e.g. ~15k papers) ensuring high graph connectivity, fetched sorted by citations. Selecting them by present-day citation counts nudges corpus membership towards papers that became classics; this is a corpus-construction choice, shared by every system and baseline, and is stated as a limitation.
 - **Fill:** random and topic-stratified CS/AI/IR papers published $\le T$ (OpenAlex `sample` with a fixed `seed`), up to about 120,000 papers in total.
 - **Rules:** never add a paper with year $> T$ (2024); never use paper $B$ (2025) (or any work with year $> T$) as a traversal source. $\text{Ref}(B)$ is fetched only for ground truth and coverage (1.9).
-- Keep `type` in {article, preprint, proceedings paper} and English language; record what was dropped.
+- Keep `type` in {article, preprint, proceedings paper, …} and English language for ordinary papers; record what was dropped. **Exception:** the evaluation authors' own papers (everything in `Authored(u, ≤T)`) are always ingested, whatever their type or language, because their reference lists feed $\text{Citations}(u,\le T)$ and BC/CC. Authored papers that fail the filter are stored as graph nodes only (`in_candidates = false`); they are never recommendable anyway because they are in the exclusion set.
+- Papers outside CS/AI (the crawl pulls in many, for example medicine and engineering) are **kept**. They are legitimate references and act as easy negatives; nothing filters or re-weights the corpus by field.
 
 ### 1.5 Abstract reconstruction (D§4.2)
 - Rebuild text from `abstract_inverted_index` by placing each word at each of its positions and joining in order; normalize whitespace.
@@ -123,7 +124,7 @@ Create `schema.sql` with these tables and load the data:
 - `paper_facets`, `facet_canon` (filled in Phase 3)
 - `users`, `user_profiles`, `user_sessions`, `user_interactions` (used by Track 2 and the UI)
 
-`citation_count_T` = sum of `counts_by_year` entries with year $\le T$. **Never** store the present-day `cited_by_count` or the cited-by list as a feature (D§4.3).
+`citation_count_T` = sum of `counts_by_year` entries with year $\le T$. OpenAlex only provides `counts_by_year` from 2012, so this is the citation count in 2012–$T$ and is complete only for papers published since 2012; the item cold-start slice and the Popularity baseline use that window (D§12). **Never** store the present-day `cited_by_count` or the cited-by list as a feature (D§4.3).
 
 ### 1.7 Time-bounded citation graph (D§4.4)
 - Keep only edges whose **citing** paper has year $\le T$.
@@ -140,18 +141,19 @@ For each candidate author:
 - Mark which targets are in the corpus **and** have an abstract (in-corpus targets).
 
 ### 1.9 Cohort selection and split (D§13.1)
+- **Validate target papers first.** Drop an author if their $B$ is not a genuine $T+1$ paper: OpenAlex sometimes dates an old work (a reissue, a merged preprint/journal record) to $T+1$. Two tests, either one drops the author: (a) a paper published $\le T$ in the corpus cites $B$; (b) OpenAlex `counts_by_year` shows citations to $B$ in a year $\le T$. In the first build this removed 294 of 1,000 candidate authors. The API result is cached, so reruns are offline (`--offline`).
 - Keep authors with $|\text{Discovery}(B\mid u) \cap \mathcal{C}| \ge 5$.
-- Select up to $N=400$ (record the realized $N$).
+- Select up to $N=400$ (record the realized $N$). Moderate and sparse authors are rare, so every qualifying one is kept first and the rest of the places are filled with a seeded random draw of warm authors; this tilts the cohort towards less-published authors, which the report states.
 - Split into **tuning** (20%, about 80) and **test** (80%, about 320) with a fixed seed, stratified by history-size slice (Warm ≥ 5 papers, Moderate 3–4, Sparse 1–2).
 - Seed topics for the zero-publication slice: the 3 most frequent primary OpenAlex Topics of the author's papers $\le T$ (their display names).
 
-**Output:** `cohort.jsonl`, `ground_truth.jsonl`, `split.json` — frozen and versioned.
+**Output:** `cohort.jsonl`, `ground_truth.jsonl`, `split.json` (written to `data/processed/` by `scripts/build_cohort.py`) — frozen and versioned. $B$ is never counted among its own references (OpenAlex occasionally lists a work among its own references).
 
 ### 1.10 Leakage checker (D§4.4)
 An automated check, run in tests and before every evaluation, asserting that:
 - no candidate paper has year $> T$;
 - no citation edge has `source_year` $> T$;
-- no paper $B$ is in the corpus or used as a crawl source;
+- no paper $B$ is in the corpus or used as a crawl source, and no validated cohort $B$ is cited by any paper in the corpus (a $\le T$ paper citing $B$ means $B$ is not a future paper);
 - `citation_count_T` uses only years $\le T$;
 - for every evaluation user, the persona, facets, BC/CC and pseudo-query use only papers with year $\le T$.
 
@@ -295,7 +297,7 @@ Small fixture corpus: filters remove excluded and future papers; scaling handles
 - **Edge cases:** users with no hits score 0 (not dropped); deterministic tie-breaking; unit tests on hand-computed lists.
 
 ### 6.2 Baselines and anchors (all with the same year filter and $\mathcal{E}_u$)
-1. Popularity: highest `citation_count_T` in the user's primary domain (modal OpenAlex subfield of their papers $\le T$).
+1. Popularity: highest `citation_count_T` among papers published since 2012 (the `counts_by_year` window) in the user's primary domain (modal OpenAlex subfield of their papers $\le T$).
 2. Lexical: BM25s with the concatenated titles and abstracts of the user's past papers as the query.
 3. Dense centroid: unweighted mean SPECTER2 embedding of past papers.
 4. Citation-only: rank by $\log(1+\text{BC}+\text{CC})$.

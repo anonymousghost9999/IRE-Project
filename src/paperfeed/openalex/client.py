@@ -163,9 +163,10 @@ class OpenAlexClient:
         per_page: int = 200,
         max_results: Optional[int] = None,
         cache_prefix: Optional[str] = None,
+        sort: Optional[str] = None,
     ) -> Generator[Dict[str, Any], None, None]:
         """
-        Stream works using cursor-based pagination.
+        Stream works using cursor-based pagination (``sort`` e.g. "cited_by_count:desc").
         Yields work items one by one.
         """
         select = ",".join(select_fields or DEFAULT_SELECT_FIELDS)
@@ -179,6 +180,8 @@ class OpenAlexClient:
                 "per-page": per_page,
                 "cursor": cursor,
             }
+            if sort:
+                params["sort"] = sort
 
             cache_file = None
             if cache_prefix:

@@ -174,3 +174,99 @@ def test_crawler_full_pipeline_offline(
     summary_file = tmp_path / "checkpoints" / "crawl_summary.json"
     assert summary_file.exists()
 
+
+
+def test_authored_paper_bypasses_type_filter_but_is_not_a_candidate(tmp_path: Path):
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    crawler = CorpusCrawler(client=MockOpenAlexCrawlerClient({}), db=db, checkpoint_dir=tmp_path / "ck")
+    editorial = {
+        "id": "https://openalex.org/W_ED",
+        "title": "An editorial by the author",
+        "publication_year": 2022,
+        "type": "editorial",
+        "language": "en",
+        "referenced_works": ["https://openalex.org/W_CITED_BY_AUTHOR"],
+        "abstract_inverted_index": {"Editorial": [0], "text": [1]},
+    }
+    stranger = dict(editorial, id="https://openalex.org/W_OTHER")
+
+    crawler.ingest_works_batch([editorial, stranger], authored_ids={"W_ED"})
+
+    assert db.get_paper("W_OTHER") is None  # non-authored editorial is still filtered out
+    authored = db.get_paper("W_ED")
+    assert authored is not None
+    assert authored["in_candidates"] == 0  # graph node only, never retrievable
+    with db.get_connection() as conn:
+        edges = conn.execute("SELECT target_paper_id FROM paper_citations WHERE source_paper_id = ?", (editorial["id"],)).fetchall()
+    assert [e[0] for e in edges] == ["https://openalex.org/W_CITED_BY_AUTHOR"]  # feeds Citations(u)
+
+
+def test_authored_future_paper_is_still_rejected(tmp_path: Path):
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    crawler = CorpusCrawler(client=MockOpenAlexCrawlerClient({}), db=db, checkpoint_dir=tmp_path / "ck")
+    future = {"id": "https://openalex.org/W_F", "title": "x", "publication_year": 2025, "type": "editorial"}
+    crawler.ingest_works_batch([future], authored_ids={"W_F"})
+    assert db.get_paper("W_F") is None
+
+
+def _author(aid: str, paper_ids: List[str]) -> CandidateAuthor:
+    return CandidateAuthor(aid, aid, "W_B_" + aid, "t", "2025-01-01", [], [], paper_ids, "r", "warm")
+
+
+def test_hop1_seed_selection_is_per_author_and_bounded(tmp_path: Path):
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    crawler = CorpusCrawler(
+        client=MockOpenAlexCrawlerClient({}),
+        db=db,
+        config={"corpus": {"hop1_seeds_per_author": 2, "hop1_min_citations": 1, "hop1_max_citations": 300}},
+        checkpoint_dir=tmp_path / "ck",
+    )
+    counts = {"W_A1": 50, "W_A2": 10, "W_A3": 900, "W_A4": 0, "W_A5": 120, "W_B1": 7}
+    rows = [
+        {"paper_id": f"https://openalex.org/{pid}", "title": pid, "abstract": "x", "authors": "[]", "year": 2020,
+         "publication_date": None, "venue": None, "doi": None, "url": None, "citation_count_T": c,
+         "primary_topic_id": None, "subfield_id": None, "field_id": None, "in_candidates": 1}
+        for pid, c in counts.items()
+    ]
+    db.insert_papers_batch(rows)
+
+    seeds = crawler._select_hop1_seeds([_author("A", ["W_A1", "W_A2", "W_A3", "W_A4", "W_A5"]), _author("B", ["W_B1"]), _author("C", ["W_GONE"])])
+
+    # A: mega-paper (900) and uncited (0) skipped, most-cited first, capped at 2 seeds
+    assert seeds[0] == ["W_A5", "W_A1"]
+    assert seeds[1] == ["W_B1"]
+    assert seeds[2] == []  # unknown papers give no seeds, no crash
+
+
+def test_hop1_total_new_cap_stops_crawl(tmp_path: Path, mock_crawler_corpus):
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    crawler = CorpusCrawler(
+        client=MockOpenAlexCrawlerClient(mock_crawler_corpus),
+        db=db,
+        config={"corpus": {"hop1_total_new_cap": 0}},
+        checkpoint_dir=tmp_path / "ck",
+    )
+    crawler.ingest_works_batch([mock_crawler_corpus["W_AUTH_1"]])
+    assert crawler.crawl_hop1_neighborhood([_author("A501", ["W_AUTH_1"])]) == set()
+
+
+def test_run_pipeline_rejects_unknown_stage(tmp_path: Path, sample_candidate_authors_file: Path):
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    crawler = CorpusCrawler(client=MockOpenAlexCrawlerClient({}), db=db, checkpoint_dir=tmp_path / "ck")
+    with pytest.raises(ValueError):
+        crawler.run_pipeline(sample_candidate_authors_file, stages=["bogus"])
+
+
+def test_foundational_anchors_sort_by_citations_with_distinct_cache_keys(tmp_path: Path):
+    calls = []
+
+    class Recorder(MockOpenAlexCrawlerClient):
+        def paginate_works(self, filter_str: str, **kwargs):
+            calls.append((filter_str, kwargs.get("cache_prefix"), kwargs.get("sort")))
+            return iter(())
+
+    db = DatabaseManager(db_path=tmp_path / "t.sqlite3", cutoff_year=2024)
+    CorpusCrawler(client=Recorder({}), db=db, checkpoint_dir=tmp_path / "ck").crawl_foundational_anchors(target_count=30)
+    assert len(calls) == 3
+    assert all(sort == "cited_by_count:desc" for _, _, sort in calls)
+    assert len({prefix for _, prefix, _ in calls}) == 3  # no shared cache file between queries

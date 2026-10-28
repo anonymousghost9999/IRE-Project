@@ -92,7 +92,11 @@ If the schedule slips, the minimum deliverable is: corpus + LFO harness + BM25 /
   3. Anchor with top-cited foundational CS/AI/IR papers plus thematic fill published $\le T$ (2024), scaling to $\ge 120,000$ papers.
   4. The crawl **never** traverses the reference list of target paper $B$ ($T+1 = 2025$). $\text{Ref}(B)$ is read only to compute coverage and ground truth.
 - **Coverage report (before any model runs).** Fraction of $\text{Discovery}(B\mid u)$ present in $\mathcal{C}$ with an abstract, before and after cohort filtering. Recall is reported against the full reference set and the in-corpus subset, next to the empirical Corpus Coverage Ceiling.
+- **Target validation.** A genuine $T+1$ paper cannot be cited by a paper from $\le T$. Authors whose $B$ is cited in a year $\le T$ (by a corpus paper, or per OpenAlex `counts_by_year`) are dropped: OpenAlex has dated an old work or a merged preprint/journal record to $T+1$, so they would not be a leave-future-out test. In the first build this removed 294 of 1,000 candidate authors.
 - **Selection bias to state in the report.** Keeping authors with $\ge 5$ in-corpus discovery references selects authors whose references the crawl happened to reach, and single/first authors skew early-career (prob.md §4).
+- **Non-CS papers are kept.** The expansion crawl pulls in papers from other OpenAlex fields (about 40% of the corpus in the first build). They are legitimate references and easy negatives, so the corpus is not filtered by field. The in-corpus Topic Entropy and Topic Discovery Rate are computed over all candidates as-is.
+- **Authored papers are always ingested.** The evaluation authors' own papers bypass the type / language filter so their references always feed $\text{Citations}(u,\le T)$, BC and CC; those that would have failed the filter are graph nodes only (`in_candidates = 0`).
+- **Hop-1 inbound citations** (needed for CC) use a fair per-author budget: up to 5 seed papers per author, up to 40 citing papers (≤ $T$) per seed, rank-by-rank across authors, with a global cap on newly added papers (`configs/default.yaml`, `corpus.hop1_*`).
 - **Candidate restriction.** Only papers with year $\le T$ (2024) are retrievable. Corpus target is $\ge 120,000$ CS/AI/IR papers.
 
 ### 4.2 Abstracts (P5)
@@ -274,6 +278,7 @@ The set-level terms in `prob.md` §5 (Intra-List Diversity, Facet Novelty ratio,
 
 - **User cold start:** onboarding seed topics → persona (§7.1). Evaluated explicitly by the *Zero-Publication Seed-Only* slice (§13.1).
 - **Item cold start:** the score has no authority or raw-popularity term. Zero-citation papers can rank through content (SPECTER2, facet match, new method). Evaluated by the *Item Cold-Start* slice (fresh ≤ 1 citation vs established ≥ 20 citations at $T$).
+- **Citation-count window.** OpenAlex `counts_by_year` starts in 2012, so `citation_count_T` is the number of citations in 2012–$T$ and is complete only for papers published from 2012 on; an old paper whose citations all predate 2012 would otherwise look uncited. Hence "fresh" means $\le 1$ citation **and** published in $[T-1, T]$, "established" means $\ge 20$ citations and published since 2012, and the Popularity Baseline ranks papers published since 2012 only.
 - **Popularity fallback** (Popularity Baseline, and a UI fallback when nothing else is available) uses `counts_by_year` up to $T$ only (L4).
 - **New-paper ingestion:** periodic batch (crawl → clean → embed → GLiNER → canonicalize → index). Real-time ingestion is out of scope. The evaluation corpus is a frozen snapshot with year $\le T$.
 
@@ -286,7 +291,7 @@ Everything in this section follows `prob.md` §4 and §6E. Only the implementati
 ### 13.1 Track 1: Leave-Future-Out on OpenAlex (Core)
 **Cohort (R1, R3).**
 - $N=400$ verified first or single authors with target paper $B$ in $T+1=2024$ having $\ge 5$ in-corpus Discovery references.
-- Seed-author rule: one seed author per paper $B$. Authors with implausible histories (too many papers per year, multiple unrelated fields) are filtered; the rule and final count are reported.
+- Seed-author rule: one seed author per paper $B$, and $B$ must be a genuine $T+1$ paper (§4.1). Moderate and sparse authors are rare, so all qualifying ones are kept and the rest of the cohort is filled with seeded warm authors, which tilts the cohort towards less-published authors. Authors with implausible histories (too many papers per year, multiple unrelated fields) are filtered; the rule and final count are reported.
 - Split: **tuning** 80 (20%), **held-out test** 320 (80%). All reported results are on the test split.
 
 **Ground truth.** $\text{Discovery}(B\mid u)$ and $\text{ReCitation}(B\mid u)$ exactly as in `prob.md` §4, with references restricted to year $\le T$ and authored papers (self-citations) removed (R2).

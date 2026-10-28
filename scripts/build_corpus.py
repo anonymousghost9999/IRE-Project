@@ -37,6 +37,13 @@ def parse_args():
         default="data/candidate_authors.jsonl",
         help="Path to candidate authors JSONL file",
     )
+    parser.add_argument(
+        "--stages",
+        nargs="+",
+        choices=["authored", "hop1", "hop2", "anchors", "fill"],
+        default=None,
+        help="Run only these crawl stages (default: all). Every stage is idempotent.",
+    )
     return parser.parse_args()
 
 
@@ -87,6 +94,7 @@ def main():
     summary = crawler.run_pipeline(
         candidate_authors_path=authors_path,
         target_size=args.target_corpus_size,
+        stages=args.stages,
     )
 
     logger.info("==================================================")

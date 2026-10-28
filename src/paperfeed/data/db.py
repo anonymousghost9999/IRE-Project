@@ -134,8 +134,10 @@ class DatabaseManager:
         if not papers:
             return 0
 
+        # UPSERT, not INSERT OR REPLACE: REPLACE deletes the old row first, and with foreign keys on
+        # that cascades to paper_facets / user_interactions, silently wiping them on every re-crawl.
         sql = """
-            INSERT OR REPLACE INTO papers (
+            INSERT INTO papers (
                 paper_id, title, abstract, authors, year, publication_date,
                 venue, doi, url, citation_count_T, primary_topic_id,
                 subfield_id, field_id, in_candidates
@@ -144,6 +146,13 @@ class DatabaseManager:
                 :venue, :doi, :url, :citation_count_T, :primary_topic_id,
                 :subfield_id, :field_id, :in_candidates
             )
+            ON CONFLICT(paper_id) DO UPDATE SET
+                title = excluded.title, abstract = excluded.abstract, authors = excluded.authors,
+                year = excluded.year, publication_date = excluded.publication_date,
+                venue = excluded.venue, doi = excluded.doi, url = excluded.url,
+                citation_count_T = excluded.citation_count_T, primary_topic_id = excluded.primary_topic_id,
+                subfield_id = excluded.subfield_id, field_id = excluded.field_id,
+                in_candidates = excluded.in_candidates
         """
         with self.get_connection() as conn:
             conn.executemany(sql, papers)

@@ -13,6 +13,7 @@ Implements:
    - SQLite batch insertion via DatabaseManager and disk progress tracking.
 """
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -37,6 +38,9 @@ ALLOWED_TYPES = {
 }
 
 
+ALL_STAGES = ["authored", "hop1", "hop2", "anchors", "fill"]
+
+
 class CorpusCrawler:
     """Manages the author-first, time-bounded corpus expansion pipeline."""
 
@@ -59,6 +63,12 @@ class CorpusCrawler:
         self.target_size: int = corpus_cfg.get("target_size", 120000)
         self.hop2_per_author_cap: int = corpus_cfg.get("hop2_per_author_cap", 150)
         self.foundational_anchor_count: int = corpus_cfg.get("foundational_anchor_count", 15000)
+        # Hop-1 (inbound citations, feeds co-citation CC): fair per-author budget
+        self.hop1_seeds_per_author: int = corpus_cfg.get("hop1_seeds_per_author", 5)
+        self.hop1_max_citing_per_paper: int = corpus_cfg.get("hop1_max_citing_per_paper", 40)
+        self.hop1_min_citations: int = corpus_cfg.get("hop1_min_citations", 1)
+        self.hop1_max_citations: int = corpus_cfg.get("hop1_max_citations", 300)
+        self.hop1_total_new_cap: int = corpus_cfg.get("hop1_total_new_cap", 40000)
         self.focus_subfields: List[str] = corpus_cfg.get(
             "focus_subfields", ["subfields/1702", "subfields/1710"]
         )
@@ -92,8 +102,12 @@ class CorpusCrawler:
         self.forbidden_paper_b_ids = {clean_id(i) for i in ids if i}
         logger.info(f"Registered {len(self.forbidden_paper_b_ids)} forbidden target paper B IDs.")
 
-    def is_valid_work(self, work: Dict[str, Any]) -> bool:
-        """Check temporal bounds, publication type, language, and target paper B exclusion."""
+    def is_valid_work(self, work: Dict[str, Any], enforce_type_lang: bool = True) -> bool:
+        """Check temporal bounds, publication type, language, and target paper B exclusion.
+
+        ``enforce_type_lang=False`` is used only for the evaluation authors' own papers: their
+        reference lists must always feed Citations(u, <=T), whatever the publication type.
+        """
         if not work:
             return False
 
@@ -115,6 +129,9 @@ class CorpusCrawler:
         if pub_date and pub_date > f"{self.cutoff_year}-12-31":
             return False
 
+        if not enforce_type_lang:
+            return True
+
         # Type filter
         work_type = work.get("type", "")
         if work_type and work_type not in ALLOWED_TYPES:
@@ -127,15 +144,28 @@ class CorpusCrawler:
 
         return True
 
-    def ingest_works_batch(self, works: List[Dict[str, Any]]) -> Tuple[int, int]:
-        """Parse and insert a batch of OpenAlex works into SQLite database."""
+    def ingest_works_batch(
+        self,
+        works: List[Dict[str, Any]],
+        authored_ids: Optional[Set[str]] = None,
+    ) -> Tuple[int, int]:
+        """Parse and insert a batch of OpenAlex works into SQLite database.
+
+        Works whose ID is in ``authored_ids`` bypass the type / language filter. If they would have
+        failed it, they are stored as graph nodes only (``in_candidates = 0``): their references
+        still count towards Citations(u) and BC/CC, but they are never retrievable. Authored papers
+        are always in the exclusion set, so this loses nothing for recommendation.
+        """
         paper_rows: List[Dict[str, Any]] = []
         citation_edges: List[Tuple[str, str, int]] = []
 
         for w in works:
-            if not self.is_valid_work(w):
+            is_authored = bool(authored_ids) and clean_id(w.get("id", "")) in authored_ids
+            if not self.is_valid_work(w, enforce_type_lang=not is_authored):
                 continue
             p_row, c_list = DatabaseManager.parse_openalex_work(w, cutoff_year=self.cutoff_year)
+            if is_authored and not self.is_valid_work(w):
+                p_row["in_candidates"] = 0
             paper_rows.append(p_row)
             citation_edges.extend(c_list)
 
@@ -169,14 +199,14 @@ class CorpusCrawler:
                 for w in works:
                     batch.append(w)
                     if len(batch) >= 200:
-                        p_count, _ = self.ingest_works_batch(batch)
+                        p_count, _ = self.ingest_works_batch(batch, authored_ids=all_authored_ids)
                         local_ingested += p_count
                         batch = []
             except Exception as e:
                 logger.warning(f"Error reading cache file {fpath}: {e}")
 
         if batch:
-            p_count, _ = self.ingest_works_batch(batch)
+            p_count, _ = self.ingest_works_batch(batch, authored_ids=all_authored_ids)
             local_ingested += p_count
 
         logger.info(f"Ingested {local_ingested} papers from local cache into database.")
@@ -191,11 +221,11 @@ class CorpusCrawler:
             for work in self.client.fetch_works_batch(to_fetch, chunk_size=50):
                 batch.append(work)
                 if len(batch) >= 100:
-                    p_count, _ = self.ingest_works_batch(batch)
+                    p_count, _ = self.ingest_works_batch(batch, authored_ids=all_authored_ids)
                     network_ingested += p_count
                     batch = []
             if batch:
-                p_count, _ = self.ingest_works_batch(batch)
+                p_count, _ = self.ingest_works_batch(batch, authored_ids=all_authored_ids)
                 network_ingested += p_count
             logger.info(f"Fetched and ingested {network_ingested} papers via batched network calls.")
 
@@ -203,50 +233,74 @@ class CorpusCrawler:
         logger.info(f"Authored papers stage complete. Database now contains {total_in_db} papers.")
         return all_authored_ids
 
-    def crawl_hop1_neighborhood(self, authored_paper_ids: Set[str], max_seed_papers: int = 500) -> Set[str]:
+    def _select_hop1_seeds(self, candidate_authors: List[CandidateAuthor]) -> List[List[str]]:
+        """Per author, the authored papers (<= T) used as inbound-citation seeds, best first.
+
+        Papers outside [hop1_min_citations, hop1_max_citations] are skipped (no citers to find, or
+        mega-papers that trigger OpenAlex 504 timeouts). Among the rest, the most-cited come first
+        because they have the most citing papers, hence the most co-citation evidence.
         """
-        Hop 1 Expansion:
-        - Outgoing: references of authored papers (automatically stored during paper ingestion).
-        - Incoming: papers published <= T citing active authored papers.
-        Prioritizes papers with 5-300 citations to avoid OpenAlex 504 gateway timeouts on mega-papers.
+        seeds_by_author: List[List[str]] = []
+        for author in candidate_authors:
+            ids = [clean_id(pid) for pid in author.authored_paper_ids_T]
+            rows: List[Dict[str, Any]] = []
+            for i in range(0, len(ids), 500):
+                rows.extend(self.db.get_papers_batch([f"https://openalex.org/{x}" for x in ids[i : i + 500]]))
+            eligible = [
+                r
+                for r in rows
+                if self.hop1_min_citations <= (r["citation_count_T"] or 0) <= self.hop1_max_citations
+            ]
+            eligible.sort(key=lambda r: (-(r["citation_count_T"] or 0), -(r["year"] or 0), r["paper_id"]))
+            seeds_by_author.append([clean_id(r["paper_id"]) for r in eligible[: self.hop1_seeds_per_author]])
+        return seeds_by_author
+
+    def crawl_hop1_neighborhood(self, candidate_authors: List[CandidateAuthor]) -> Set[str]:
         """
-        logger.info(f"Starting fast Hop-1 citation expansion for up to {max_seed_papers} active authored papers.")
+        Hop 1 Expansion (inbound citations, needed for co-citation CC):
+        - Outgoing: references of authored papers (stored when the papers are ingested).
+        - Incoming: papers published <= T that cite an authored paper, up to
+          ``hop1_max_citing_per_paper`` per seed paper and ``hop1_seeds_per_author`` seeds per author.
+        Seeds are processed rank by rank (every author's best seed first, then every author's
+        second seed, ...) so the global cap ``hop1_total_new_cap`` on newly added papers never starves
+        the authors at the end of the list.
+        """
+        seeds_by_author = self._select_hop1_seeds(candidate_authors)
+        n_seeds = sum(len(x) for x in seeds_by_author)
+        logger.info(
+            f"Hop-1 citation expansion: {n_seeds} seed papers across {len(candidate_authors)} authors "
+            f"({sum(1 for x in seeds_by_author if not x)} authors have no eligible seed)."
+        )
+
         hop1_ids: Set[str] = set()
+        new_papers = 0
+        for rank in range(self.hop1_seeds_per_author):
+            for seeds in seeds_by_author:
+                if rank >= len(seeds):
+                    continue
+                if new_papers >= self.hop1_total_new_cap:
+                    logger.info(f"Hop-1 new-paper cap ({self.hop1_total_new_cap}) reached; stopping.")
+                    return hop1_ids
+                pid = seeds[rank]
+                filter_str = f"cites:{pid},to_publication_date:{self.cutoff_year}-12-31"
+                citing_works: List[Dict[str, Any]] = []
+                try:
+                    for work in self.client.paginate_works(
+                        filter_str=filter_str,
+                        cache_prefix=f"cites_{pid}",
+                        max_results=self.hop1_max_citing_per_paper,
+                    ):
+                        citing_works.append(work)
+                        hop1_ids.add(clean_id(work.get("id", "")))
+                except Exception as e:
+                    logger.warning(f"Skipping slow paper {pid}: {e}")
 
-        # Prioritize active authored papers with 5 to 300 citations
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT paper_id FROM papers 
-                WHERE in_candidates = 1 AND citation_count_T BETWEEN 5 AND 300 
-                ORDER BY year DESC, citation_count_T DESC 
-                LIMIT ?
-                """,
-                (max_seed_papers,),
-            )
-            seed_pids = [clean_id(r[0]) for r in cursor.fetchall()]
+                if citing_works:
+                    before = self.db.count_papers()
+                    self.ingest_works_batch(citing_works)
+                    new_papers += self.db.count_papers() - before
 
-        logger.info(f"Selected {len(seed_pids)} active authored papers for Hop-1 inbound citation query.")
-
-        for pid in seed_pids:
-            filter_str = f"cites:{pid},to_publication_date:{self.cutoff_year}-12-31"
-            citing_works: List[Dict[str, Any]] = []
-            try:
-                for work in self.client.paginate_works(
-                    filter_str=filter_str,
-                    cache_prefix=f"cites_{pid}",
-                    max_results=30,
-                ):
-                    citing_works.append(work)
-                    hop1_ids.add(clean_id(work.get("id", "")))
-            except Exception as e:
-                logger.warning(f"Skipping slow paper {pid}: {e}")
-
-            if citing_works:
-                self.ingest_works_batch(citing_works)
-
-        logger.info(f"Hop-1 discovered and ingested {len(hop1_ids)} neighboring citing papers.")
+        logger.info(f"Hop-1 discovered {len(hop1_ids)} citing papers ({new_papers} new to the corpus).")
         return hop1_ids
 
     def crawl_hop2_neighborhood(
@@ -310,11 +364,15 @@ class CorpusCrawler:
         for filter_str in queries:
             batch: List[Dict[str, Any]] = []
             try:
-                # OpenAlex sorts by relevance or citations; paginate works
+                # Sorted by citations so these really are the classics. The cache key hashes the whole
+                # filter: a truncated prefix made the AI and Information-Systems queries share one cache
+                # file, so the second query silently re-read the first one's results.
+                key = hashlib.md5(filter_str.encode()).hexdigest()[:10]
                 for work in self.client.paginate_works(
                     filter_str=filter_str,
-                    cache_prefix=f"foundational_{filter_str[:25]}",
+                    cache_prefix=f"foundational_{key}",
                     max_results=per_query_limit,
+                    sort="cited_by_count:desc",
                 ):
                     batch.append(work)
                     anchor_ids.add(clean_id(work.get("id", "")))
@@ -378,9 +436,11 @@ class CorpusCrawler:
         self,
         candidate_authors_path: str | Path,
         target_size: Optional[int] = None,
+        stages: Optional[List[str]] = None,
     ) -> Dict[str, Any]:
         """
-        Run the complete corpus expansion pipeline in sequence:
+        Run the corpus expansion pipeline in sequence (``stages`` selects a subset of
+        authored, hop1, hop2, anchors, fill; every stage is idempotent and resumable):
         1. Load candidate authors and register forbidden target paper B IDs.
         2. Ingest authored papers.
         3. Hop 1 expansion (references + citing works).
@@ -396,19 +456,27 @@ class CorpusCrawler:
         self.set_forbidden_paper_b_ids(paper_b_ids)
 
         # Tier 1: Authored papers
-        authored_ids = self.crawl_authored_papers(candidates)
+        run = set(stages or ALL_STAGES)
+        unknown = run - set(ALL_STAGES)
+        if unknown:
+            raise ValueError(f"Unknown crawl stages {sorted(unknown)}; choose from {ALL_STAGES}")
+
+        # authored_paper_ids_T is read from the cohort file, so this set is needed even if skipped
+        authored_ids = {clean_id(pid) for c in candidates for pid in c.authored_paper_ids_T}
+        if "authored" in run:
+            authored_ids = self.crawl_authored_papers(candidates)
 
         # Tier 1: Hop-1 expansion
-        hop1_ids = self.crawl_hop1_neighborhood(authored_ids)
+        hop1_ids = self.crawl_hop1_neighborhood(candidates) if "hop1" in run else set()
 
         # Tier 1: Hop-2 expansion
-        hop2_ids = self.crawl_hop2_neighborhood(authored_ids)
+        hop2_ids = self.crawl_hop2_neighborhood(authored_ids) if "hop2" in run else set()
 
         # Tier 2: Foundational classic anchors
-        anchor_ids = self.crawl_foundational_anchors()
+        anchor_ids = self.crawl_foundational_anchors() if "anchors" in run else set()
 
         # Tier 3: Thematic fill
-        final_papers = self.crawl_thematic_fill(target_total=target)
+        final_papers = self.crawl_thematic_fill(target_total=target) if "fill" in run else self.db.count_papers()
         final_citations = self.db.count_citations()
 
         summary = {

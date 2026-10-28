@@ -11,6 +11,9 @@ Enforces:
 
 from dataclasses import asdict, dataclass
 import json
+import glob
+import random
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from paperfeed.common.logger import get_logger
@@ -346,3 +349,92 @@ class CohortMiner:
 
         return candidates
 
+
+
+# ---------------------------------------------------------------------------
+# Cohort selection, tuning / test split and zero-publication seed topics (Phase 1, Step 1.9)
+# ---------------------------------------------------------------------------
+
+SLICE_ORDER = ("warm", "moderate", "sparse")
+
+
+def select_cohort(
+    candidates: List[CandidateAuthor],
+    n_discovery_in_corpus: Dict[str, int],
+    n_total: int = 400,
+    min_discovery: int = 5,
+    seed: int = 42,
+) -> List[CandidateAuthor]:
+    """
+    Keep authors with |Discovery(B|u) & C| >= min_discovery and pick up to n_total of them.
+
+    Moderate and sparse authors are rare, so every qualifying one is kept first and the remaining
+    places are filled with a seeded random draw of warm authors. This keeps the cold-start slices
+    large enough to report (it shifts the cohort towards less-published authors, which the report
+    states). The result is sorted by author ID so it is deterministic.
+    """
+    eligible = [c for c in candidates if n_discovery_in_corpus.get(c.author_id, 0) >= min_discovery]
+    rare = sorted((c for c in eligible if c.history_size_slice != "warm"), key=lambda c: c.author_id)
+    warm = sorted((c for c in eligible if c.history_size_slice == "warm"), key=lambda c: c.author_id)
+
+    chosen = rare[:n_total]
+    room = n_total - len(chosen)
+    if room > 0:
+        random.Random(seed).shuffle(warm)
+        chosen += warm[:room]
+    return sorted(chosen, key=lambda c: c.author_id)
+
+
+def split_cohort(
+    cohort: List[CandidateAuthor],
+    tuning_fraction: float = 0.2,
+    seed: int = 42,
+) -> Dict[str, List[str]]:
+    """Stratified (by history-size slice) tuning / test split of author IDs, fixed by ``seed``."""
+    tuning: List[str] = []
+    test: List[str] = []
+    for slice_name in SLICE_ORDER:
+        ids = sorted(c.author_id for c in cohort if c.history_size_slice == slice_name)
+        random.Random(f"{seed}-{slice_name}").shuffle(ids)
+        n_tune = round(len(ids) * tuning_fraction)
+        if len(ids) >= 2:
+            n_tune = max(n_tune, 1)
+        tuning += ids[:n_tune]
+        test += ids[n_tune:]
+    return {"tuning": sorted(tuning), "test": sorted(test)}
+
+
+def load_topic_names(raw_dir: str | Path) -> Dict[str, str]:
+    """Map OpenAlex Topic IDs to display names using the cached raw OpenAlex responses."""
+    names: Dict[str, str] = {}
+    for fpath in glob.glob(str(Path(raw_dir) / "*.json")):
+        try:
+            with open(fpath, "r", encoding="utf-8") as f:
+                results = json.load(f).get("results", [])
+        except (OSError, ValueError):  # a file may be mid-write while a crawl is running
+            continue
+        for work in results:
+            topics = [work.get("primary_topic")] + list(work.get("topics") or [])
+            for t in topics:
+                if t and t.get("id") and t.get("display_name"):
+                    names[t["id"]] = t["display_name"]
+    return names
+
+
+def seed_topics_for_author(
+    topic_ids_of_authored: List[str],
+    topic_names: Dict[str, str],
+    k: int = 3,
+) -> List[str]:
+    """The k most frequent primary Topics of the author's papers (display names), for the zero-publication slice."""
+    counts = Counter(t for t in topic_ids_of_authored if t and t != "UNKNOWN")
+    ranked = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
+    return [topic_names.get(tid, tid) for tid, _ in ranked]
+
+
+def work_cited_before_publication(work: Dict[str, Any], cutoff_year: int) -> bool:
+    """True if OpenAlex reports citations to this work in a year <= T, i.e. it is not a genuine T+1 paper."""
+    return any(
+        int(e.get("year", 9999)) <= cutoff_year and int(e.get("cited_by_count", 0)) > 0
+        for e in work.get("counts_by_year", [])
+    )
