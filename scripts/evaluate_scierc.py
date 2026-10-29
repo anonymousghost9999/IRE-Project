@@ -260,14 +260,15 @@ def main() -> int:
     logger.info("Evaluation finished in %.2fs (%.2fs/doc)", elapsed, elapsed / max(len(docs), 1))
 
     # Write JSON report
-    json_path = args.out_dir / "scierc_benchmark_report.json"
+    report_stem = "scierc_benchmark_report_native" if args.native_labels else "scierc_benchmark_report"
+    json_path = args.out_dir / f"{report_stem}.json"
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(results.to_dict(), f, indent=2)
     logger.info("Saved machine-readable benchmark report: %s", json_path)
 
     # Write Markdown report
     md_content = format_markdown_report(results)
-    md_path = args.out_dir / "scierc_benchmark_report.md"
+    md_path = args.out_dir / f"{report_stem}.md"
     md_path.write_text(md_content, encoding="utf-8")
     logger.info("Saved formatted Markdown report: %s", md_path)
 
