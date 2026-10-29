@@ -475,3 +475,108 @@ def test_session_from_config():
     assert (s.alpha_sess, s.use_gate, s.gamma_pivot) == (0.3, True, 0.25)
     d = SessionState.from_config({}, dim=2)
     assert (d.alpha_sess, d.use_gate, d.gamma_pivot) == (0.5, False, 0.35)
+
+
+# ---------------------------------------------------------------------------
+# 4.5 Pseudo-query builder
+# ---------------------------------------------------------------------------
+
+from paperfeed.user.query import (
+    build_feed_query,
+    build_pseudo_query,
+    most_recent_titles,
+    query_settings,
+    titles_for,
+)
+
+
+@pytest.fixture
+def user_facets():
+    return UserFacets(
+        counts={"canon_task_a": 3, "canon_method_b": 2, "canon_dataset_d": 2, "canon_task_e": 1},
+        types={"canon_task_a": "task", "canon_method_b": "method", "canon_dataset_d": "dataset", "canon_task_e": "task"},
+        names={
+            "canon_task_a": "document retrieval", "canon_method_b": "BM25",
+            "canon_dataset_d": "MS MARCO", "canon_task_e": "query expansion",
+        },
+    )
+
+
+def test_pseudo_query_terms_most_frequent_first_then_titles(user_facets):
+    q = build_pseudo_query(user_facets, ["Dense Passage Retrieval", "ColBERT"], n_terms=3)
+    # ties (BM25 / MS MARCO, both 2) broken by canonical id: canon_dataset_d before canon_method_b
+    assert q == "document retrieval MS MARCO BM25 Dense Passage Retrieval ColBERT"
+
+
+def test_pseudo_query_length_parameter(user_facets):
+    assert build_pseudo_query(user_facets, n_terms=1) == "document retrieval"
+    assert build_pseudo_query(user_facets, n_terms=0, title_texts=["Only A Title"]) == "Only A Title"
+    assert len(build_pseudo_query(user_facets, n_terms=100).split()) == 7  # all four facets, 2+1+2+2 words
+
+
+def test_pseudo_query_empty_and_cleaning(user_facets):
+    assert build_pseudo_query(UserFacets(), []) == ""
+    q = build_pseudo_query(UserFacets(), ["  A Title ", "a title", "", "Untitled", "Another"])
+    assert q == "A Title Another"  # whitespace stripped, duplicate / placeholder / empty titles dropped
+
+
+def test_most_recent_titles_orders_by_year_then_id():
+    papers = [
+        {"paper_id": "W3", "title": "Old", "year": 2018},
+        {"paper_id": "W2", "title": "Newer B", "year": 2023},
+        {"paper_id": "W1", "title": "Newer A", "year": 2023},
+        {"paper_id": "W4", "title": "Newest", "year": 2024},
+    ]
+    assert most_recent_titles(papers, 3) == ["Newest", "Newer A", "Newer B"]
+    assert most_recent_titles([], 3) == []
+
+
+@pytest.fixture
+def title_db(tmp_path):
+    db = DatabaseManager(db_path=tmp_path / "q.sqlite3", cutoff_year=2024)
+
+    def paper(pid, title):
+        return {
+            "paper_id": f"https://openalex.org/{pid}", "title": title, "abstract": "x", "authors": "[]", "year": 2023,
+            "publication_date": None, "venue": None, "doi": None, "url": None, "citation_count_T": 0,
+            "primary_topic_id": None, "subfield_id": None, "field_id": None, "in_candidates": 1,
+        }
+
+    db.insert_papers_batch([paper("W1", "First Paper"), paper("W2", "Second Paper"), paper("W3", "Third Paper")])
+    return db
+
+
+def test_titles_for_keeps_requested_order_and_skips_missing(title_db):
+    assert titles_for(title_db, ["W3", "https://openalex.org/W1", "W404"]) == ["Third Paper", "First Paper"]
+    assert titles_for(title_db, []) == []
+
+
+def test_feed_query_uses_session_titles_when_session_active(user_facets, title_db):
+    session = SessionState(dim=2)
+    session.click("W1", _e(1, 0))
+    session.save("W3", _e(0, 1))
+    authored = [{"paper_id": "W2", "title": "Authored Recent", "year": 2024}]
+    q = build_feed_query(user_facets, session, title_db, authored, n_terms=1)
+    assert q == "document retrieval Third Paper First Paper"  # most recent session paper first, not the authored title
+
+
+def test_feed_query_falls_back_to_recent_authored_when_session_empty(user_facets, title_db):
+    authored = [
+        {"paper_id": f"W{i}", "title": f"Authored {i}", "year": 2020 + i} for i in range(1, 6)
+    ]
+    expected = "document retrieval Authored 5 Authored 4 Authored 3"
+    assert build_feed_query(user_facets, SessionState(dim=2), title_db, authored, n_terms=1) == expected
+    assert build_feed_query(user_facets, None, title_db, authored, n_terms=1) == expected  # Track 1: no session at all
+
+
+def test_feed_query_title_count_parameter(user_facets, title_db):
+    authored = [{"paper_id": f"W{i}", "title": f"Authored {i}", "year": 2020 + i} for i in range(1, 6)]
+    q = build_feed_query(user_facets, None, title_db, authored, n_terms=0, n_titles=1)
+    assert q == "Authored 5"
+
+
+def test_query_settings_from_config():
+    assert query_settings({"user_model": {"pseudo_query_terms": 6, "pseudo_query_titles": 2}}) == {"n_terms": 6, "n_titles": 2}
+    assert query_settings({}) == {"n_terms": 10, "n_titles": 3}
+    from paperfeed.common.config import load_config
+    assert query_settings(load_config()) == {"n_terms": 10, "n_titles": 3}

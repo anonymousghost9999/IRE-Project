@@ -52,6 +52,8 @@ user_model:
   rho_persona_weight: 0.3        # rho: persona weight in retrieval query vector q_t
   gamma_pivot: 0.35              # pivot-gate divergence threshold
   use_pivot_gate: false          # optional divergence-gated session reset
+  pseudo_query_terms: 10         # facet terms in the feed-mode BM25 pseudo-query (tuned for Hybrid-Persona)
+  pseudo_query_titles: 3         # session (or recent authored) paper titles appended to it
 
 scoring_weights:
   w_pers: 1.0                    # fixed
