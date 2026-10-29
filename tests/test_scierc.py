@@ -279,6 +279,59 @@ def test_evaluator_with_precomputed_predictions(sample_scierc_record: dict):
     assert pytest.approx(results.strict_micro.f1) == (2 * 1.0 * 0.5 / 1.5)
 
 
+def test_generic_gold_entities_ignored():
+    """Verify predictions overlapping gold Generic spans are ignored without false positives."""
+    doc = SciERCDocument(
+        doc_key="DOC_GENERIC",
+        sentences=[["This", "approach", "solves", "the", "problem", "."]],
+        gold_ner=[
+            # "This approach" [0, 1] is Generic; "the problem" [3, 4] is Task
+            [[0, 1, "Generic"], [3, 4, "Task"]]
+        ],
+    )
+
+    # Predictions:
+    # 1. "This approach" [0, 1] predicted as Method (overlaps gold Generic)
+    # 2. "the problem" [3, 4] predicted as Task (true positive)
+    predictions = {
+        "DOC_GENERIC": [
+            EntitySpan(start_token=0, end_token=1, label="Method", text="This approach"),
+            EntitySpan(start_token=3, end_token=4, label="Task", text="the problem"),
+        ]
+    }
+
+    evaluator = SciERCEvaluator(eval_labels=EVALUATION_LABELS, ignore_generic=True)
+    results = evaluator.evaluate([doc], predictions=predictions)
+
+    # "This approach" is ignored because it overlaps a gold Generic span
+    assert results.metadata["predictions_ignored_generic"] == 1
+    assert results.total_predicted_entities == 1
+    assert results.total_gold_entities == 1  # only "Task" (Generic is not an eval label)
+
+    # Method has 0 FP because it was ignored
+    assert results.strict_per_label["Method"].tp == 0
+    assert results.strict_per_label["Method"].fp == 0
+    assert results.strict_per_label["Method"].fn == 0
+
+    # Task is exact match
+    assert results.strict_per_label["Task"].tp == 1
+    assert results.strict_per_label["Task"].fp == 0
+    assert results.strict_per_label["Task"].fn == 0
+
+    # Precision should be 1.0 (not depressed to 0.5 by Generic)
+    assert results.strict_micro.precision == 1.0
+    assert results.strict_micro.recall == 1.0
+    assert results.strict_micro.f1 == 1.0
+
+    # If ignore_generic is False, Method counts as FP
+    results_no_ignore = evaluator.evaluate([doc], predictions=predictions, ignore_generic=False)
+    assert results_no_ignore.metadata["predictions_ignored_generic"] == 0
+    assert results_no_ignore.total_predicted_entities == 2
+    assert results_no_ignore.strict_per_label["Method"].fp == 1
+    assert results_no_ignore.strict_micro.precision == 0.5
+
+
+
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
     real_path = Path("data/raw/scierc/test.json")

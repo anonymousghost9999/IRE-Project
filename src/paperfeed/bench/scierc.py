@@ -117,6 +117,10 @@ class SciERCDocument:
                 )
         return spans
 
+    def get_generic_spans(self) -> List[EntitySpan]:
+        """Extract all gold Generic entity spans across sentences."""
+        return self.get_gold_spans(target_labels={"Generic"})
+
 
 def load_scierc_dataset(file_path: Union[str, Path]) -> List[SciERCDocument]:
     """Load SciERC dataset from a JSON/JSONLines file.
@@ -349,10 +353,12 @@ class SciERCEvaluator:
         label_map: Optional[Dict[str, str]] = None,
         eval_labels: Optional[List[str]] = None,
         extractor: Optional[Any] = None,
+        ignore_generic: bool = True,
     ) -> None:
         self.label_map = label_map or DEFAULT_LABEL_MAP
         self.eval_labels = eval_labels or EVALUATION_LABELS
         self.extractor = extractor
+        self.ignore_generic = ignore_generic
 
     def predict_document_spans(self, doc: SciERCDocument) -> List[EntitySpan]:
         """Extract entities from a SciERCDocument using the attached extractor.
@@ -448,6 +454,7 @@ class SciERCEvaluator:
         docs: List[SciERCDocument],
         predictions: Optional[Dict[str, List[EntitySpan]]] = None,
         metadata: Optional[Dict[str, Any]] = None,
+        ignore_generic: Optional[bool] = None,
     ) -> BenchmarkResults:
         """Run full evaluation on a list of SciERCDocuments."""
         strict_accum: Dict[str, List[int]] = {lbl: [0, 0, 0] for lbl in self.eval_labels}
@@ -455,6 +462,8 @@ class SciERCEvaluator:
 
         total_gold = 0
         total_pred = 0
+        total_predictions_ignored_generic = 0
+        should_ignore_generic = self.ignore_generic if ignore_generic is None else ignore_generic
 
         target_labels_set = set(self.eval_labels)
 
@@ -463,12 +472,29 @@ class SciERCEvaluator:
             total_gold += len(gold_spans)
 
             if predictions is not None and doc.doc_key in predictions:
-                pred_spans = predictions[doc.doc_key]
+                pred_spans = list(predictions[doc.doc_key])
             else:
                 pred_spans = self.predict_document_spans(doc)
 
             # Filter pred_spans to target labels
             pred_spans = [p for p in pred_spans if p.label in target_labels_set]
+
+            # If ignore_generic is True, drop any predictions overlapping gold Generic spans
+            if should_ignore_generic:
+                generic_spans = doc.get_generic_spans()
+                if generic_spans:
+                    filtered_preds = []
+                    for p in pred_spans:
+                        overlaps_generic = any(
+                            max(p.start_token, g.start_token) <= min(p.end_token, g.end_token)
+                            for g in generic_spans
+                        )
+                        if overlaps_generic:
+                            total_predictions_ignored_generic += 1
+                        else:
+                            filtered_preds.append(p)
+                    pred_spans = filtered_preds
+
             total_pred += len(pred_spans)
 
             s_counts, r_counts = evaluate_document_spans(gold_spans, pred_spans, self.eval_labels)
@@ -541,6 +567,10 @@ class SciERCEvaluator:
             else 0.0
         )
 
+        run_metadata = dict(metadata or {})
+        run_metadata["ignore_generic"] = should_ignore_generic
+        run_metadata["predictions_ignored_generic"] = total_predictions_ignored_generic
+
         return BenchmarkResults(
             strict_per_label=strict_per_label,
             relaxed_per_label=relaxed_per_label,
@@ -555,7 +585,7 @@ class SciERCEvaluator:
             total_gold_entities=total_gold,
             total_predicted_entities=total_pred,
             total_documents=len(docs),
-            metadata=metadata or {},
+            metadata=run_metadata,
         )
 
 
