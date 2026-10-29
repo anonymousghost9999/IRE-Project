@@ -60,4 +60,4 @@ results/runs/*
 # Council / temporary review files
 council-report-*
 council-transcript-*
-data/
+/data/
