@@ -14,6 +14,7 @@ Evaluates GLiNER (and optional LLM baselines) on the official SciERC release (Lu
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import asdict, dataclass, field
 import json
 import logging
@@ -356,6 +357,11 @@ def evaluate_document_spans(
 ) -> Tuple[Dict[str, Tuple[int, int, int]], Dict[str, Tuple[int, int, int]]]:
     """Evaluate strict and relaxed span matching for one document.
 
+    - Strict matching requires exact token boundary match and label match, using
+      multiset (Counter) 1-to-1 matching to handle duplicate spans consistently.
+    - Relaxed matching requires any token overlap (> 0 tokens) and label match, using
+      greedy 1-to-1 matching sorted by descending IoU.
+
     Returns:
         (strict_counts, relaxed_counts) where each is {label: (tp, fp, fn)}
     """
@@ -366,13 +372,13 @@ def evaluate_document_spans(
         gold_lbl = [g for g in gold_spans if g.label == lbl]
         pred_lbl = [p for p in pred_spans if p.label == lbl]
 
-        # --- 1. Strict Span Matching (exact token boundary + label) ---
-        gold_strict_keys = {(g.start_token, g.end_token) for g in gold_lbl}
-        pred_strict_keys = {(p.start_token, p.end_token) for p in pred_lbl}
+        # --- 1. Strict Span Matching (exact token boundary + label via multiset) ---
+        gold_counter = Counter((g.start_token, g.end_token) for g in gold_lbl)
+        pred_counter = Counter((p.start_token, p.end_token) for p in pred_lbl)
 
-        strict_tp = len(gold_strict_keys & pred_strict_keys)
-        strict_fp = len(pred_lbl) - strict_tp
-        strict_fn = len(gold_lbl) - strict_tp
+        strict_tp = sum((gold_counter & pred_counter).values())
+        strict_fp = sum(pred_counter.values()) - strict_tp
+        strict_fn = sum(gold_counter.values()) - strict_tp
         strict_counts[lbl] = (strict_tp, strict_fp, strict_fn)
 
         # --- 2. Relaxed Span Matching (overlapping token boundary + label) ---

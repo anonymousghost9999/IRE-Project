@@ -131,6 +131,28 @@ def test_strict_and_relaxed_evaluation_logic():
     assert relaxed_counts["Material"] == (0, 1, 0)
 
 
+def test_strict_multiset_matching_duplicate_spans():
+    """Verify multiset strict matching correctly handles duplicate predictions and gold spans."""
+    # Scenario: two identical predictions against one gold span -> TP=1, FP=1, FN=0
+    gold = [EntitySpan(start_token=2, end_token=2, label="Method")]
+    preds = [
+        EntitySpan(start_token=2, end_token=2, label="Method"),
+        EntitySpan(start_token=2, end_token=2, label="Method"),
+    ]
+    strict_counts, relaxed_counts = evaluate_document_spans(gold, preds, ["Method"])
+    assert strict_counts["Method"] == (1, 1, 0)
+    assert relaxed_counts["Method"] == (1, 1, 0)
+
+    # Scenario: two identical predictions against two identical gold spans -> TP=2, FP=0, FN=0
+    gold_dup = [
+        EntitySpan(start_token=2, end_token=2, label="Method"),
+        EntitySpan(start_token=2, end_token=2, label="Method"),
+    ]
+    strict_counts_dup, relaxed_counts_dup = evaluate_document_spans(gold_dup, preds, ["Method"])
+    assert strict_counts_dup["Method"] == (2, 0, 0)
+    assert relaxed_counts_dup["Method"] == (2, 0, 0)
+
+
 def test_load_scierc_dataset_json_and_jsonl(tmp_path: Path, sample_scierc_record: dict):
     """Test loader handles both single-array and JSONL formats."""
     # Test JSONL
