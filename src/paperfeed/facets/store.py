@@ -236,6 +236,23 @@ class FacetStore:
         finally:
             conn.close()
 
+    def get_canonical_names(self, canonical_ids: Sequence[str]) -> Dict[str, Dict[str, str]]:
+        """Canonical cluster entries ``{canonical_id: {'facet_type', 'canonical_name'}}`` for the given IDs only."""
+        ids = list(dict.fromkeys(canonical_ids))
+        results: Dict[str, Dict[str, str]] = {}
+        conn = self._get_connection()
+        try:
+            for i in range(0, len(ids), 500):
+                chunk = ids[i : i + 500]
+                marks = ",".join("?" for _ in chunk)
+                for r in conn.execute(
+                    f"SELECT canonical_id, facet_type, canonical_name FROM facet_canon WHERE canonical_id IN ({marks})", chunk
+                ):
+                    results[r["canonical_id"]] = {"facet_type": r["facet_type"], "canonical_name": r["canonical_name"]}
+            return results
+        finally:
+            conn.close()
+
     def count_facets(self) -> int:
         """Return total row count in paper_facets."""
         conn = self._get_connection()
