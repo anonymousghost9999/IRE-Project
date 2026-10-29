@@ -736,36 +736,43 @@ class SciERCEvaluator:
         fn_r_tot = sum(m.fn for m in relaxed_per_label.values())
         relaxed_micro = LabelMetrics("micro", tp_r_tot, fp_r_tot, fn_r_tot).compute()
 
-        # Macro metrics (average across evaluation labels)
+        # Macro metrics: average over labels with at least one gold entity (gold > 0).
+        # Fallback to averaging all labels if all have zero gold entities.
+        strict_with_gold = [m for m in strict_per_label.values() if (m.tp + m.fn) > 0]
+        strict_eval_set = strict_with_gold if strict_with_gold else list(strict_per_label.values())
+
         strict_macro_f1 = (
-            sum(m.f1 for m in strict_per_label.values()) / len(strict_per_label)
-            if strict_per_label
+            sum(m.f1 for m in strict_eval_set) / len(strict_eval_set)
+            if strict_eval_set
             else 0.0
         )
         strict_macro_p = (
-            sum(m.precision for m in strict_per_label.values()) / len(strict_per_label)
-            if strict_per_label
+            sum(m.precision for m in strict_eval_set) / len(strict_eval_set)
+            if strict_eval_set
             else 0.0
         )
         strict_macro_r = (
-            sum(m.recall for m in strict_per_label.values()) / len(strict_per_label)
-            if strict_per_label
+            sum(m.recall for m in strict_eval_set) / len(strict_eval_set)
+            if strict_eval_set
             else 0.0
         )
 
+        relaxed_with_gold = [m for m in relaxed_per_label.values() if (m.tp + m.fn) > 0]
+        relaxed_eval_set = relaxed_with_gold if relaxed_with_gold else list(relaxed_per_label.values())
+
         relaxed_macro_f1 = (
-            sum(m.f1 for m in relaxed_per_label.values()) / len(relaxed_per_label)
-            if relaxed_per_label
+            sum(m.f1 for m in relaxed_eval_set) / len(relaxed_eval_set)
+            if relaxed_eval_set
             else 0.0
         )
         relaxed_macro_p = (
-            sum(m.precision for m in relaxed_per_label.values()) / len(relaxed_per_label)
-            if relaxed_per_label
+            sum(m.precision for m in relaxed_eval_set) / len(relaxed_eval_set)
+            if relaxed_eval_set
             else 0.0
         )
         relaxed_macro_r = (
-            sum(m.recall for m in relaxed_per_label.values()) / len(relaxed_per_label)
-            if relaxed_per_label
+            sum(m.recall for m in relaxed_eval_set) / len(relaxed_eval_set)
+            if relaxed_eval_set
             else 0.0
         )
 
@@ -782,35 +789,41 @@ class SciERCEvaluator:
         core_fn_r = sum(relaxed_per_label[lbl].fn for lbl in core_labels)
         core_relaxed_micro = LabelMetrics("core_micro", core_tp_r, core_fp_r, core_fn_r).compute()
 
+        core_strict_with_gold = [strict_per_label[lbl] for lbl in core_labels if (strict_per_label[lbl].tp + strict_per_label[lbl].fn) > 0]
+        core_strict_set = core_strict_with_gold if core_strict_with_gold else [strict_per_label[lbl] for lbl in core_labels]
+
         core_strict_macro_f1 = (
-            sum(strict_per_label[lbl].f1 for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.f1 for m in core_strict_set) / len(core_strict_set)
+            if core_strict_set
             else 0.0
         )
         core_strict_macro_p = (
-            sum(strict_per_label[lbl].precision for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.precision for m in core_strict_set) / len(core_strict_set)
+            if core_strict_set
             else 0.0
         )
         core_strict_macro_r = (
-            sum(strict_per_label[lbl].recall for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.recall for m in core_strict_set) / len(core_strict_set)
+            if core_strict_set
             else 0.0
         )
 
+        core_relaxed_with_gold = [relaxed_per_label[lbl] for lbl in core_labels if (relaxed_per_label[lbl].tp + relaxed_per_label[lbl].fn) > 0]
+        core_relaxed_set = core_relaxed_with_gold if core_relaxed_with_gold else [relaxed_per_label[lbl] for lbl in core_labels]
+
         core_relaxed_macro_f1 = (
-            sum(relaxed_per_label[lbl].f1 for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.f1 for m in core_relaxed_set) / len(core_relaxed_set)
+            if core_relaxed_set
             else 0.0
         )
         core_relaxed_macro_p = (
-            sum(relaxed_per_label[lbl].precision for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.precision for m in core_relaxed_set) / len(core_relaxed_set)
+            if core_relaxed_set
             else 0.0
         )
         core_relaxed_macro_r = (
-            sum(relaxed_per_label[lbl].recall for lbl in core_labels) / len(core_labels)
-            if core_labels
+            sum(m.recall for m in core_relaxed_set) / len(core_relaxed_set)
+            if core_relaxed_set
             else 0.0
         )
 

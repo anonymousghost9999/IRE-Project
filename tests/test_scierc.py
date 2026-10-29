@@ -510,6 +510,28 @@ def test_threshold_sweep_filtering():
     assert len(filter_predictions_by_threshold(predictions, 0.95)["DOC_1"]) == 0
 
 
+def test_macro_average_with_zero_gold_labels():
+    """Verify macro average only computes over labels with gold > 0 (e.g. under --limit)."""
+    doc = SciERCDocument(
+        doc_key="D_ZERO_GOLD",
+        sentences=[["Run", "BERT", "on", "classification", "."]],
+        gold_ner=[[[1, 1, "Method"], [3, 3, "Task"]]],
+    )
+    predictions = {
+        "D_ZERO_GOLD": [
+            EntitySpan(1, 1, "Method", "BERT"),
+            EntitySpan(3, 3, "Task", "classification"),
+        ]
+    }
+    evaluator = SciERCEvaluator(eval_labels=EVALUATION_LABELS)
+    results = evaluator.evaluate([doc], predictions=predictions)
+
+    # Method and Task each have F1=1.0. The other 3 labels have gold=0.
+    # Macro F1 should be 1.0 (averaged over active labels with gold > 0), not depressed to 0.4.
+    assert pytest.approx(results.strict_macro_f1) == 1.0
+    assert pytest.approx(results.relaxed_macro_f1) == 1.0
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
