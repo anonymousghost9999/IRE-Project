@@ -40,6 +40,11 @@ class UserFacets:
     def __len__(self) -> int:
         return len(self.counts)
 
+    def freq(self, canonical_id: str) -> float:
+        """freq_u(f): the share of the source papers (the user's authored papers, or the 20 nearest ones) with facet f."""
+        n_papers = len(self.paper_ids) or max(self.counts.values(), default=1)
+        return self.counts.get(canonical_id, 0) / n_papers
+
     def top(self, n: Optional[int] = None, facet_type: Optional[str] = None) -> List[Tuple[str, int]]:
         """Most frequent facets as ``(canonical_id, count)``; ties broken by canonical_id so results are reproducible."""
         items = [(cid, c) for cid, c in self.counts.items() if facet_type is None or self.types[cid] == facet_type]
