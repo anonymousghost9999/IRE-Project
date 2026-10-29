@@ -76,6 +76,11 @@ class SessionState:
         """SessionConsumed(u): saved paper IDs."""
         return set(self._consumed)
 
+    @property
+    def positives(self) -> List[str]:
+        """Every clicked or saved paper ID, oldest first."""
+        return list(self._positives)
+
     def recent_positives(self, n: int = 3) -> List[str]:
         """The last ``n`` clicked or saved paper IDs, most recent first (for the pseudo-query, plan §4.5)."""
         return self._positives[::-1][:n]

@@ -582,3 +582,207 @@ def test_select_top_k_reads_vectors_from_the_store():
 def test_mmr_settings_from_config():
     assert mmr_settings({"retrieval": {"feed_size": 5}, "scoring_weights": {"lambda_div": 0.3}}) == {"k": 5, "lambda_div": 0.3}
     assert mmr_settings({}) == {"k": 10, "lambda_div": 0.2}
+
+
+# ---------------------------------------------------------------------------
+# 5.5 Explainer
+# ---------------------------------------------------------------------------
+
+from paperfeed.rec.explain import (
+    EXPLAINABLE_FEATURES,
+    Explainer,
+    dominant_feature,
+    explanation_coverage,
+    span_is_grounded,
+)
+from paperfeed.user.session import SessionState
+
+ABSTRACT = "We propose BERT for passage retrieval. Results on MS MARCO improve."
+
+
+def _span(text, sub):
+    i = text.index(sub)
+    return i, i + len(sub)
+
+
+def _scored(pid, contributions, **feat_kwargs):
+    feats = _feat(pid, **{k: v for k, v in feat_kwargs.items() if k not in ("facet", "citation", "new_method")})
+    if "facet" in feat_kwargs:
+        feats.facet = feat_kwargs["facet"]
+    if "citation" in feat_kwargs:
+        feats.citation = feat_kwargs["citation"]
+    if "new_method" in feat_kwargs:
+        feats.new_method = feat_kwargs["new_method"]
+    full = {name: 0.0 for name in ("persona", "session", "citation", "facet", "new_method", "penalty")}
+    full.update(contributions)
+    return ScoredCandidate(paper_id=pid, features=feats, scaled={}, contributions=full, score=sum(full.values()))
+
+
+def test_dominant_feature_picks_largest_positive_contribution():
+    assert dominant_feature({"persona": 0.3, "citation": 0.9, "facet": 0.2}) == "citation"
+    assert dominant_feature({"persona": 0.3, "penalty": -5.0}) == "persona"  # a deduction is never explained
+    assert dominant_feature({"penalty": 9.0, "persona": 0.1}) == "persona"  # the penalty key is not explainable at all
+    assert dominant_feature({"persona": 0.0, "facet": 0.0}) is None
+    assert dominant_feature({}) is None
+    # ties go to the earlier feature of EXPLAINABLE_FEATURES
+    assert dominant_feature({"persona": 0.5, "session": 0.5, "citation": 0.5}) == "citation"
+    assert dominant_feature({"facet": 0.5, "new_method": 0.5}) == "facet"
+    assert EXPLAINABLE_FEATURES == ("facet", "new_method", "citation", "session", "persona")
+
+
+def test_span_is_grounded_checks_offsets_and_sentence():
+    s, e = _span(ABSTRACT, "passage retrieval")
+    row = {"facet_value": "passage retrieval", "start_char": s, "end_char": e, "evidence_sentence": "We propose BERT for passage retrieval."}
+    assert span_is_grounded(ABSTRACT, row)
+    assert not span_is_grounded(ABSTRACT, {**row, "start_char": s + 1, "end_char": e + 1})  # wrong offsets
+    assert not span_is_grounded(ABSTRACT, {**row, "evidence_sentence": "Results on MS MARCO improve."})  # span outside its sentence
+    assert not span_is_grounded(ABSTRACT, {**row, "evidence_sentence": "We never wrote this sentence."})
+    assert not span_is_grounded(ABSTRACT, {**row, "facet_value": "dense retrieval"})
+    assert not span_is_grounded("", row) and not span_is_grounded(ABSTRACT, {**row, "start_char": None})
+
+
+@pytest.fixture
+def facet_env(tmp_path):
+    """Candidate P1 with abstract ABSTRACT and canonical facets; user works on t1 (2 of 2 papers) and d1 (1 of 2)."""
+    db = DatabaseManager(db_path=tmp_path / "x.sqlite3", cutoff_year=2024)
+    row = _paper_row("P1", title="A Candidate")
+    row["abstract"] = ABSTRACT
+    db.insert_papers_batch([row])
+    store = FacetStore(db.db_path)
+
+    def f(ftype, cid, sub, sentence):
+        s, e = _span(ABSTRACT, sub)
+        return {"paper_id": _uri("P1"), "facet_type": ftype, "facet_value": sub, "canonical_id": cid,
+                "evidence_sentence": sentence, "start_char": s, "end_char": e, "confidence": 0.9}
+
+    s1, s2 = "We propose BERT for passage retrieval.", "Results on MS MARCO improve."
+    store.save_facets([f("task", "t1", "passage retrieval", s1), f("method", "m_new", "BERT", s1), f("dataset", "d1", "MS MARCO", s2)])
+    user_facets = UserFacets(
+        counts={"t1": 2, "d1": 1}, types={"t1": "task", "d1": "dataset"}, names={"t1": "retrieval", "d1": "ms marco"},
+        paper_ids=["A1", "A2"],
+    )
+    return db, store, user_facets
+
+
+def _explainer(db, user_facets, store=None, facet_store=None, session=None, ctx=None):
+    return Explainer(user_facets, db, 2024, ctx or build_citation_context(db, [], 2024), store=store, facet_store=facet_store, session=session)
+
+
+def test_facet_explanation_uses_best_matched_facet_and_verbatim_span(facet_env):
+    db, fstore, uf = facet_env
+    ex = _explainer(db, uf, facet_store=fstore)
+    both = _scored("P1", {"facet": 0.8, "persona": 0.1}, facet=FacetMatch(s_task=1.0, s_dataset=0.5, matched=[("t1", 1.0), ("d1", 0.5)]))
+    r = ex.explain(both)
+    assert r.dominant_feature == "facet" and r.covered
+    assert r.explanation.text == "Addresses **passage retrieval**, studied in 2 of your papers"
+    assert r.explanation.evidence["span"] == "passage retrieval" and r.explanation.evidence["user_papers_with_facet"] == 2
+
+    only_dataset = _scored("P1", {"facet": 0.8}, facet=FacetMatch(s_dataset=0.5, matched=[("d1", 0.5)]))
+    assert ex.explain(only_dataset).explanation.text == "Evaluates on **MS MARCO**, used in 1 of your papers"
+
+
+def test_facet_explanation_refused_when_span_is_not_grounded(facet_env):
+    db, fstore, uf = facet_env
+    with db.get_connection() as conn:  # corrupt the stored offsets of every facet of P1
+        conn.execute("UPDATE paper_facets SET start_char = start_char + 3, end_char = end_char + 3")
+    ex = _explainer(db, uf, facet_store=fstore)
+    sc = _scored("P1", {"facet": 0.8, "persona": 0.7}, persona=0.9, facet=FacetMatch(s_task=1.0, matched=[("t1", 1.0)]))
+    r = ex.explain(sc)
+    assert r.dominant_feature == "facet" and not r.covered and r.explanation is None
+    assert "grounded" in r.failure  # and it does NOT fall back to the persona explanation although persona contributes 0.7
+
+
+def test_new_method_explanation(facet_env):
+    db, fstore, uf = facet_env
+    ex = _explainer(db, uf, facet_store=fstore)
+    sc = _scored("P1", {"new_method": 0.5}, new_method=NewMethod(flag=True, shared_tasks=["t1"], new_methods=["m_new"]))
+    r = ex.explain(sc)
+    assert r.explanation.text == "Proposes **BERT**, which is new to your work, for **passage retrieval** that you work on"
+    assert r.explanation.evidence["method"]["span"] == "BERT" and r.explanation.evidence["task"]["span"] == "passage retrieval"
+    # the new method is not in the abstract's facets -> cannot be grounded
+    missing = _scored("P1", {"new_method": 0.5}, new_method=NewMethod(flag=True, shared_tasks=["t1"], new_methods=["m_unknown"]))
+    assert not ex.explain(missing).covered
+
+
+def test_facet_features_without_a_facet_store_are_not_explained(facet_env):
+    db, _, uf = facet_env
+    r = _explainer(db, uf).explain(_scored("P1", {"facet": 0.4}, facet=FacetMatch(s_task=1.0, matched=[("t1", 1.0)])))
+    assert not r.covered and r.dominant_feature == "facet"
+
+
+def test_citation_explanation_bc_and_cc_are_edge_verified(cite_db, user_facets):
+    ctx = build_citation_context(cite_db, ["A1", "A2"], 2024)
+    ex = _explainer(cite_db, user_facets, ctx=ctx)
+
+    bc = _scored("P", {"citation": 0.5}, citation=CitationSignal(bc=2, cc=2, bc_paper="A2", bc_paper_shared=2, cc_paper="A1", cc_paper_shared=1))
+    r = ex.explain(bc)
+    assert r.explanation.text == "Shares **2** references with your paper *A2*"
+    assert r.explanation.evidence["kind"] == "bibliographic_coupling" and r.explanation.evidence["shared_references"] == 2
+
+    cc = _scored("P", {"citation": 0.5}, citation=CitationSignal(bc=0, cc=2, cc_paper="A1", cc_paper_shared=1))
+    r = ex.explain(cc)
+    assert r.explanation.text == "Frequently cited together with your paper *A1*"
+    assert r.explanation.evidence["co_citing_papers"] == 1  # C1 only: C5 is post-T, the authored A2 is not a third party
+
+
+def test_citation_explanation_refused_when_edges_do_not_verify(cite_db, user_facets):
+    ctx = build_citation_context(cite_db, ["A1", "A2"], 2024)
+    ex = _explainer(cite_db, user_facets, ctx=ctx)
+    wrong_count = _scored("P", {"citation": 0.5}, citation=CitationSignal(bc=3, bc_paper="A2", bc_paper_shared=3))
+    r = ex.explain(wrong_count)
+    assert not r.covered and "verified" in r.failure
+    not_a_cocitation = _scored("Q", {"citation": 0.5}, citation=CitationSignal(bc=0, cc=1, cc_paper="A1", cc_paper_shared=1))
+    assert not ex.explain(not_a_cocitation).covered  # Q has no citing papers at all
+    no_paper = _scored("P", {"citation": 0.5}, citation=CitationSignal())
+    assert not ex.explain(no_paper).covered
+
+
+def test_citation_edges_after_cutoff_are_not_evidence(cite_db, user_facets):
+    ctx = build_citation_context(cite_db, ["A1", "A2"], 2024)
+    ex = Explainer(user_facets, cite_db, 2021, ctx)  # with T = 2021 every 2022 edge is "future": nothing can verify
+    sc = _scored("P", {"citation": 0.5}, citation=CitationSignal(bc=2, bc_paper="A2", bc_paper_shared=2))
+    assert not ex.explain(sc).covered
+
+
+def test_session_explanation_names_the_most_similar_session_paper(cite_db, user_facets):
+    store = EmbeddingStore(["A1", "A2", "P"], np.array([[1, 0], [0, 1], [0.1, 1]], dtype=np.float32))
+    session = SessionState(dim=2)
+    session.click("A1", np.array([1, 0], dtype=np.float32))
+    session.save("A2", np.array([0, 1], dtype=np.float32))
+    ex = _explainer(cite_db, user_facets, store=store, session=session)
+    r = ex.explain(_scored("P", {"session": 0.6, "persona": 0.2}))
+    assert r.explanation.text == "Similar to **A2** you opened"  # P points along +y like A2
+    assert r.explanation.evidence["session_paper_id"] == "A2"
+    # empty session / no store: nothing to refer to
+    assert not _explainer(cite_db, user_facets, store=store, session=SessionState(dim=2)).explain(_scored("P", {"session": 0.6})).covered
+    assert not _explainer(cite_db, user_facets, session=session).explain(_scored("P", {"session": 0.6})).covered
+
+
+def test_persona_explanation(cite_db, user_facets):
+    ex = _explainer(cite_db, user_facets)
+    r = ex.explain(_scored("P", {"persona": 1.0}, persona=0.8))
+    assert r.explanation.text == "Close to your overall research profile"
+    assert not ex.explain(_scored("P", {"persona": 1.0}, persona=-0.1)).covered
+
+
+def test_no_positive_contribution_means_no_explanation(cite_db, user_facets):
+    r = _explainer(cite_db, user_facets).explain(_scored("P", {"penalty": -0.4}))
+    assert r.dominant_feature is None and not r.covered and r.failure
+
+
+def test_explanation_coverage_counts_ungrounded_as_not_covered(cite_db, user_facets):
+    ex = _explainer(cite_db, user_facets)
+    results = ex.explain_all([_scored("P", {"persona": 1.0}, persona=0.8), _scored("Q", {"citation": 1.0}, citation=CitationSignal())])
+    assert [r.covered for r in results] == [True, False]
+    assert explanation_coverage(results) == 0.5
+    assert explanation_coverage([]) == 0.0
+
+
+def test_explained_feature_always_matches_the_scored_dominant_contribution(cite_db, user_facets):
+    pool = [
+        _feat("P", persona=0.9, bc=2, s_task=0.0), _feat("Q", persona=0.2, bc=0), _feat("A1", persona=0.5, bc=1),
+    ]
+    scored = score_candidates(pool, ScoringWeights(w_pers=1.0, w_cite=3.0))
+    ex = _explainer(cite_db, user_facets)
+    for s in scored:
+        assert ex.explain(s).dominant_feature == dominant_feature(s.contributions)

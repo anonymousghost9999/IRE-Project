@@ -580,3 +580,14 @@ def test_query_settings_from_config():
     assert query_settings({}) == {"n_terms": 10, "n_titles": 3}
     from paperfeed.common.config import load_config
     assert query_settings(load_config()) == {"n_terms": 10, "n_titles": 3}
+
+
+def test_session_positives_lists_every_click_and_save_oldest_first():
+    s = SessionState(dim=2)
+    s.click("W1", _e(1, 0))
+    s.skip("W9")
+    s.save("W2", _e(0, 1))
+    s.click("W3", _e(1, 1))
+    assert s.positives == ["W1", "W2", "W3"]
+    s.positives.append("hack")  # a copy
+    assert s.positives == ["W1", "W2", "W3"]
