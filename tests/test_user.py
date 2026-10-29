@@ -322,3 +322,156 @@ def test_load_exclusion_sources_reads_citations_from_db(tmp_path):
     assert src.citations == {"W10", "W11"}
     assert src.build() == {"W1", "W2", "W10", "W11"}
     assert src.build(diagnostic=True) == {"W1", "W2"}
+
+
+# ---------------------------------------------------------------------------
+# 4.4 Session state
+# ---------------------------------------------------------------------------
+
+from paperfeed.user.session import SessionState
+
+
+def _e(*xs):
+    return np.array(xs, dtype=np.float32)
+
+
+def test_session_starts_empty():
+    s = SessionState(dim=2)
+    assert s.is_empty
+    np.testing.assert_array_equal(s.vector, [0, 0])
+    assert s.negatives == set() and s.consumed == set() and s.recent_positives() == []
+
+
+def test_session_ema_update_hand_computed():
+    s = SessionState(alpha_sess=0.5, dim=2)
+    s.click("W1", _e(1, 0))
+    np.testing.assert_allclose(s.vector, [0.5, 0.0])  # 0.5 * 0 + 0.5 * e1
+    s.click("W2", _e(0, 1))
+    np.testing.assert_allclose(s.vector, [0.25, 0.5])  # 0.5 * [0.5, 0] + 0.5 * e2
+    assert not s.is_empty
+
+
+def test_session_ema_equals_exponentially_decayed_sum():
+    alpha = 0.7
+    embs = [_e(1, 0), _e(0, 1), _e(1, 1), _e(-1, 0.5)]
+    s = SessionState(alpha_sess=alpha, dim=2)
+    for i, e in enumerate(embs):
+        s.click(f"W{i}", e)
+    t = len(embs)
+    expected = sum((1 - alpha) * alpha ** (t - 1 - i) * e for i, e in enumerate(embs))  # newest item weighs most
+    np.testing.assert_allclose(s.vector, expected, atol=1e-6)
+
+
+def test_session_alpha_extremes():
+    keep = SessionState(alpha_sess=1.0, dim=2)  # alpha = 1: the vector never moves off zero
+    keep.click("W1", _e(1, 0))
+    np.testing.assert_array_equal(keep.vector, [0, 0])
+    latest = SessionState(alpha_sess=0.0, dim=2)  # alpha = 0: the vector is the last clicked embedding
+    latest.click("W1", _e(1, 0))
+    latest.click("W2", _e(0, 1))
+    np.testing.assert_allclose(latest.vector, [0, 1])
+
+
+def test_save_adds_to_consumed_but_click_does_not():
+    s = SessionState(dim=2)
+    s.click("W1", _e(1, 0))
+    s.save("W2", _e(0, 1))
+    assert s.consumed == {"W2"}
+    assert s.recent_positives() == ["W2", "W1"]  # both moved the vector; most recent first
+    np.testing.assert_allclose(s.vector, [0.25, 0.5])  # save follows the same EMA as click
+
+
+def test_skip_adds_negative_and_leaves_vector_alone():
+    s = SessionState(dim=2)
+    s.click("W1", _e(1, 0))
+    before = s.vector
+    s.skip("W9")
+    assert s.negatives == {"W9"} and s.consumed == set()
+    np.testing.assert_array_equal(s.vector, before)
+    assert s.recent_positives() == ["W1"]
+
+
+def test_recent_positives_limit():
+    s = SessionState(dim=2)
+    for i in range(5):
+        s.click(f"W{i}", _e(1, 0))
+    assert s.recent_positives(3) == ["W4", "W3", "W2"]
+
+
+def test_pivot_gate_resets_on_divergent_click():
+    s = SessionState(alpha_sess=0.5, use_gate=True, gamma_pivot=0.35, dim=2)
+    s.click("W1", _e(1, 0))
+    s.click("W2", _e(0, 1))  # cos = 0, delta = 1 > 0.35: hard reset to the clicked embedding
+    np.testing.assert_allclose(s.vector, [0, 1])
+    assert s.n_gate_resets == 1
+
+
+def test_pivot_gate_keeps_blending_for_similar_click():
+    s = SessionState(alpha_sess=0.5, use_gate=True, gamma_pivot=0.35, dim=2)
+    s.click("W1", _e(1, 0))
+    s.click("W2", _e(1, 0.1))  # cos ~ 0.995, delta ~ 0.005 < 0.35: normal EMA
+    np.testing.assert_allclose(s.vector, 0.5 * np.array([0.5, 0]) + 0.5 * np.array([1, 0.1]), atol=1e-6)
+    assert s.n_gate_resets == 0
+
+
+def test_pivot_gate_threshold_is_strict_and_first_click_is_not_gated():
+    # delta exactly equal to gamma is not > gamma, so no reset
+    s = SessionState(alpha_sess=0.5, use_gate=True, gamma_pivot=1.0, dim=2)
+    s.click("W1", _e(1, 0))
+    s.click("W2", _e(0, 1))  # delta = 1.0, not > 1.0
+    np.testing.assert_allclose(s.vector, [0.25, 0.5])
+    # first click: nothing to diverge from
+    first = SessionState(use_gate=True, gamma_pivot=0.0, dim=2)
+    first.click("W1", _e(1, 0))
+    assert first.n_gate_resets == 0
+    np.testing.assert_allclose(first.vector, [0.5, 0])
+
+
+def test_gate_off_by_default_never_resets():
+    s = SessionState(alpha_sess=0.5, dim=2)
+    s.click("W1", _e(1, 0))
+    s.click("W2", _e(0, 1))
+    np.testing.assert_allclose(s.vector, [0.25, 0.5])
+    assert s.n_gate_resets == 0
+
+
+def test_reset_clears_session():
+    s = SessionState(dim=2)
+    s.save("W1", _e(1, 0))
+    s.skip("W2")
+    s.reset()
+    assert s.is_empty and s.negatives == set() and s.consumed == set() and s.recent_positives() == []
+    np.testing.assert_array_equal(s.vector, [0, 0])
+    s.click("W3", _e(0, 1))  # usable again after a reset
+    np.testing.assert_allclose(s.vector, [0, 0.5])
+
+
+def test_apply_dispatch_and_validation():
+    s = SessionState(dim=2)
+    s.apply("click", "W1", _e(1, 0))
+    s.apply("save", "W2", _e(0, 1))
+    s.apply("skip", "W3")
+    assert s.consumed == {"W2"} and s.negatives == {"W3"}
+    with pytest.raises(ValueError, match="needs the paper embedding"):
+        s.apply("click", "W4")
+    with pytest.raises(ValueError, match="Unknown action"):
+        s.apply("like", "W4", _e(1, 0))
+    with pytest.raises(ValueError, match="shape"):
+        s.click("W5", np.ones(3, dtype=np.float32))
+    with pytest.raises(ValueError, match="alpha_sess"):
+        SessionState(alpha_sess=1.5)
+
+
+def test_vector_property_is_a_copy():
+    s = SessionState(dim=2)
+    s.click("W1", _e(1, 0))
+    s.vector[:] = 99
+    np.testing.assert_allclose(s.vector, [0.5, 0])
+
+
+def test_session_from_config():
+    cfg = {"user_model": {"alpha_session": 0.3, "use_pivot_gate": True, "gamma_pivot": 0.25}}
+    s = SessionState.from_config(cfg, dim=2)
+    assert (s.alpha_sess, s.use_gate, s.gamma_pivot) == (0.3, True, 0.25)
+    d = SessionState.from_config({}, dim=2)
+    assert (d.alpha_sess, d.use_gate, d.gamma_pivot) == (0.5, False, 0.35)
