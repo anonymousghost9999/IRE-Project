@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Mapping, Optional, Set
 import numpy as np
 
 from paperfeed.common.logger import get_logger
+from paperfeed.data.cohort import clean_id
 
 logger = get_logger("user.session")
 
@@ -68,22 +69,23 @@ class SessionState:
 
     @property
     def negatives(self) -> Set[str]:
-        """S^-_u: skipped paper IDs."""
+        """S^-_u: skipped paper IDs (clean bare IDs)."""
         return set(self._negatives)
 
     @property
     def consumed(self) -> Set[str]:
-        """SessionConsumed(u): saved paper IDs."""
+        """SessionConsumed(u): saved paper IDs (clean bare IDs)."""
         return set(self._consumed)
 
     @property
     def positives(self) -> List[str]:
-        """Every clicked or saved paper ID, oldest first."""
+        """Every clicked or saved paper ID, oldest first (clean bare IDs)."""
         return list(self._positives)
 
     def recent_positives(self, n: int = 3) -> List[str]:
-        """The last ``n`` clicked or saved paper IDs, most recent first (for the pseudo-query, plan §4.5)."""
-        return self._positives[::-1][:n]
+        """The last ``n`` clicked or saved unique paper IDs, most recent first (for the pseudo-query, plan §4.5)."""
+        unique_recent = list(dict.fromkeys(self._positives[::-1]))
+        return unique_recent[:n]
 
     # -- actions -------------------------------------------------------------------------------------------------
 
@@ -95,6 +97,7 @@ class SessionState:
 
     def _positive(self, paper_id: str, embedding: np.ndarray) -> None:
         emb = self._check_embedding(embedding)
+        clean = clean_id(paper_id)
         prev = self._vector
         gated = False
         if self.use_gate and self._positives:
@@ -107,7 +110,7 @@ class SessionState:
             self.n_gate_resets += 1
         else:
             self._vector = (self.alpha_sess * prev + (1.0 - self.alpha_sess) * emb).astype(np.float32)
-        self._positives.append(paper_id)
+        self._positives.append(clean)
 
     def click(self, paper_id: str, embedding: np.ndarray) -> None:
         """Positive action: blend the clicked paper into the session vector."""
@@ -115,12 +118,13 @@ class SessionState:
 
     def save(self, paper_id: str, embedding: np.ndarray) -> None:
         """Positive action like ``click``; the paper also joins SessionConsumed."""
-        self._positive(paper_id, embedding)
-        self._consumed.add(paper_id)
+        clean = clean_id(paper_id)
+        self._positive(clean, embedding)
+        self._consumed.add(clean)
 
     def skip(self, paper_id: str) -> None:
         """Negative action: the paper joins S^-_u. The session vector does not change."""
-        self._negatives.add(paper_id)
+        self._negatives.add(clean_id(paper_id))
 
     def apply(self, action: str, paper_id: str, embedding: Optional[np.ndarray] = None) -> None:
         """Dispatch a feedback action by name (``click``, ``save`` or ``skip``)."""

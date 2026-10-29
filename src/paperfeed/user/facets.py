@@ -74,15 +74,18 @@ def build_user_facets(
     by_uri = facet_store.get_facets_by_paper_ids([to_uri(p) for p in bare_ids])
 
     counts: Counter = Counter()
-    types: Dict[str, str] = {}
     for rows in by_uri.values():
-        per_paper = {r["canonical_id"]: r["facet_type"].lower() for r in rows if r["canonical_id"] and r["facet_type"].lower() in wanted}
-        types.update(per_paper)
-        counts.update(per_paper.keys())
+        per_paper = {r["canonical_id"] for r in rows if r["canonical_id"] and r["facet_type"].lower() in wanted}
+        counts.update(per_paper)
 
+    canon_entries = facet_store.get_canonical_names(list(counts))
     names = {
-        cid: info["canonical_name"] for cid, info in facet_store.get_canonical_names(list(counts)).items()
+        cid: info["canonical_name"] for cid, info in canon_entries.items()
     }
+    types = {
+        cid: info["facet_type"].lower() for cid, info in canon_entries.items()
+    }
+
     # A canonical ID without a cluster row cannot be named; keep it out so every member of F_u is explainable.
     unnamed = [cid for cid in counts if cid not in names]
     if unnamed:

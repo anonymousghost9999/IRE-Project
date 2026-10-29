@@ -32,9 +32,20 @@ def _clean_titles(titles: Iterable[str]) -> List[str]:
     return out
 
 
-def most_recent_titles(authored_papers: Sequence[Dict[str, Any]], n: int = DEFAULT_N_TITLES) -> List[str]:
-    """Titles of the ``n`` most recent authored papers (year descending, ties by paper ID for reproducibility)."""
-    ranked = sorted(authored_papers, key=lambda p: (-int(p.get("year") or 0), p["paper_id"]))
+def most_recent_titles(
+    authored_papers: Sequence[Dict[str, Any]],
+    n: int = DEFAULT_N_TITLES,
+    cutoff_year: Optional[int] = None,
+) -> List[str]:
+    """Titles of the ``n`` most recent authored papers (year descending, ties by paper ID for reproducibility).
+
+    If ``cutoff_year`` is provided, papers with year > cutoff_year are excluded to prevent temporal leakage.
+    """
+    eligible = [
+        p for p in authored_papers
+        if cutoff_year is None or int(p.get("year") or 0) <= cutoff_year
+    ]
+    ranked = sorted(eligible, key=lambda p: (-int(p.get("year") or 0), p["paper_id"]))
     return _clean_titles(p.get("title", "") for p in ranked)[:n]
 
 
@@ -67,12 +78,13 @@ def build_feed_query(
     authored_papers: Sequence[Dict[str, Any]],
     n_terms: int = DEFAULT_N_TERMS,
     n_titles: int = DEFAULT_N_TITLES,
+    cutoff_year: Optional[int] = None,
 ) -> str:
     """The feed-mode pseudo-query: titles come from the session when it has positive actions, else from authored papers."""
     if session is not None and not session.is_empty:
         titles = titles_for(db, session.recent_positives(n_titles))
     else:
-        titles = most_recent_titles(authored_papers, n_titles)
+        titles = most_recent_titles(authored_papers, n_titles, cutoff_year=cutoff_year)
     return build_pseudo_query(user_facets, titles, n_terms)
 
 

@@ -124,9 +124,10 @@ def build_persona(
 
     missing_ids = set(store.missing([p["paper_id"] for p in usable]))
     vectors: Dict[str, np.ndarray] = {}
-    for p in usable:
-        if p["paper_id"] not in missing_ids:
-            vectors[p["paper_id"]] = store.select([p["paper_id"]])[0]
+    present_ids = [p["paper_id"] for p in usable if p["paper_id"] not in missing_ids]
+    if present_ids:
+        for pid, vec in zip(present_ids, store.select(present_ids)):
+            vectors[pid] = vec
 
     fresh = [p for p in usable if p["paper_id"] in missing_ids]
     if fresh:

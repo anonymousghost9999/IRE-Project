@@ -591,3 +591,24 @@ def test_session_positives_lists_every_click_and_save_oldest_first():
     assert s.positives == ["W1", "W2", "W3"]
     s.positives.append("hack")  # a copy
     assert s.positives == ["W1", "W2", "W3"]
+
+
+def test_recent_positives_deduplicates_repeated_actions():
+    s = SessionState(dim=2)
+    s.click("https://openalex.org/W1", _e(1, 0))
+    s.click("W2", _e(0, 1))
+    s.save("https://openalex.org/W2", _e(0, 1))
+    assert s.recent_positives(2) == ["W2", "W1"]
+    assert "W1" in s.positives
+    assert "W2" in s.consumed
+
+
+def test_most_recent_titles_enforces_temporal_cutoff():
+    papers = [
+        {"paper_id": "W1", "title": "Old Paper", "year": 2020},
+        {"paper_id": "W2", "title": "2024 Paper", "year": 2024},
+        {"paper_id": "W3", "title": "Future 2025 Paper", "year": 2025},
+    ]
+    titles = most_recent_titles(papers, n=3, cutoff_year=2024)
+    assert titles == ["2024 Paper", "Old Paper"]
+    assert "Future 2025 Paper" not in titles
