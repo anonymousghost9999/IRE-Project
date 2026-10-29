@@ -187,6 +187,21 @@ def test_load_scierc_dataset_json_and_jsonl(tmp_path: Path, sample_scierc_record
     assert docs_arr[0].doc_key == "DOC_001"
 
 
+def test_load_scierc_dataset_raises_on_malformed_json(tmp_path: Path):
+    """Verify load_scierc_dataset raises ValueError on malformed array or JSONL files."""
+    # Malformed JSON array (starts with [ but invalid syntax)
+    bad_array = tmp_path / "bad_array.json"
+    bad_array.write_text("[{broken json", encoding="utf-8")
+    with pytest.raises(ValueError, match="Malformed SciERC JSON array"):
+        load_scierc_dataset(bad_array)
+
+    # Malformed JSONL
+    bad_jsonl = tmp_path / "bad.jsonl"
+    bad_jsonl.write_text('{"doc_key": "OK"}\n{invalid line\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="Malformed SciERC JSONL"):
+        load_scierc_dataset(bad_jsonl)
+
+
 def test_scierc_evaluator_end_to_end(sample_scierc_record: dict):
     """Test full evaluator run with a mock extractor and label mapping."""
     doc = SciERCDocument(

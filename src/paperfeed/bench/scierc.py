@@ -149,11 +149,12 @@ def load_scierc_dataset(file_path: Union[str, Path]) -> List[SciERCDocument]:
     if text.startswith("["):
         try:
             records = json.loads(text)
-            for rec in records:
-                docs.append(_parse_scierc_record(rec))
-            return docs
-        except json.JSONDecodeError:
-            pass
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Malformed SciERC JSON array file {path}: {exc}") from exc
+        for rec in records:
+            docs.append(_parse_scierc_record(rec))
+        logger.info("Loaded %d SciERC documents from %s", len(docs), path)
+        return docs
 
     # Fallback to line-delimited JSON
     for line_idx, line in enumerate(text.splitlines(), start=1):
@@ -163,8 +164,8 @@ def load_scierc_dataset(file_path: Union[str, Path]) -> List[SciERCDocument]:
         try:
             rec = json.loads(line)
             docs.append(_parse_scierc_record(rec))
-        except json.JSONDecodeError as e:
-            logger.warning("Error parsing SciERC line %d: %s", line_idx, e)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Malformed SciERC JSONL file {path} at line {line_idx}: {exc}") from exc
 
     logger.info("Loaded %d SciERC documents from %s", len(docs), path)
     return docs
