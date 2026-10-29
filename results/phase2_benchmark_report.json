@@ -1,0 +1,238 @@
+{
+  "timestamp": "2026-10-29T07:14:42Z",
+  "total_candidate_papers": 111149,
+  "storage_footprint_mb": {
+    "embeddings_npy_mb": 325.63,
+    "faiss_index_mb": 325.63,
+    "id_map_json_mb": 1.59,
+    "bm25s_dir_mb": 87.8,
+    "total_index_storage_mb": 740.65
+  },
+  "build_manifest": {
+    "cutoff_year": 2024,
+    "total_papers": 111149,
+    "created_at": "2026-10-29T06:56:07Z",
+    "embedding_time_seconds": 954.55,
+    "embedding_sec_per_1k": 8.59,
+    "embedding_device": "cuda",
+    "faiss_build_time_seconds": 0.38,
+    "bm25s_build_time_seconds": 13.59
+  },
+  "average_latencies_ms": {
+    "query_encoding": 17.54,
+    "dense_search": 9.88,
+    "bm25s_search": 1.53,
+    "rrf_fusion": 11.43,
+    "total_first_stage": 40.39
+  },
+  "query_benchmarks": [
+    {
+      "query": "Dense passage retrieval and bi-encoder ranking for open-domain question answering",
+      "latency_ms": {
+        "embed": 20.0,
+        "dense_search": 10.78,
+        "bm25s_search": 1.18,
+        "rrf_fusion": 17.23,
+        "total": 49.2
+      },
+      "top_hits": [
+        {
+          "rank": 1,
+          "paper_id": "W3015883388",
+          "title": "Dense Passage Retrieval for Open-Domain Question Answering",
+          "year": 2020,
+          "citations_T": 1849,
+          "score": 0.03202
+        },
+        {
+          "rank": 2,
+          "paper_id": "W3168875417",
+          "title": "RocketQA: An Optimized Training Approach to Dense Passage Retrieval for Open-Domain Question Answering",
+          "year": 2021,
+          "citations_T": 286,
+          "score": 0.03128
+        },
+        {
+          "rank": 3,
+          "paper_id": "W3138967041",
+          "title": "Open Domain Question Answering over Tables via Dense Retrieval",
+          "year": 2021,
+          "citations_T": 53,
+          "score": 0.02939
+        },
+        {
+          "rank": 4,
+          "paper_id": "W2077428231",
+          "title": "Quantitative evaluation of passage retrieval algorithms for question answering",
+          "year": 2003,
+          "citations_T": 137,
+          "score": 0.02901
+        },
+        {
+          "rank": 5,
+          "paper_id": "W4385573057",
+          "title": "Improving Passage Retrieval with Zero-Shot Question Generation",
+          "year": 2022,
+          "citations_T": 38,
+          "score": 0.0283
+        }
+      ]
+    },
+    {
+      "query": "Transformer architecture for language modeling and self-attention mechanisms",
+      "latency_ms": {
+        "embed": 16.16,
+        "dense_search": 9.66,
+        "bm25s_search": 1.2,
+        "rrf_fusion": 9.67,
+        "total": 36.7
+      },
+      "top_hits": [
+        {
+          "rank": 1,
+          "paper_id": "W4313558932",
+          "title": "End-to-End Transformer-Based Models in Textual-Based NLP",
+          "year": 2023,
+          "citations_T": 57,
+          "score": 0.03078
+        },
+        {
+          "rank": 2,
+          "paper_id": "W2988945824",
+          "title": "Improving Transformer Models by Reordering their Sublayers",
+          "year": 2020,
+          "citations_T": 57,
+          "score": 0.03012
+        },
+        {
+          "rank": 3,
+          "paper_id": "W4288795042",
+          "title": "SG-Net: Syntax Guided Transformer for Language Representation",
+          "year": 2020,
+          "citations_T": 4,
+          "score": 0.02973
+        },
+        {
+          "rank": 4,
+          "paper_id": "W2946567085",
+          "title": "Adaptive Attention Span in Transformers",
+          "year": 2019,
+          "citations_T": 250,
+          "score": 0.02895
+        },
+        {
+          "rank": 5,
+          "paper_id": "W4386921320",
+          "title": "Self-Attention and Transformers: Driving the Evolution of Large Language Models",
+          "year": 2023,
+          "citations_T": 5,
+          "score": 0.02889
+        }
+      ]
+    },
+    {
+      "query": "Graph neural networks and node representation learning on citation graphs",
+      "latency_ms": {
+        "embed": 16.69,
+        "dense_search": 8.76,
+        "bm25s_search": 2.58,
+        "rrf_fusion": 10.01,
+        "total": 38.05
+      },
+      "top_hits": [
+        {
+          "rank": 1,
+          "paper_id": "W2804057010",
+          "title": "Representation Learning on Graphs with Jumping Knowledge Networks",
+          "year": 2018,
+          "citations_T": 1188,
+          "score": 0.03252
+        },
+        {
+          "rank": 2,
+          "paper_id": "W4323338660",
+          "title": "Fuzzy Representation Learning on Graph",
+          "year": 2023,
+          "citations_T": 12,
+          "score": 0.03102
+        },
+        {
+          "rank": 3,
+          "paper_id": "W2894175828",
+          "title": "How Powerful are Graph Neural Networks?",
+          "year": 2018,
+          "citations_T": 2422,
+          "score": 0.03012
+        },
+        {
+          "rank": 4,
+          "paper_id": "W2406128552",
+          "title": "Learning Convolutional Neural Networks for Graphs",
+          "year": 2016,
+          "citations_T": 1484,
+          "score": 0.02722
+        },
+        {
+          "rank": 5,
+          "paper_id": "W3169741886",
+          "title": "Subset Node Representation Learning over Large Dynamic Graphs",
+          "year": 2021,
+          "citations_T": 11,
+          "score": 0.02692
+        }
+      ]
+    },
+    {
+      "query": "Contrastive learning for self-supervised visual representation",
+      "latency_ms": {
+        "embed": 17.29,
+        "dense_search": 10.33,
+        "bm25s_search": 1.16,
+        "rrf_fusion": 8.82,
+        "total": 37.6
+      },
+      "top_hits": [
+        {
+          "rank": 1,
+          "paper_id": "W3005680577",
+          "title": "A Simple Framework for Contrastive Learning of Visual Representations",
+          "year": 2020,
+          "citations_T": 9301,
+          "score": 0.03227
+        },
+        {
+          "rank": 2,
+          "paper_id": "W3204265989",
+          "title": "Weakly Supervised Contrastive Learning",
+          "year": 2021,
+          "citations_T": 89,
+          "score": 0.03128
+        },
+        {
+          "rank": 3,
+          "paper_id": "W3035725276",
+          "title": "Self-supervised Learning: Generative or Contrastive",
+          "year": 2021,
+          "citations_T": 1302,
+          "score": 0.03054
+        },
+        {
+          "rank": 4,
+          "paper_id": "W3196792593",
+          "title": "Preservational Learning Improves Self-supervised Medical Image Models by Reconstructing Diverse Contexts",
+          "year": 2021,
+          "citations_T": 71,
+          "score": 0.0292
+        },
+        {
+          "rank": 5,
+          "paper_id": "W3018378048",
+          "title": "Supervised Contrastive Learning",
+          "year": 2020,
+          "citations_T": 2926,
+          "score": 0.02861
+        }
+      ]
+    }
+  ]
+}

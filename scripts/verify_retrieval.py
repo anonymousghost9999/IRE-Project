@@ -101,12 +101,16 @@ def main() -> int:
     db = DatabaseManager(db_path=db_path)
     retriever = HybridRetriever(dense_index=dense_idx, lexical_index=lex_idx)
 
-    logger.info("Initializing SPECTER2 adhoc_query encoder...")
+    logger.info("Initializing and warming up query encoder (SPECTER2 adhoc_query)...")
     encoder = SPECTER2Encoder(
         base_model_name=cfg["models"]["dense_encoder"],
         dense_adapter_name=cfg["models"]["dense_adapter"],
         query_adapter_name=cfg["models"]["query_adapter"],
     )
+    import numpy as np
+    _ = encoder.embed_query("warmup query")
+    _ = dense_idx.search(np.zeros(768, dtype=np.float32), k=5)
+    _ = lex_idx.search("warmup", k=5)
 
     query_benchmarks: List[Dict[str, Any]] = []
 
@@ -142,16 +146,17 @@ def main() -> int:
 
         # Fetch metadata from SQLite
         all_pids = [pid for pid, _ in hybrid_hits]
+        query_ids = [f"https://openalex.org/{pid}" for pid in all_pids] + all_pids
         papers_meta = {}
         with db.get_connection() as conn:
-            marks = ",".join("?" for _ in all_pids)
+            marks = ",".join("?" for _ in query_ids)
             cur = conn.execute(
                 f"SELECT paper_id, title, year, citation_count_T FROM papers WHERE paper_id IN ({marks})",
-                all_pids,
+                query_ids,
             )
             for row in cur.fetchall():
-                pid = row[0].replace("https://openalex.org/", "")
-                papers_meta[pid] = {"title": row[1], "year": row[2], "cites": row[3]}
+                pid = row[0].replace("https://openalex.org/", "").strip()
+                papers_meta[pid] = {"title": row[1] or "", "year": row[2], "cites": row[3]}
 
         hits_summary = []
         print("\n  Top Hybrid RRF Results:")
