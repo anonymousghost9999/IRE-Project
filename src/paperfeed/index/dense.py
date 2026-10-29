@@ -105,29 +105,31 @@ class DenseIndex:
             query_vector = np.ascontiguousarray(query_vector)
 
         clean_exclusions = {clean_id(x) for x in exclusion_set} if exclusion_set else set()
-        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter else None
+        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter is not None else None
 
-        # Determine over-fetch depth to account for exclusions
-        if fetch_depth is None:
-            depth = max(k * 2, k + len(clean_exclusions), 200)
-        else:
-            depth = fetch_depth
+        # Over-fetch to absorb exclusions and the whitelist. When the depth is not pinned by the caller,
+        # widen it until k hits survive the filters or the whole index has been scanned.
+        adaptive = fetch_depth is None
+        depth = fetch_depth if fetch_depth is not None else max(k * 2, k + len(clean_exclusions), 200)
         depth = min(depth, self.index.ntotal)
 
-        distances, indices = self.index.search(query_vector, depth)
-
-        results: List[Tuple[str, float]] = []
-        for dist, idx in zip(distances[0], indices[0]):
-            if idx < 0 or idx >= len(self.id_to_paper):
-                continue
-            paper_id = self.id_to_paper[idx]
-            if paper_id in clean_exclusions:
-                continue
-            if clean_candidates is not None and paper_id not in clean_candidates:
-                continue
-            results.append((paper_id, float(dist)))
-            if len(results) >= k:
+        while True:
+            distances, indices = self.index.search(query_vector, depth)
+            results: List[Tuple[str, float]] = []
+            for dist, idx in zip(distances[0], indices[0]):
+                if idx < 0 or idx >= len(self.id_to_paper):
+                    continue
+                paper_id = self.id_to_paper[idx]
+                if paper_id in clean_exclusions:
+                    continue
+                if clean_candidates is not None and paper_id not in clean_candidates:
+                    continue
+                results.append((paper_id, float(dist)))
+                if len(results) >= k:
+                    break
+            if len(results) >= k or not adaptive or depth >= self.index.ntotal:
                 break
+            depth = min(depth * 4, self.index.ntotal)
 
         return results
 

@@ -137,6 +137,10 @@ class SPECTER2Encoder:
         self._ensure_loaded()
         self.set_adapter(adapter_name)
 
+        # Length-sorted batching keeps padding small; the original order is restored at the end.
+        order = np.argsort([len(t) for t in texts], kind="stable")
+        sorted_texts = [texts[i] for i in order]
+
         embeddings_list = []
         iterator = range(0, len(texts), batch_size)
         if show_progress:
@@ -145,7 +149,7 @@ class SPECTER2Encoder:
 
         with torch.no_grad():
             for i in iterator:
-                batch_texts = texts[i : i + batch_size]
+                batch_texts = sorted_texts[i : i + batch_size]
                 inputs = self._tokenizer(
                     batch_texts,
                     padding=True,
@@ -161,7 +165,10 @@ class SPECTER2Encoder:
                 cls_norm = torch.nn.functional.normalize(cls_rep, p=2, dim=1)
                 embeddings_list.append(cls_norm.cpu().to(torch.float32).numpy())
 
-        return np.vstack(embeddings_list)
+        sorted_embeddings = np.vstack(embeddings_list)
+        embeddings = np.empty_like(sorted_embeddings)
+        embeddings[order] = sorted_embeddings
+        return embeddings
 
     def embed_papers(
         self,

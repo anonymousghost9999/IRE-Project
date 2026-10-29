@@ -95,31 +95,30 @@ class LexicalIndex:
         query_tokens = bm25s.tokenize([query], stopwords=self.stopwords, show_progress=False)
 
         clean_exclusions = {clean_id(x) for x in exclusion_set} if exclusion_set else set()
-        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter else None
+        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter is not None else None
 
-        if fetch_depth is None:
-            depth = max(k * 2, k + len(clean_exclusions), 200)
-        else:
-            depth = fetch_depth
+        # Same adaptive over-fetch as the dense channel (see DenseIndex.search).
+        adaptive = fetch_depth is None
+        depth = fetch_depth if fetch_depth is not None else max(k * 2, k + len(clean_exclusions), 200)
         depth = min(depth, len(self.id_to_paper))
 
-        docs, scores = self.retriever.retrieve(query_tokens, k=depth, show_progress=False)
-
-        results: List[Tuple[str, float]] = []
-        doc_indices = docs[0]
-        score_values = scores[0]
-
-        for idx, score in zip(doc_indices, score_values):
-            if idx < 0 or idx >= len(self.id_to_paper):
-                continue
-            paper_id = self.id_to_paper[idx]
-            if paper_id in clean_exclusions:
-                continue
-            if clean_candidates is not None and paper_id not in clean_candidates:
-                continue
-            results.append((paper_id, float(score)))
-            if len(results) >= k:
+        while True:
+            docs, scores = self.retriever.retrieve(query_tokens, k=depth, show_progress=False)
+            results: List[Tuple[str, float]] = []
+            for idx, score in zip(docs[0], scores[0]):
+                if idx < 0 or idx >= len(self.id_to_paper):
+                    continue
+                paper_id = self.id_to_paper[idx]
+                if paper_id in clean_exclusions:
+                    continue
+                if clean_candidates is not None and paper_id not in clean_candidates:
+                    continue
+                results.append((paper_id, float(score)))
+                if len(results) >= k:
+                    break
+            if len(results) >= k or not adaptive or depth >= len(self.id_to_paper):
                 break
+            depth = min(depth * 4, len(self.id_to_paper))
 
         return results
 

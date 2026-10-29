@@ -27,7 +27,7 @@ from paperfeed.data.db import DatabaseManager
 from paperfeed.index.dense import DenseIndex
 from paperfeed.index.embeddings import SPECTER2Encoder
 from paperfeed.index.lexical import LexicalIndex
-from paperfeed.index.retriever import HybridRetriever
+from paperfeed.index.retriever import HybridRetriever, reciprocal_rank_fusion
 
 logger = get_logger("scripts.verify_retrieval")
 
@@ -126,19 +126,20 @@ def main() -> int:
         q_vec = encoder.embed_query(q)
         lat_embed = (time.perf_counter() - t0) * 1000
 
-        # 2. Dense FAISS Search
+        # 2. Dense FAISS search and 3. BM25s search, at the production channel depth (M_channel)
+        depth = retriever.channel_depth
         t0 = time.perf_counter()
-        dense_hits = dense_idx.search(q_vec, k=args.k)
+        dense_hits = dense_idx.search(q_vec, k=depth)
         lat_dense = (time.perf_counter() - t0) * 1000
 
-        # 3. Lexical BM25s Search
         t0 = time.perf_counter()
-        lex_hits = lex_idx.search(q, k=args.k)
+        lex_hits = lex_idx.search(q, k=depth)
         lat_lex = (time.perf_counter() - t0) * 1000
 
-        # 4. Hybrid RRF Fusion
+        # 4. RRF fusion of the two lists already retrieved (fusion only; the searches are timed above)
         t0 = time.perf_counter()
-        hybrid_hits = retriever.retrieve(dense_query_vec=q_vec, lexical_query=q, top_m=args.k)
+        fused = reciprocal_rank_fusion([[p for p, _ in dense_hits], [p for p, _ in lex_hits]], k_rrf=retriever.rrf_k)
+        hybrid_hits = fused[: args.k]
         lat_rrf = (time.perf_counter() - t0) * 1000
 
         total_lat = lat_embed + lat_dense + lat_lex + lat_rrf
@@ -230,7 +231,7 @@ def main() -> int:
         "",
         "## 3. Online Retrieval Latency Benchmark",
         "",
-        "Measured across 4 representative CS/AI/IR domain queries (100k+ candidates):",
+        "Measured across 4 representative CS/AI/IR domain queries (100k+ candidates). Each stage is timed once at the production channel depth ($M_{channel}=200$); the RRF row is the fusion step alone, and the end-to-end row is the sum of the four stages.",
         "",
         "| Retrieval Pipeline Stage | Mean Latency | Min Latency | Max Latency | Target / Requirement |",
         "|---|---|---|---|---|",

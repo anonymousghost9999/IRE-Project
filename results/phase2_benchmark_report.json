@@ -1,39 +1,47 @@
 {
-  "timestamp": "2026-10-29T07:14:42Z",
-  "total_candidate_papers": 111149,
+  "timestamp": "2026-10-29T08:27:25Z",
+  "total_candidate_papers": 110229,
   "storage_footprint_mb": {
     "embeddings_npy_mb": 325.63,
-    "faiss_index_mb": 325.63,
-    "id_map_json_mb": 1.59,
-    "bm25s_dir_mb": 87.8,
-    "total_index_storage_mb": 740.65
+    "faiss_index_mb": 322.94,
+    "id_map_json_mb": 1.57,
+    "bm25s_dir_mb": 87.67,
+    "total_index_storage_mb": 737.81
   },
   "build_manifest": {
     "cutoff_year": 2024,
-    "total_papers": 111149,
-    "created_at": "2026-10-29T06:56:07Z",
-    "embedding_time_seconds": 954.55,
-    "embedding_sec_per_1k": 8.59,
+    "total_papers": 110229,
+    "min_abstract_chars": 150,
+    "paper_ids_sha256": "b7f2d439ecded83c0d8d3f9e0e269164be040532a0009f7a41cf5fc1c8e208f0",
+    "dense_encoder": "allenai/specter2_base",
+    "dense_adapter": "allenai/specter2",
+    "query_adapter": "allenai/specter2_adhoc_query",
+    "embedding_dim": 768,
+    "leakage_check_clean": true,
+    "created_at": "2026-10-29T08:26:49Z",
+    "embedding_time_seconds": 968.28,
+    "embedded_papers_timed": 111149,
     "embedding_device": "cuda",
-    "faiss_build_time_seconds": 0.38,
-    "bm25s_build_time_seconds": 13.59
+    "embedding_sec_per_1k": 8.71,
+    "faiss_build_time_seconds": 0.82,
+    "bm25s_build_time_seconds": 9.48
   },
   "average_latencies_ms": {
-    "query_encoding": 17.54,
-    "dense_search": 9.88,
-    "bm25s_search": 1.53,
-    "rrf_fusion": 11.43,
-    "total_first_stage": 40.39
+    "query_encoding": 29.56,
+    "dense_search": 14.28,
+    "bm25s_search": 14.88,
+    "rrf_fusion": 0.17,
+    "total_first_stage": 58.88
   },
   "query_benchmarks": [
     {
       "query": "Dense passage retrieval and bi-encoder ranking for open-domain question answering",
       "latency_ms": {
-        "embed": 20.0,
-        "dense_search": 10.78,
-        "bm25s_search": 1.18,
-        "rrf_fusion": 17.23,
-        "total": 49.2
+        "embed": 18.83,
+        "dense_search": 14.24,
+        "bm25s_search": 14.46,
+        "rrf_fusion": 0.16,
+        "total": 47.69
       },
       "top_hits": [
         {
@@ -70,22 +78,22 @@
         },
         {
           "rank": 5,
-          "paper_id": "W4385573057",
-          "title": "Improving Passage Retrieval with Zero-Shot Question Generation",
-          "year": 2022,
-          "citations_T": 38,
-          "score": 0.0283
+          "paper_id": "W4289865932",
+          "title": "R3: Reinforced Ranker-Reader for Open-Domain Question Answering",
+          "year": 2018,
+          "citations_T": 281,
+          "score": 0.02837
         }
       ]
     },
     {
       "query": "Transformer architecture for language modeling and self-attention mechanisms",
       "latency_ms": {
-        "embed": 16.16,
-        "dense_search": 9.66,
-        "bm25s_search": 1.2,
-        "rrf_fusion": 9.67,
-        "total": 36.7
+        "embed": 33.62,
+        "dense_search": 14.62,
+        "bm25s_search": 13.9,
+        "rrf_fusion": 0.16,
+        "total": 62.3
       },
       "top_hits": [
         {
@@ -133,11 +141,11 @@
     {
       "query": "Graph neural networks and node representation learning on citation graphs",
       "latency_ms": {
-        "embed": 16.69,
-        "dense_search": 8.76,
-        "bm25s_search": 2.58,
-        "rrf_fusion": 10.01,
-        "total": 38.05
+        "embed": 32.89,
+        "dense_search": 13.89,
+        "bm25s_search": 16.38,
+        "rrf_fusion": 0.17,
+        "total": 63.33
       },
       "top_hits": [
         {
@@ -178,18 +186,18 @@
           "title": "Subset Node Representation Learning over Large Dynamic Graphs",
           "year": 2021,
           "citations_T": 11,
-          "score": 0.02692
+          "score": 0.02703
         }
       ]
     },
     {
       "query": "Contrastive learning for self-supervised visual representation",
       "latency_ms": {
-        "embed": 17.29,
-        "dense_search": 10.33,
-        "bm25s_search": 1.16,
-        "rrf_fusion": 8.82,
-        "total": 37.6
+        "embed": 32.9,
+        "dense_search": 14.35,
+        "bm25s_search": 14.79,
+        "rrf_fusion": 0.17,
+        "total": 62.2
       },
       "top_hits": [
         {
