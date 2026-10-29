@@ -17,6 +17,7 @@ import logging
 from pathlib import Path
 import sys
 import time
+from typing import Any, Dict
 
 # Add project root and src/ to sys.path
 project_root = Path(__file__).resolve().parent.parent
@@ -47,6 +48,7 @@ def get_git_commit() -> str:
         import subprocess
         out = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"],
+            cwd=project_root,
             stderr=subprocess.DEVNULL,
             text=True,
         ).strip()
@@ -58,7 +60,8 @@ def get_git_commit() -> str:
 def parse_args() -> argparse.Namespace:
     cfg = load_config()
     fcfg = cfg.get("facets", {})
-    default_model = cfg.get("models", {}).get("gliner_model", "urchade/gliner_medium-v2.1")
+    local_model = project_root / "models" / "gliner_medium-v2.1"
+    default_model = str(local_model) if local_model.exists() else cfg.get("models", {}).get("gliner_model", "urchade/gliner_medium-v2.1")
 
     parser = argparse.ArgumentParser(description="Evaluate GLiNER on SciERC gold standard test split.")
     parser.add_argument(
@@ -292,4 +295,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
