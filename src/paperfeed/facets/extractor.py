@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -185,15 +186,89 @@ class FacetExtractor:
     def extract_from_papers(
         self,
         papers: List[Dict[str, str]],
+        sentence_batch_size: int = 32,
     ) -> List[Dict[str, Any]]:
-        """Extract facets for a list of papers [{'paper_id': ..., 'abstract': ...}]."""
-        all_facets: List[Dict[str, Any]] = []
+        """Extract facets for a list of papers [{'paper_id': ..., 'abstract': ...}] using batched GPU inference."""
+        if not papers:
+            return []
+
+        self._ensure_model_loaded()
+
+        # 1. Split all abstracts into sentences and map to paper metadata
+        # Item: (paper_id, abstract, sent_text, sent_start, sent_end)
+        sent_items = []
         for p in papers:
             p_id = p.get("paper_id", "")
             abstract = p.get("abstract", "")
-            if not p_id or not abstract:
+            if not p_id or not abstract or not abstract.strip():
                 continue
-            facets = self.extract_from_abstract(p_id, abstract)
-            all_facets.extend(facets)
+            sentences = split_sentences_spacy(abstract)
+            for sent_text, sent_start, sent_end in sentences:
+                if sent_text.strip():
+                    sent_items.append((p_id, abstract, sent_text, sent_start, sent_end))
+
+        if not sent_items:
+            return []
+
+        # 2. Run batched entity prediction across all sentences
+        all_sentences = [item[2] for item in sent_items]
+        try:
+            # Batch predict on GPU
+            ents_per_sent = self._model.batch_predict_entities(
+                all_sentences,
+                self.labels,
+                threshold=self.threshold,
+                batch_size=sentence_batch_size,
+            )
+        except Exception as e:
+            logger.warning("Error during batched entity prediction: %s. Falling back to sequential.", e)
+            return [f for p in papers for f in self.extract_from_abstract(p.get("paper_id", ""), p.get("abstract", ""))]
+
+        # 3. Map entities back to verbatim abstract coordinates
+        all_facets: List[Dict[str, Any]] = []
+        seen_spans_by_paper = defaultdict(set)
+
+        for (p_id, abstract, sent_text, sent_start, sent_end), ents in zip(sent_items, ents_per_sent):
+            for ent in ents:
+                span_text = ent.get("text", "")
+                rel_start = ent.get("start", 0)
+                rel_end = ent.get("end", len(span_text))
+                label = ent.get("label", "").lower().strip()
+                score = float(ent.get("score", 0.0))
+
+                if not span_text or label not in self.labels:
+                    continue
+
+                abs_start = sent_start + rel_start
+                abs_end = sent_start + rel_end
+
+                # Verbatim span alignment guard
+                actual_span = abstract[abs_start:abs_end]
+                if actual_span != span_text:
+                    idx = sent_text.find(span_text)
+                    if idx != -1:
+                        abs_start = sent_start + idx
+                        abs_end = abs_start + len(span_text)
+                        actual_span = abstract[abs_start:abs_end]
+
+                if actual_span != span_text:
+                    continue
+
+                span_key = (label, abs_start, abs_end)
+                if span_key in seen_spans_by_paper[p_id]:
+                    continue
+                seen_spans_by_paper[p_id].add(span_key)
+
+                all_facets.append({
+                    "paper_id": p_id,
+                    "facet_type": label,
+                    "facet_value": span_text,
+                    "canonical_id": None,
+                    "evidence_sentence": sent_text.strip(),
+                    "start_char": abs_start,
+                    "end_char": abs_end,
+                    "confidence": round(score, 4),
+                })
+
         return all_facets
 

@@ -2,8 +2,9 @@
 """CLI script to extract and canonicalize scientific facets (Phase 3 / docs/plan.md §3).
 
 Iterates over candidate papers in `data/processed/paperfeed.sqlite3`, extracts
-typed scientific facets (task, method, dataset, metric, topic) using GLiNER,
+typed scientific facets (task, method, dataset, metric, topic) using batched GLiNER,
 clusters and canonicalizes them, and persists into SQLite `paper_facets` and `facet_canon`.
+Supports checkpointed batches and resume.
 """
 
 import argparse
@@ -45,8 +46,8 @@ def main():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=50,
-        help="Batch size for database updates and processing",
+        default=32,
+        help="Number of papers per batch for GPU inference and checkpointing (default: 32)",
     )
     parser.add_argument(
         "--threshold",
@@ -66,6 +67,12 @@ def main():
         help="Clear existing paper_facets and facet_canon tables before running",
     )
     parser.add_argument(
+        "--resume",
+        action="store_true",
+        default=True,
+        help="Skip papers that already have extracted facets in paper_facets (default: True)",
+    )
+    parser.add_argument(
         "--model",
         type=str,
         default=None,
@@ -79,6 +86,14 @@ def main():
 
     store = FacetStore(args.db_path)
 
+    if args.clear:
+        conn = sqlite3.connect(str(args.db_path))
+        with conn:
+            conn.execute("DELETE FROM paper_facets")
+            conn.execute("DELETE FROM facet_canon")
+        conn.close()
+        logger.info("Cleared existing paper_facets and facet_canon tables.")
+
     # 1. Fetch candidate papers with abstracts
     conn = sqlite3.connect(str(args.db_path))
     conn.row_factory = sqlite3.Row
@@ -90,76 +105,90 @@ def main():
         WHERE in_candidates = 1
           AND abstract IS NOT NULL
           AND LENGTH(abstract) >= 150
-        ORDER BY year DESC, paper_id ASC
     """
+    if args.resume and not args.clear:
+        query += " AND paper_id NOT IN (SELECT DISTINCT paper_id FROM paper_facets)"
+
+    query += " ORDER BY year DESC, paper_id ASC"
     if args.limit:
         query += f" LIMIT {args.limit}"
 
     cur.execute(query)
-    rows = cur.fetchall()
+    rows = [dict(r) for r in cur.fetchall()]
     conn.close()
 
     total_papers = len(rows)
     logger.info("Found %d candidate papers to process.", total_papers)
     if total_papers == 0:
-        logger.info("No papers to process.")
-        return
+        logger.info("No remaining papers to extract. Running canonicalization pass...")
+    else:
+        # 2. Initialize extractor
+        extractor = FacetExtractor(
+            model_name_or_path=args.model,
+            threshold=args.threshold,
+        )
 
-    # 2. Initialize extractor
-    extractor = FacetExtractor(
-        model_name_or_path=args.model,
-        threshold=args.threshold,
-    )
+        all_extracted_facets = []
+        start_time = time.time()
+        last_log_time = start_time
+        processed_count = 0
 
-    all_extracted_facets = []
-    start_time = time.time()
-    last_log_time = start_time
-    last_log_count = 0
+        logger.info("Starting batched GLiNER extraction on %d papers...", total_papers)
+        for i in range(0, total_papers, args.batch_size):
+            batch = rows[i : i + args.batch_size]
+            batch_facets = extractor.extract_from_papers(batch, sentence_batch_size=32)
+            all_extracted_facets.extend(batch_facets)
 
-    logger.info("Starting GLiNER extraction on %d papers...", total_papers)
-    for idx, row in enumerate(rows, 1):
-        p_id = row["paper_id"]
-        abstract = row["abstract"]
-        facets = extractor.extract_from_abstract(p_id, abstract)
-        all_extracted_facets.extend(facets)
+            # Checkpoint save to SQLite
+            if batch_facets:
+                store.save_facets(batch_facets)
 
-        if idx % args.batch_size == 0 or idx == total_papers:
+            processed_count += len(batch)
             now = time.time()
-            elapsed_batch = now - last_log_time
-            papers_in_batch = idx - last_log_count
-            sec_per_1k = (elapsed_batch / papers_in_batch) * 1000 if papers_in_batch > 0 else 0
+            elapsed = now - last_log_time
+            rate_1k = (elapsed / len(batch)) * 1000 if len(batch) > 0 else 0
             logger.info(
-                "Processed %d/%d papers (%.1f%%) | %d facets extracted | Rate: %.2fs / 1k abstracts",
-                idx,
+                "Processed %d/%d papers (%.1f%%) | %d batch facets | Rate: %.2fs / 1k abstracts",
+                processed_count,
                 total_papers,
-                (idx / total_papers) * 100,
-                len(all_extracted_facets),
-                sec_per_1k,
+                (processed_count / total_papers) * 100,
+                len(batch_facets),
+                rate_1k,
             )
             last_log_time = now
-            last_log_count = idx
 
-    total_extraction_time = time.time() - start_time
-    rate_1k = (total_extraction_time / total_papers) * 1000 if total_papers > 0 else 0
-    logger.info(
-        "Extraction finished: %d papers in %.2fs (%.2fs / 1k abstracts). Total raw facets: %d",
-        total_papers,
-        total_extraction_time,
-        rate_1k,
-        len(all_extracted_facets),
-    )
+        total_time = time.time() - start_time
+        overall_rate = (total_time / total_papers) * 1000 if total_papers > 0 else 0
+        logger.info(
+            "Extraction finished: %d papers in %.2fs (%.2fs / 1k abstracts). Total new facets: %d",
+            total_papers,
+            total_time,
+            overall_rate,
+            len(all_extracted_facets),
+        )
 
-    if not all_extracted_facets:
-        logger.warning("No facets were extracted.")
+    # 3. Canonicalization pass across all facets in database
+    logger.info("Fetching all facets from database for global canonicalization clustering...")
+    conn = sqlite3.connect(str(args.db_path))
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT facet_id, paper_id, facet_type, facet_value
+        FROM paper_facets
+    """)
+    db_facets = [dict(r) for r in cur.fetchall()]
+    conn.close()
+
+    if not db_facets:
+        logger.warning("No facets in database to canonicalize.")
         return
 
-    # 3. Canonicalization
-    logger.info("Starting canonicalization clustering...")
+    logger.info("Canonicalizing %d total database facets...", len(db_facets))
     canonicalizer = FacetCanonicalizer(
         distance_threshold=args.distance_threshold,
     )
     canon_start = time.time()
-    canonicalized_facets, canonical_defs = canonicalizer.canonicalize(all_extracted_facets)
+    canonicalized_facets, canonical_defs = canonicalizer.canonicalize(db_facets)
     canon_time = time.time() - canon_start
     logger.info(
         "Canonicalization complete in %.2fs: %d canonical definitions created.",
@@ -167,10 +196,18 @@ def main():
         len(canonical_defs),
     )
 
-    # 4. Persistence into SQLite
-    logger.info("Persisting facets into database: %s", args.db_path)
-    store.save_facets(canonicalized_facets, clear_existing=args.clear)
-    store.save_canonical_clusters(canonical_defs, clear_existing=args.clear)
+    # 4. Update canonical_id in database and save canonical clusters
+    logger.info("Updating canonical IDs in SQLite database...")
+    store.save_canonical_clusters(canonical_defs, clear_existing=True)
+
+    conn = sqlite3.connect(str(args.db_path))
+    with conn:
+        update_rows = [(f["canonical_id"], f["facet_id"]) for f in canonicalized_facets]
+        conn.executemany(
+            "UPDATE paper_facets SET canonical_id = ? WHERE facet_id = ?",
+            update_rows,
+        )
+    conn.close()
 
     # 5. Summary statistics
     facet_counts_by_type = {}
@@ -183,13 +220,11 @@ def main():
         ftype = c["facet_type"]
         canon_by_type[ftype] = canon_by_type.get(ftype, 0) + 1
 
+    total_in_db = len(canonicalized_facets)
     print("\n" + "=" * 60)
     print("PHASE 3 FACET EXTRACTION & CANONICALIZATION SUMMARY")
     print("=" * 60)
-    print(f"Papers processed:         {total_papers}")
-    print(f"Total facets extracted:   {len(canonicalized_facets)}")
-    print(f"Facets per paper:         {len(canonicalized_facets) / total_papers:.2f}")
-    print(f"Extraction speed:         {rate_1k:.2f}s per 1k abstracts")
+    print(f"Total facets in database: {total_in_db}")
     print(f"Total canonical clusters: {len(canonical_defs)}")
     print("\nFacet distribution by type:")
     for ftype, count in sorted(facet_counts_by_type.items()):
@@ -200,4 +235,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
