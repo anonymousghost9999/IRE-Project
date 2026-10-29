@@ -25,6 +25,7 @@ sys.path.insert(0, str(project_root / "src"))
 from paperfeed.bench.scierc import (
     DEFAULT_LABEL_MAP,
     EVALUATION_LABELS,
+    NATIVE_LABEL_MAP,
     SciERCEvaluator,
     format_markdown_report,
     load_scierc_dataset,
@@ -114,9 +115,8 @@ def main() -> int:
     # Determine labels and label mapping
     if args.native_labels:
         logger.info("Using SciERC native labels directly (Task, Method, Metric, Material, OtherScientificTerm)")
-        active_labels = EVALUATION_LABELS
-        label_map = {lbl.lower(): lbl for lbl in EVALUATION_LABELS}
-        label_map.update({lbl: lbl for lbl in EVALUATION_LABELS})
+        label_map = NATIVE_LABEL_MAP
+        active_labels = list(label_map)
     else:
         logger.info("Using production facet labels (task, method, dataset, metric, topic) mapped to SciERC ontology")
         active_labels = ["task", "method", "dataset", "metric", "topic"]

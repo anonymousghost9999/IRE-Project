@@ -9,6 +9,7 @@ import pytest
 from paperfeed.bench.scierc import (
     DEFAULT_LABEL_MAP,
     EVALUATION_LABELS,
+    NATIVE_LABEL_MAP,
     BenchmarkResults,
     EntitySpan,
     LabelMetrics,
@@ -218,6 +219,32 @@ def test_scierc_evaluator_end_to_end(sample_scierc_record: dict):
     assert "Strict Span Matching" in report
     assert "Relaxed Span Matching" in report
     assert "100.00%" in report
+
+
+def test_native_label_prompts_map_to_scierc_labels():
+    """Native-label prompts are lowercase (FacetExtractor lowercases labels) and cover every SciERC label."""
+    assert all(k == k.lower() for k in NATIVE_LABEL_MAP)
+    assert set(NATIVE_LABEL_MAP.values()) == set(EVALUATION_LABELS)
+
+    doc = SciERCDocument(
+        doc_key="D",
+        sentences=[["We", "use", "BLEU", "."]],
+        gold_ner=[[(2, 2, "Metric"), ]],
+    )
+    extractor = MagicMock()
+    extractor.extract_from_abstract.return_value = [
+        {"facet_type": "metric", "facet_value": "BLEU", "start_char": 7, "end_char": 11, "confidence": 0.9},
+    ]
+    results = SciERCEvaluator(label_map=NATIVE_LABEL_MAP, extractor=extractor).evaluate([doc])
+    assert results.strict_per_label["Metric"].tp == 1
+
+    # A prompt such as "other scientific term" must map back to OtherScientificTerm
+    doc2 = SciERCDocument("D2", [["a", "b"]], [[(0, 0, "OtherScientificTerm")]])
+    extractor.extract_from_abstract.return_value = [
+        {"facet_type": "other scientific term", "facet_value": "a", "start_char": 0, "end_char": 1, "confidence": 0.8},
+    ]
+    results = SciERCEvaluator(label_map=NATIVE_LABEL_MAP, extractor=extractor).evaluate([doc2])
+    assert results.strict_per_label["OtherScientificTerm"].tp == 1
 
 
 def test_evaluator_with_precomputed_predictions(sample_scierc_record: dict):

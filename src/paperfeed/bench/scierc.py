@@ -31,6 +31,16 @@ DEFAULT_LABEL_MAP: Dict[str, str] = {
     "topic": "OtherScientificTerm",
 }
 
+# Natural-language prompts for SciERC's native labels (lowercase, as FacetExtractor lowercases labels;
+# GLiNER works better with spaced words than with the CamelCase "OtherScientificTerm").
+NATIVE_LABEL_MAP: Dict[str, str] = {
+    "task": "Task",
+    "method": "Method",
+    "metric": "Metric",
+    "material": "Material",
+    "other scientific term": "OtherScientificTerm",
+}
+
 # The 5 primary SciERC evaluation target labels
 EVALUATION_LABELS: List[str] = [
     "Task",
