@@ -115,8 +115,22 @@ def main() -> int:
     if not args.data_path.exists():
         logger.error("SciERC dataset file not found at: %s", args.data_path)
         logger.error(
-            "Please ensure SciERC test split is available at %s.",
-            args.data_path,
+            "\n"
+            "================================================================================\n"
+            "SciERC Dataset Not Found\n"
+            "================================================================================\n"
+            "The benchmark evaluation requires the official SciERC test split (Luan et al., 2018).\n"
+            "\n"
+            "Instructions to obtain and place the SciERC dataset:\n"
+            "1. Download the processed SciERC dataset:\n"
+            "   - Official source (UW): http://nlp.cs.washington.edu/sciIE/data/sciERC_processed.tar.gz\n"
+            "   - Or Hugging Face mirror: https://huggingface.co/datasets/sthoran/scierc_processed_data\n"
+            "2. Place the test file at the expected location:\n"
+            f"   {args.data_path}\n"
+            "   (e.g., mkdir -p data/raw/scierc && curl -L -o data/raw/scierc/test.json \\\n"
+            "    https://huggingface.co/datasets/sthoran/scierc_processed_data/resolve/main/test.json)\n"
+            "3. Re-run: python scripts/evaluate_scierc.py\n"
+            "================================================================================\n"
         )
         return 1
 
