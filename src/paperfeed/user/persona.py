@@ -110,6 +110,7 @@ def build_persona(
     encoder: Optional[PaperEncoder],
     cutoff_year: int,
     gamma_rec: float = DEFAULT_GAMMA_REC,
+    allow_partial: bool = False,
 ) -> Persona:
     """Persona of an author from their papers (dicts with ``paper_id``, ``title``, ``abstract``, ``year``).
 
@@ -132,9 +133,18 @@ def build_persona(
     fresh = [p for p in usable if p["paper_id"] in missing_ids]
     if fresh:
         if encoder is None:
-            raise ValueError(f"{len(fresh)} authored papers have no stored embedding and no encoder was given.")
-        for p, vec in zip(fresh, encoder.embed_papers(fresh)):
-            vectors[p["paper_id"]] = vec
+            if not allow_partial or not present_ids:
+                raise ValueError(f"{len(fresh)} authored papers have no stored embedding and no encoder was given.")
+            logger.warning(
+                "%d authored papers have no stored embedding and no encoder was given; building persona from %d available stored embeddings.",
+                len(fresh),
+                len(present_ids),
+            )
+            usable = [p for p in usable if p["paper_id"] not in missing_ids]
+            fresh = []
+        else:
+            for p, vec in zip(fresh, encoder.embed_papers(fresh)):
+                vectors[p["paper_id"]] = vec
 
     matrix = np.vstack([vectors[p["paper_id"]] for p in usable])
     vec = persona_vector(matrix, [p["year"] for p in usable], cutoff_year, gamma_rec)

@@ -581,7 +581,8 @@ def test_macro_average_with_zero_gold_labels():
 def test_reproducibility_git_commit_helper():
     """Verify get_git_commit returns a valid git hash string or fallback."""
     import sys
-    sys.path.insert(0, "scripts")
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
     from evaluate_scierc import get_git_commit
     commit = get_git_commit()
     assert isinstance(commit, str)

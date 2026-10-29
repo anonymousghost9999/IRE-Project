@@ -181,7 +181,7 @@ def build_user_profile(
     r = resources
     if authored_ids:
         papers = load_authored_papers(r.db, authored_ids, r.cutoff_year)
-        persona = build_persona(papers, r.store, r.encoder, r.cutoff_year, cfg.gamma_rec)
+        persona = build_persona(papers, r.store, r.encoder, r.cutoff_year, cfg.gamma_rec, allow_partial=True)
         paper_ids = [p["paper_id"] for p in papers]
         facets = build_user_facets(paper_ids, r.facet_store) if r.facet_store is not None else UserFacets(paper_ids=paper_ids)
         return UserProfile(
@@ -312,7 +312,7 @@ def recommend(
                                     (query or "").strip(), len(excluded), cfg)
 
     # -- feed mode ----------------------------------------------------------------------------------------------
-    pseudo_query = build_feed_query(profile.user_facets, session, r.db, profile.authored_papers, cfg.n_terms, cfg.n_titles)
+    pseudo_query = build_feed_query(profile.user_facets, session, r.db, profile.authored_papers, cfg.n_terms, cfg.n_titles, cutoff_year=r.cutoff_year)
     session_vec = session.vector if session_active else None
     cands = feed_candidates(
         r.retriever, profile.persona.vector, pseudo_query, session_vec, excluded, r.eligible,

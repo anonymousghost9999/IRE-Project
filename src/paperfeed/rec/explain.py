@@ -212,7 +212,7 @@ class Explainer:
             citers: Dict[str, set] = {cand: set(), paper_id: set()}
             for src, tgt in _edges(self.db, "target_paper_id", [cand, paper_id], self.cutoff_year):
                 citers[tgt].add(src)
-            verified = len((citers[cand] & citers[paper_id]) - self.citation_ctx.authored)
+            verified = len(((citers[cand] & citers[paper_id]) - self.citation_ctx.authored) - {cand})
             if verified != claimed:
                 return None, f"co-citation could not be verified (claimed {claimed}, found {verified})"
             text = f"Frequently cited together with your paper *{title}*"
@@ -229,6 +229,8 @@ class Explainer:
         vecs = self.store.select(known)
         sims = (vecs @ cand_vec) / np.maximum(np.linalg.norm(vecs, axis=1) * np.linalg.norm(cand_vec), 1e-12)
         best = min(range(len(known)), key=lambda i: (-round(float(sims[i]), 12), known[i]))
+        if float(sims[best]) <= 0:
+            return None, "session paper without positive similarity"
         title = self._title(known[best])
         if title is None:
             return None, f"session paper {known[best]} has no title to show"
