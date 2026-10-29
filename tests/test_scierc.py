@@ -1,0 +1,268 @@
+"""Unit tests for Phase 3.4 SciERC Benchmark Evaluation Module."""
+
+from pathlib import Path
+import json
+import tempfile
+from unittest.mock import MagicMock
+import pytest
+
+from paperfeed.bench.scierc import (
+    DEFAULT_LABEL_MAP,
+    EVALUATION_LABELS,
+    BenchmarkResults,
+    EntitySpan,
+    LabelMetrics,
+    SciERCDocument,
+    SciERCEvaluator,
+    char_to_token_offsets,
+    compute_span_overlap_iou,
+    evaluate_document_spans,
+    format_markdown_report,
+    load_scierc_dataset,
+)
+
+
+@pytest.fixture
+def sample_scierc_record() -> dict:
+    """Return a minimal valid SciERC record fixture."""
+    return {
+        "doc_key": "DOC_001",
+        "sentences": [
+            ["We", "propose", "BERT", "for", "text", "classification", "."],
+            ["Experiments", "on", "GLUE", "show", "92", "%", "accuracy", "."],
+        ],
+        "ner": [
+            # Sentence 0 (tokens 0..6): "BERT" [2, 2, 'Method'], "text classification" [4, 5, 'Task']
+            [[2, 2, "Method"], [4, 5, "Task"]],
+            # Sentence 1 (tokens 7..14): "GLUE" [9, 9, 'Material'], "accuracy" [13, 13, 'Metric']
+            [[9, 9, "Material"], [13, 13, "Metric"]],
+        ],
+    }
+
+
+def test_char_to_token_offsets():
+    """Verify mapping of character offsets to token index spans."""
+    tokens = ["Deep", "neural", "networks", "for", "NLP"]
+    # Char spans:
+    # Deep: (0, 4)
+    # neural: (5, 11)
+    # networks: (12, 20)
+    # for: (21, 24)
+    # NLP: (25, 28)
+    spans = [(0, 4), (5, 11), (12, 20), (21, 24), (25, 28)]
+
+    # Exact token span for "Deep neural networks" (char 0 to 20)
+    assert char_to_token_offsets(0, 20, spans) == (0, 2)
+    # Single token "NLP" (char 25 to 28)
+    assert char_to_token_offsets(25, 28, spans) == (4, 4)
+    # Partial character overlap with "neural"
+    assert char_to_token_offsets(6, 10, spans) == (1, 1)
+    # Out-of-bounds char range
+    assert char_to_token_offsets(30, 40, spans) is None
+
+
+def test_span_overlap_iou():
+    """Verify token overlap and IoU calculation."""
+    s1 = EntitySpan(start_token=2, end_token=5, label="Method")  # length 4
+    s2 = EntitySpan(start_token=4, end_token=7, label="Method")  # length 4
+
+    overlap, iou = compute_span_overlap_iou(s1, s2)
+    # Overlap tokens: 4, 5 -> overlap = 2
+    # Union tokens: 2, 3, 4, 5, 6, 7 -> union = 6
+    assert overlap == 2
+    assert pytest.approx(iou, rel=1e-3) == (2.0 / 6.0)
+
+    # Disjoint spans
+    s3 = EntitySpan(start_token=8, end_token=10, label="Method")
+    overlap_disjoint, iou_disjoint = compute_span_overlap_iou(s1, s3)
+    assert overlap_disjoint == 0
+    assert iou_disjoint == 0.0
+
+
+def test_label_metrics():
+    """Verify precision, recall, and F1 computation."""
+    m = LabelMetrics(label="Task", tp=8, fp=2, fn=2).compute()
+    assert pytest.approx(m.precision) == 0.8
+    assert pytest.approx(m.recall) == 0.8
+    assert pytest.approx(m.f1) == 0.8
+
+    # Edge cases (zero division)
+    zero_m = LabelMetrics(label="Task", tp=0, fp=0, fn=0).compute()
+    assert zero_m.precision == 0.0
+    assert zero_m.recall == 0.0
+    assert zero_m.f1 == 0.0
+
+
+def test_strict_and_relaxed_evaluation_logic():
+    """Test strict vs relaxed span matching across different prediction scenarios."""
+    gold = [
+        EntitySpan(start_token=0, end_token=2, label="Task"),    # "information retrieval systems"
+        EntitySpan(start_token=5, end_token=5, label="Method"),  # "BM25"
+        EntitySpan(start_token=8, end_token=9, label="Metric"),  # "NDCG score"
+    ]
+
+    preds = [
+        # Scenario 1: Exact strict match
+        EntitySpan(start_token=0, end_token=2, label="Task"),
+        # Scenario 2: Partial relaxed match ("BM25 model" vs "BM25")
+        EntitySpan(start_token=5, end_token=6, label="Method"),
+        # Scenario 3: Spurious prediction
+        EntitySpan(start_token=15, end_token=16, label="Material"),
+    ]
+
+    eval_labels = ["Task", "Method", "Metric", "Material"]
+    strict_counts, relaxed_counts = evaluate_document_spans(gold, preds, eval_labels)
+
+    # Task: exact match -> Strict TP=1, Relaxed TP=1
+    assert strict_counts["Task"] == (1, 0, 0)
+    assert relaxed_counts["Task"] == (1, 0, 0)
+
+    # Method: relaxed match only -> Strict TP=0, FP=1, FN=1; Relaxed TP=1, FP=0, FN=0
+    assert strict_counts["Method"] == (0, 1, 1)
+    assert relaxed_counts["Method"] == (1, 0, 0)
+
+    # Metric: completely missed -> Strict TP=0, FP=0, FN=1; Relaxed TP=0, FP=0, FN=1
+    assert strict_counts["Metric"] == (0, 0, 1)
+    assert relaxed_counts["Metric"] == (0, 0, 1)
+
+    # Material: spurious -> Strict TP=0, FP=1, FN=0; Relaxed TP=0, FP=1, FN=0
+    assert strict_counts["Material"] == (0, 1, 0)
+    assert relaxed_counts["Material"] == (0, 1, 0)
+
+
+def test_load_scierc_dataset_json_and_jsonl(tmp_path: Path, sample_scierc_record: dict):
+    """Test loader handles both single-array and JSONL formats."""
+    # Test JSONL
+    jsonl_file = tmp_path / "test.jsonl"
+    with open(jsonl_file, "w", encoding="utf-8") as f:
+        f.write(json.dumps(sample_scierc_record) + "\n")
+
+    docs = load_scierc_dataset(jsonl_file)
+    assert len(docs) == 1
+    doc = docs[0]
+    assert doc.doc_key == "DOC_001"
+    assert len(doc.sentences) == 2
+    assert doc.flat_tokens == [
+        "We", "propose", "BERT", "for", "text", "classification", ".",
+        "Experiments", "on", "GLUE", "show", "92", "%", "accuracy", ".",
+    ]
+    assert doc.sentence_offsets == [0, 7]
+
+    gold_spans = doc.get_gold_spans()
+    assert len(gold_spans) == 4
+    labels = {s.label for s in gold_spans}
+    assert labels == {"Method", "Task", "Material", "Metric"}
+
+    # Test JSON array
+    json_array_file = tmp_path / "test.json"
+    with open(json_array_file, "w", encoding="utf-8") as f:
+        f.write(json.dumps([sample_scierc_record]))
+
+    docs_arr = load_scierc_dataset(json_array_file)
+    assert len(docs_arr) == 1
+    assert docs_arr[0].doc_key == "DOC_001"
+
+
+def test_scierc_evaluator_end_to_end(sample_scierc_record: dict):
+    """Test full evaluator run with a mock extractor and label mapping."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    # Mock extractor simulating GLiNER returning lowercase production facets:
+    # Sentence 0: "We propose BERT for text classification ."
+    # Sentence 1: "Experiments on GLUE show 92 % accuracy ."
+    mock_extractor = MagicMock()
+    mock_extractor.extract_from_abstract.side_effect = [
+        # Sentence 0 output:
+        [
+            # "BERT" starts at char 11, end at 15
+            {"facet_type": "method", "facet_value": "BERT", "start_char": 11, "end_char": 15, "confidence": 0.95},
+            # "text classification" starts at char 20, end at 39
+            {"facet_type": "task", "facet_value": "text classification", "start_char": 20, "end_char": 39, "confidence": 0.91},
+        ],
+        # Sentence 1 output:
+        [
+            # "GLUE" starts at char 15, end at 19
+            {"facet_type": "dataset", "facet_value": "GLUE", "start_char": 15, "end_char": 19, "confidence": 0.88},
+            # "accuracy" starts at char 30, end at 38
+            {"facet_type": "metric", "facet_value": "accuracy", "start_char": 30, "end_char": 38, "confidence": 0.89},
+        ],
+    ]
+
+    evaluator = SciERCEvaluator(
+        label_map=DEFAULT_LABEL_MAP,
+        eval_labels=EVALUATION_LABELS,
+        extractor=mock_extractor,
+    )
+
+    results = evaluator.evaluate([doc])
+
+    assert results.total_documents == 1
+    assert results.total_gold_entities == 4
+    assert results.total_predicted_entities == 4
+
+    # All 4 predictions matched exactly and mapped correctly
+    assert results.strict_micro.precision == 1.0
+    assert results.strict_micro.recall == 1.0
+    assert results.strict_micro.f1 == 1.0
+
+    assert results.relaxed_micro.f1 == 1.0
+    assert results.strict_macro_f1 > 0.0
+
+    # Check Markdown report generation
+    report = format_markdown_report(results)
+    assert "SciERC Extraction Benchmark Report" in report
+    assert "Strict Span Matching" in report
+    assert "Relaxed Span Matching" in report
+    assert "100.00%" in report
+
+
+def test_evaluator_with_precomputed_predictions(sample_scierc_record: dict):
+    """Test evaluate with explicit precomputed EntitySpans."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    precomputed = {
+        "DOC_001": [
+            EntitySpan(start_token=2, end_token=2, label="Method", text="BERT"),
+            EntitySpan(start_token=4, end_token=5, label="Task", text="text classification"),
+        ]
+    }
+
+    evaluator = SciERCEvaluator(eval_labels=EVALUATION_LABELS)
+    results = evaluator.evaluate([doc], predictions=precomputed)
+
+    assert results.total_documents == 1
+    assert results.total_gold_entities == 4
+    assert results.total_predicted_entities == 2
+
+    assert results.strict_per_label["Method"].tp == 1
+    assert results.strict_per_label["Task"].tp == 1
+    assert results.strict_per_label["Material"].fn == 1
+    assert results.strict_per_label["Metric"].fn == 1
+
+    assert pytest.approx(results.strict_micro.precision) == 1.0
+    assert pytest.approx(results.strict_micro.recall) == 0.5
+    assert pytest.approx(results.strict_micro.f1) == (2 * 1.0 * 0.5 / 1.5)
+
+
+def test_real_scierc_test_file_if_present():
+    """Verify parsing and structure of the real official SciERC test split if present on disk."""
+    real_path = Path("data/raw/scierc/test.json")
+    if not real_path.exists():
+        pytest.skip("data/raw/scierc/test.json not found on disk")
+
+    docs = load_scierc_dataset(real_path)
+    assert len(docs) == 100
+    for doc in docs:
+        assert doc.doc_key
+        assert len(doc.sentences) > 0
+        gold_spans = doc.get_gold_spans(target_labels=set(EVALUATION_LABELS))
+        assert isinstance(gold_spans, list)
+
