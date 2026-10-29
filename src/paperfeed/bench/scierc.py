@@ -51,6 +51,13 @@ EVALUATION_LABELS: List[str] = [
     "OtherScientificTerm",
 ]
 
+# The 3 well-aligned core labels (Task, Method, Metric) per docs/design.md §13.4
+CORE_EVALUATION_LABELS: List[str] = [
+    "Task",
+    "Method",
+    "Metric",
+]
+
 
 @dataclass
 class EntitySpan:
@@ -310,6 +317,14 @@ class BenchmarkResults:
     relaxed_macro_precision: float = 0.0
     strict_macro_recall: float = 0.0
     relaxed_macro_recall: float = 0.0
+    core_strict_micro: LabelMetrics = field(default_factory=lambda: LabelMetrics("core_micro"))
+    core_relaxed_micro: LabelMetrics = field(default_factory=lambda: LabelMetrics("core_micro"))
+    core_strict_macro_f1: float = 0.0
+    core_relaxed_macro_f1: float = 0.0
+    core_strict_macro_precision: float = 0.0
+    core_relaxed_macro_precision: float = 0.0
+    core_strict_macro_recall: float = 0.0
+    core_relaxed_macro_recall: float = 0.0
     total_gold_entities: int = 0
     total_predicted_entities: int = 0
     total_documents: int = 0
@@ -325,6 +340,12 @@ class BenchmarkResults:
                 "macro_f1": round(self.strict_macro_f1, 4),
                 "macro_precision": round(self.strict_macro_precision, 4),
                 "macro_recall": round(self.strict_macro_recall, 4),
+                "core_3_labels": {
+                    "micro": self.core_strict_micro.to_dict(),
+                    "macro_f1": round(self.core_strict_macro_f1, 4),
+                    "macro_precision": round(self.core_strict_macro_precision, 4),
+                    "macro_recall": round(self.core_strict_macro_recall, 4),
+                },
                 "per_label": {lbl: m.to_dict() for lbl, m in self.strict_per_label.items()},
             },
             "relaxed_span_matching": {
@@ -332,6 +353,12 @@ class BenchmarkResults:
                 "macro_f1": round(self.relaxed_macro_f1, 4),
                 "macro_precision": round(self.relaxed_macro_precision, 4),
                 "macro_recall": round(self.relaxed_macro_recall, 4),
+                "core_3_labels": {
+                    "micro": self.core_relaxed_micro.to_dict(),
+                    "macro_f1": round(self.core_relaxed_macro_f1, 4),
+                    "macro_precision": round(self.core_relaxed_macro_precision, 4),
+                    "macro_recall": round(self.core_relaxed_macro_recall, 4),
+                },
                 "per_label": {lbl: m.to_dict() for lbl, m in self.relaxed_per_label.items()},
             },
             "metadata": self.metadata,
@@ -718,6 +745,51 @@ class SciERCEvaluator:
             else 0.0
         )
 
+        # Core 3-label metrics (Task, Method, Metric) per docs/design.md §13.4
+        core_labels = [lbl for lbl in CORE_EVALUATION_LABELS if lbl in strict_per_label]
+
+        core_tp_s = sum(strict_per_label[lbl].tp for lbl in core_labels)
+        core_fp_s = sum(strict_per_label[lbl].fp for lbl in core_labels)
+        core_fn_s = sum(strict_per_label[lbl].fn for lbl in core_labels)
+        core_strict_micro = LabelMetrics("core_micro", core_tp_s, core_fp_s, core_fn_s).compute()
+
+        core_tp_r = sum(relaxed_per_label[lbl].tp for lbl in core_labels)
+        core_fp_r = sum(relaxed_per_label[lbl].fp for lbl in core_labels)
+        core_fn_r = sum(relaxed_per_label[lbl].fn for lbl in core_labels)
+        core_relaxed_micro = LabelMetrics("core_micro", core_tp_r, core_fp_r, core_fn_r).compute()
+
+        core_strict_macro_f1 = (
+            sum(strict_per_label[lbl].f1 for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+        core_strict_macro_p = (
+            sum(strict_per_label[lbl].precision for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+        core_strict_macro_r = (
+            sum(strict_per_label[lbl].recall for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+
+        core_relaxed_macro_f1 = (
+            sum(relaxed_per_label[lbl].f1 for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+        core_relaxed_macro_p = (
+            sum(relaxed_per_label[lbl].precision for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+        core_relaxed_macro_r = (
+            sum(relaxed_per_label[lbl].recall for lbl in core_labels) / len(core_labels)
+            if core_labels
+            else 0.0
+        )
+
         run_metadata = dict(metadata or {})
         run_metadata["ignore_generic"] = should_ignore_generic
         run_metadata["predictions_ignored_generic"] = total_predictions_ignored_generic
@@ -734,6 +806,14 @@ class SciERCEvaluator:
             relaxed_macro_precision=relaxed_macro_p,
             strict_macro_recall=strict_macro_r,
             relaxed_macro_recall=relaxed_macro_r,
+            core_strict_micro=core_strict_micro,
+            core_relaxed_micro=core_relaxed_micro,
+            core_strict_macro_f1=core_strict_macro_f1,
+            core_relaxed_macro_f1=core_relaxed_macro_f1,
+            core_strict_macro_precision=core_strict_macro_p,
+            core_relaxed_macro_precision=core_relaxed_macro_p,
+            core_strict_macro_recall=core_strict_macro_r,
+            core_relaxed_macro_recall=core_relaxed_macro_r,
             total_gold_entities=total_gold,
             total_predicted_entities=total_pred,
             total_documents=len(docs),
@@ -756,16 +836,28 @@ def format_markdown_report(results: BenchmarkResults) -> str:
         "| Metric Track | Strict Precision | Strict Recall | Strict F1 | Relaxed Precision | Relaxed Recall | Relaxed F1 |",
         "|---|---|---|---|---|---|---|",
         (
-            f"| **Micro-Average** | {results.strict_micro.precision * 100:.2f}% | "
+            f"| **Micro-Average (All 5 Labels)** | {results.strict_micro.precision * 100:.2f}% | "
             f"{results.strict_micro.recall * 100:.2f}% | **{results.strict_micro.f1 * 100:.2f}%** | "
             f"{results.relaxed_micro.precision * 100:.2f}% | {results.relaxed_micro.recall * 100:.2f}% | "
             f"**{results.relaxed_micro.f1 * 100:.2f}%** |"
         ),
         (
-            f"| **Macro-Average** | {results.strict_macro_precision * 100:.2f}% | "
+            f"| **Macro-Average (All 5 Labels)** | {results.strict_macro_precision * 100:.2f}% | "
             f"{results.strict_macro_recall * 100:.2f}% | **{results.strict_macro_f1 * 100:.2f}%** | "
             f"{results.relaxed_macro_precision * 100:.2f}% | {results.relaxed_macro_recall * 100:.2f}% | "
             f"**{results.relaxed_macro_f1 * 100:.2f}%** |"
+        ),
+        (
+            f"| **Micro-Average (Core 3 Labels: Task, Method, Metric)** | {results.core_strict_micro.precision * 100:.2f}% | "
+            f"{results.core_strict_micro.recall * 100:.2f}% | **{results.core_strict_micro.f1 * 100:.2f}%** | "
+            f"{results.core_relaxed_micro.precision * 100:.2f}% | {results.core_relaxed_micro.recall * 100:.2f}% | "
+            f"**{results.core_relaxed_micro.f1 * 100:.2f}%** |"
+        ),
+        (
+            f"| **Macro-Average (Core 3 Labels: Task, Method, Metric)** | {results.core_strict_macro_precision * 100:.2f}% | "
+            f"{results.core_strict_macro_recall * 100:.2f}% | **{results.core_strict_macro_f1 * 100:.2f}%** | "
+            f"{results.core_relaxed_macro_precision * 100:.2f}% | {results.core_relaxed_macro_recall * 100:.2f}% | "
+            f"**{results.core_relaxed_macro_f1 * 100:.2f}%** |"
         ),
         "",
         "---",
@@ -782,10 +874,13 @@ def format_markdown_report(results: BenchmarkResults) -> str:
         m = results.strict_per_label.get(lbl, LabelMetrics(lbl))
         gold_c = m.tp + m.fn
         pred_c = m.tp + m.fp
+        lbl_display = f"`{lbl}` †" if lbl in ("Material", "OtherScientificTerm") else f"`{lbl}`"
         lines.append(
-            f"| `{lbl}` | {gold_c} | {pred_c} | {m.tp} | {m.fp} | {m.fn} | "
+            f"| {lbl_display} | {gold_c} | {pred_c} | {m.tp} | {m.fp} | {m.fn} | "
             f"{m.precision * 100:.2f}% | {m.recall * 100:.2f}% | **{m.f1 * 100:.2f}%** |"
         )
+    lines.append("")
+    lines.append("† *Note: `Material` and `OtherScientificTerm` in SciERC are broader than production `dataset` and `topic` facets (docs/design.md §13.4); treat these as low-confidence comparisons.*")
 
     lines.extend([
         "",
@@ -799,10 +894,13 @@ def format_markdown_report(results: BenchmarkResults) -> str:
         m = results.relaxed_per_label.get(lbl, LabelMetrics(lbl))
         gold_c = m.tp + m.fn
         pred_c = m.tp + m.fp
+        lbl_display = f"`{lbl}` †" if lbl in ("Material", "OtherScientificTerm") else f"`{lbl}`"
         lines.append(
-            f"| `{lbl}` | {gold_c} | {pred_c} | {m.tp} | {m.fp} | {m.fn} | "
+            f"| {lbl_display} | {gold_c} | {pred_c} | {m.tp} | {m.fp} | {m.fn} | "
             f"{m.precision * 100:.2f}% | {m.recall * 100:.2f}% | **{m.f1 * 100:.2f}%** |"
         )
+    lines.append("")
+    lines.append("† *Note: `Material` and `OtherScientificTerm` in SciERC are broader than production `dataset` and `topic` facets (docs/design.md §13.4); treat these as low-confidence comparisons.*")
 
     lines.extend([
         "",

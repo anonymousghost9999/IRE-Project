@@ -436,6 +436,37 @@ def test_extractor_errors_not_swallowed(sample_scierc_record: dict):
     assert "CUDA out of memory error" in str(exc_info_strict.value)
 
 
+def test_report_flags_low_confidence_and_3label_averages(sample_scierc_record: dict):
+    """Verify markdown report flags low-confidence facets with footnotes and includes 3-label core averages."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    precomputed = {
+        "DOC_001": [
+            EntitySpan(start_token=2, end_token=2, label="Method", text="BERT"),
+            EntitySpan(start_token=4, end_token=5, label="Task", text="text classification"),
+            EntitySpan(start_token=9, end_token=9, label="Material", text="GLUE"),
+        ]
+    }
+
+    evaluator = SciERCEvaluator(eval_labels=EVALUATION_LABELS)
+    results = evaluator.evaluate([doc], predictions=precomputed)
+    report = format_markdown_report(results)
+
+    # 1. Footnote mark on Material and OtherScientificTerm
+    assert "`Material` †" in report
+    assert "`OtherScientificTerm` †" in report
+    assert "† *Note: `Material` and `OtherScientificTerm`" in report
+
+    # 2. 3-label core averages row present
+    assert "Core 3 Labels: Task, Method, Metric" in report
+    assert results.core_strict_micro.f1 > 0.0
+    assert "core_3_labels" in results.to_dict()["strict_span_matching"]
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
