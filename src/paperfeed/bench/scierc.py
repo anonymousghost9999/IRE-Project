@@ -329,9 +329,10 @@ class BenchmarkResults:
     total_predicted_entities: int = 0
     total_documents: int = 0
     metadata: Dict[str, Any] = field(default_factory=dict)
+    threshold_sweep: Optional[List[Dict[str, Any]]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        d = {
             "total_documents": self.total_documents,
             "total_gold_entities": self.total_gold_entities,
             "total_predicted_entities": self.total_predicted_entities,
@@ -363,6 +364,9 @@ class BenchmarkResults:
             },
             "metadata": self.metadata,
         }
+        if self.threshold_sweep is not None:
+            d["threshold_sweep"] = self.threshold_sweep
+        return d
 
 
 def compute_span_overlap_iou(span1: EntitySpan, span2: EntitySpan) -> Tuple[int, float]:
@@ -375,6 +379,25 @@ def compute_span_overlap_iou(span1: EntitySpan, span2: EntitySpan) -> Tuple[int,
     union = len1 + len2 - overlap
     iou = overlap / union if union > 0 else 0.0
     return overlap, iou
+
+
+def filter_predictions_by_threshold(
+    predictions: Dict[str, List[EntitySpan]],
+    threshold: float,
+) -> Dict[str, List[EntitySpan]]:
+    """Filter entity span predictions by minimum confidence threshold.
+
+    Retains predictions where ``span.confidence >= threshold``.
+    Predictions with confidence None are preserved only if threshold <= 0.0.
+    """
+    filtered: Dict[str, List[EntitySpan]] = {}
+    for doc_key, spans in predictions.items():
+        filtered[doc_key] = [
+            s for s in spans
+            if (s.confidence is not None and s.confidence >= threshold)
+            or (s.confidence is None and threshold <= 0.0)
+        ]
+    return filtered
 
 
 def evaluate_document_spans(
@@ -902,11 +925,35 @@ def format_markdown_report(results: BenchmarkResults) -> str:
     lines.append("")
     lines.append("† *Note: `Material` and `OtherScientificTerm` in SciERC are broader than production `dataset` and `topic` facets (docs/design.md §13.4); treat these as low-confidence comparisons.*")
 
+    if results.threshold_sweep:
+        lines.extend([
+            "",
+            "---",
+            "",
+            "## 3. Threshold Sweep Analysis",
+            "",
+            "| Threshold | Strict Precision | Strict Recall | Strict F1 | Relaxed Precision | Relaxed Recall | Relaxed F1 |",
+            "|---|---|---|---|---|---|---|",
+        ])
+        for row in results.threshold_sweep:
+            t = row["threshold"]
+            sp = row["strict_precision"] * 100
+            sr = row["strict_recall"] * 100
+            sf1 = row["strict_f1"] * 100
+            rp = row["relaxed_precision"] * 100
+            rr = row["relaxed_recall"] * 100
+            rf1 = row["relaxed_f1"] * 100
+            lines.append(
+                f"| `{t:.2f}` | {sp:.2f}% | {sr:.2f}% | **{sf1:.2f}%** | "
+                f"{rp:.2f}% | {rr:.2f}% | **{rf1:.2f}%** |"
+            )
+
+    sec_num = "4" if results.threshold_sweep else "3"
     lines.extend([
         "",
         "---",
         "",
-        "## 3. Notes & Methodology",
+        f"## {sec_num}. Notes & Methodology",
         "",
         "> [!NOTE]",
         "> - **Label Mapping:** `task -> Task`, `method -> Method`, `metric -> Metric`, `dataset -> Material`, `topic -> OtherScientificTerm`.",

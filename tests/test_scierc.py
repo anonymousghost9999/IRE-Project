@@ -18,6 +18,7 @@ from paperfeed.bench.scierc import (
     char_to_token_offsets,
     compute_span_overlap_iou,
     evaluate_document_spans,
+    filter_predictions_by_threshold,
     format_markdown_report,
     load_scierc_dataset,
 )
@@ -465,6 +466,33 @@ def test_report_flags_low_confidence_and_3label_averages(sample_scierc_record: d
     assert "Core 3 Labels: Task, Method, Metric" in report
     assert results.core_strict_micro.f1 > 0.0
     assert "core_3_labels" in results.to_dict()["strict_span_matching"]
+
+
+def test_threshold_sweep_filtering():
+    """Verify filtering predictions at a higher threshold never increases the prediction count."""
+    predictions = {
+        "DOC_1": [
+            EntitySpan(0, 1, "Method", "BERT", confidence=0.35),
+            EntitySpan(2, 3, "Task", "NER", confidence=0.55),
+            EntitySpan(4, 5, "Metric", "F1", confidence=0.75),
+            EntitySpan(6, 7, "Material", "SciERC", confidence=0.92),
+        ]
+    }
+
+    thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95]
+    prev_count = float("inf")
+
+    for t in thresholds:
+        filtered = filter_predictions_by_threshold(predictions, t)
+        count = len(filtered["DOC_1"])
+        assert count <= prev_count, f"Count increased at threshold {t}: {count} > {prev_count}"
+        prev_count = count
+
+    assert len(filter_predictions_by_threshold(predictions, 0.2)["DOC_1"]) == 4
+    assert len(filter_predictions_by_threshold(predictions, 0.4)["DOC_1"]) == 3
+    assert len(filter_predictions_by_threshold(predictions, 0.6)["DOC_1"]) == 2
+    assert len(filter_predictions_by_threshold(predictions, 0.8)["DOC_1"]) == 1
+    assert len(filter_predictions_by_threshold(predictions, 0.95)["DOC_1"]) == 0
 
 
 

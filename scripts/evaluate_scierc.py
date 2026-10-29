@@ -27,6 +27,7 @@ from paperfeed.bench.scierc import (
     EVALUATION_LABELS,
     NATIVE_LABEL_MAP,
     SciERCEvaluator,
+    filter_predictions_by_threshold,
     format_markdown_report,
     load_scierc_dataset,
 )
@@ -98,6 +99,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Abort benchmark immediately if any sentence extraction fails",
     )
+    parser.add_argument(
+        "--sweep",
+        type=str,
+        default=None,
+        help="Comma-separated confidence thresholds to sweep (e.g. '0.3,0.4,0.5,0.6,0.7')",
+    )
     return parser.parse_args()
 
 
@@ -133,16 +140,25 @@ def main() -> int:
         active_labels = ["task", "method", "dataset", "metric", "topic"]
         label_map = DEFAULT_LABEL_MAP
 
+    # Check if a threshold sweep was requested
+    sweep_thresholds = None
+    initial_threshold = args.threshold
+    if args.sweep:
+        sweep_thresholds = sorted([float(x.strip()) for x in args.sweep.split(",") if x.strip()])
+        if sweep_thresholds:
+            initial_threshold = sweep_thresholds[0]
+            logger.info("Threshold sweep requested across: %s (min: %.2f)", sweep_thresholds, initial_threshold)
+
     logger.info(
         "Initializing FacetExtractor (model=%s, threshold=%.2f, device=%s)...",
         args.model,
-        args.threshold,
+        initial_threshold,
         args.device or "auto",
     )
     extractor = FacetExtractor(
         model_name_or_path=args.model,
         labels=active_labels,
-        threshold=args.threshold,
+        threshold=initial_threshold,
         device=args.device,
         strict_errors=args.strict_errors,
     )
@@ -156,18 +172,54 @@ def main() -> int:
 
     logger.info("Running SciERC evaluation across %d documents...", len(docs))
     t0 = time.time()
-    results = evaluator.evaluate(
-        docs,
-        batch_size=args.batch_size,
-        metadata={
-            "model": args.model,
-            "threshold": args.threshold,
-            "device": extractor.device,
-            "batch_size": args.batch_size,
-            "native_labels_prompted": args.native_labels,
-            "evaluation_time_seconds": 0.0,
-        },
-    )
+
+    if sweep_thresholds:
+        # Extract base predictions once at minimum threshold
+        logger.info("Extracting base predictions once at minimum threshold %.2f...", initial_threshold)
+        base_predictions = evaluator.predict_batch_documents(docs, batch_size=args.batch_size)
+        sweep_rows = []
+        primary_results = None
+
+        for t in sweep_thresholds:
+            t_preds = filter_predictions_by_threshold(base_predictions, t)
+            res_t = evaluator.evaluate(
+                docs,
+                predictions=t_preds,
+                metadata={
+                    "model": args.model,
+                    "threshold": t,
+                    "device": extractor.device,
+                    "batch_size": args.batch_size,
+                    "native_labels_prompted": args.native_labels,
+                },
+            )
+            sweep_rows.append({
+                "threshold": t,
+                "strict_precision": round(res_t.strict_micro.precision, 4),
+                "strict_recall": round(res_t.strict_micro.recall, 4),
+                "strict_f1": round(res_t.strict_micro.f1, 4),
+                "relaxed_precision": round(res_t.relaxed_micro.precision, 4),
+                "relaxed_recall": round(res_t.relaxed_micro.recall, 4),
+                "relaxed_f1": round(res_t.relaxed_micro.f1, 4),
+            })
+            if abs(t - args.threshold) < 1e-4 or primary_results is None:
+                primary_results = res_t
+
+        results = primary_results or res_t
+        results.threshold_sweep = sweep_rows
+    else:
+        results = evaluator.evaluate(
+            docs,
+            batch_size=args.batch_size,
+            metadata={
+                "model": args.model,
+                "threshold": args.threshold,
+                "device": extractor.device,
+                "batch_size": args.batch_size,
+                "native_labels_prompted": args.native_labels,
+                "evaluation_time_seconds": 0.0,
+            },
+        )
     elapsed = time.time() - t0
     results.metadata["evaluation_time_seconds"] = round(elapsed, 2)
     logger.info("Evaluation finished in %.2fs (%.2fs/doc)", elapsed, elapsed / max(len(docs), 1))
