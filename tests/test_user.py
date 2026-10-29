@@ -252,3 +252,73 @@ def test_zero_pub_facets_come_from_nearest_papers(facet_store):
     assert uf.counts["canon_method_b"] == 1  # from W1 only, W4's BM25 not counted
 
     assert len(build_zero_pub_facets(persona, DenseIndex(dimension=2), facet_store)) == 0
+
+
+# ---------------------------------------------------------------------------
+# 4.3 Exclusion set
+# ---------------------------------------------------------------------------
+
+from paperfeed.user.exclusion import build_exclusion_sources, load_exclusion_sources
+
+
+@pytest.fixture
+def sources():
+    return build_exclusion_sources(
+        authored_ids=["W1", "https://openalex.org/W2"],
+        citations=["W10", "https://openalex.org/W11", "W1"],  # W1: an author citing their own paper
+    )
+
+
+def test_exclusion_standard_mode_is_union_of_all_three_sources(sources):
+    assert sources.build(session_consumed=["W20"]) == {"W1", "W2", "W10", "W11", "W20"}
+
+
+def test_exclusion_diagnostic_mode_drops_citations_only(sources):
+    excluded = sources.build(session_consumed=["https://openalex.org/W20"], diagnostic=True)
+    assert excluded == {"W1", "W2", "W20"}  # authored and session-consumed stay, W10/W11 become eligible
+    assert "W10" not in excluded and "W11" not in excluded
+
+
+def test_exclusion_zero_pub_mode_is_empty(sources):
+    assert sources.build(zero_pub=True) == set()
+    assert sources.build(session_consumed=["W20"], zero_pub=True) == set()
+    assert sources.build(diagnostic=True, zero_pub=True) == set()  # zero_pub wins
+
+
+def test_exclusion_session_consumed_grows_without_mutating_sources(sources):
+    first = sources.build()
+    second = sources.build(session_consumed=["W20"])
+    assert "W20" not in first and "W20" in second
+    assert sources.authored == {"W1", "W2"}
+
+
+def test_exclusion_empty_user(sources):
+    empty = build_exclusion_sources([], [])
+    assert empty.build() == set()
+    assert empty.build(session_consumed=["W5"]) == {"W5"}
+
+
+def test_load_exclusion_sources_reads_citations_from_db(tmp_path):
+    db = DatabaseManager(db_path=tmp_path / "e.sqlite3", cutoff_year=2024)
+
+    def paper(pid, year):
+        return {
+            "paper_id": f"https://openalex.org/{pid}", "title": pid, "abstract": "x", "authors": "[]", "year": year,
+            "publication_date": None, "venue": None, "doi": None, "url": None, "citation_count_T": 0,
+            "primary_topic_id": None, "subfield_id": None, "field_id": None, "in_candidates": 1,
+        }
+
+    db.insert_papers_batch([paper("W1", 2023), paper("W2", 2022), paper("W3", 2021)])
+    db.insert_citations_batch([
+        ("https://openalex.org/W1", "https://openalex.org/W10", 2023),
+        ("https://openalex.org/W1", "https://openalex.org/W11", 2023),
+        ("https://openalex.org/W2", "https://openalex.org/W10", 2022),  # shared reference
+        ("https://openalex.org/W3", "https://openalex.org/W99", 2021),  # W3 is not authored by this user
+        ("https://openalex.org/W1", "https://openalex.org/W12", 2025),  # post-T edge: rejected by the DB layer
+    ])
+
+    src = load_exclusion_sources(db, ["W1", "W2"])
+    assert src.authored == {"W1", "W2"}
+    assert src.citations == {"W10", "W11"}
+    assert src.build() == {"W1", "W2", "W10", "W11"}
+    assert src.build(diagnostic=True) == {"W1", "W2"}
