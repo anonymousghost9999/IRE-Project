@@ -1043,3 +1043,171 @@ def test_result_is_json_serialisable(world):
 def test_unpenalised_paper_has_positive_zero_penalty_contribution():
     (s,) = score_candidates([_feat("A", penalty=0.0)], ScoringWeights(lambda_neg=0.5))
     assert str(s.contributions["penalty"]) == "0.0"  # not "-0.0", which would leak into JSON run logs
+
+
+# ---------------------------------------------------------------------------
+# 5.7 Cross-cutting tests: properties over many random pools, the full pipeline with every feature active,
+#     the leakage checker, and a multi-round session as the simulator will drive it
+# ---------------------------------------------------------------------------
+
+from paperfeed.data.leakage import check_paper_ids
+
+
+def _random_pool(rng, n, with_session):
+    return [
+        _feat(
+            f"P{i:03d}",
+            persona=float(rng.uniform(-0.2, 1.0)),
+            session=float(rng.uniform(-0.2, 1.0)) if with_session else None,
+            bc=int(rng.integers(0, 6)), cc=int(rng.integers(0, 4)),
+            s_task=float(rng.choice([0.0, 0.0, rng.uniform(0, 1)])), s_dataset=float(rng.choice([0.0, rng.uniform(0, 1)])),
+            new_method=bool(rng.random() < 0.15), penalty=float(rng.choice([0.0, rng.uniform(0, 1)])),
+        )
+        for i in range(n)
+    ]
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_scoring_properties_on_random_pools(seed):
+    rng = np.random.default_rng(seed)
+    pool = _random_pool(rng, int(rng.integers(1, 60)), with_session=bool(seed % 2))
+    w = ScoringWeights(w_pers=1.0, w_sess=float(rng.uniform(0, 2)), w_cite=float(rng.uniform(0, 2)),
+                       w_facet=float(rng.uniform(0, 2)), w_nov=float(rng.uniform(0, 2)), lambda_neg=float(rng.uniform(0, 2)))
+    scored = score_candidates(pool, w)
+    assert [s.paper_id for s in scored] == [f.paper_id for f in pool]
+    for s in scored:
+        for term in ("persona", "session", "citation", "facet"):
+            assert 0.0 <= s.scaled[term] <= 1.0  # min-max
+        assert s.scaled["new_method"] in (0.0, 1.0)  # indicator, never rescaled
+        assert s.score == pytest.approx(sum(s.contributions.values()))
+        assert s.contributions["penalty"] <= 0
+        if pool[0].session_cos is None:  # empty session: the session term is dropped
+            assert s.contributions["session"] == 0.0 and not s.session_active
+    for term in ("persona", "citation", "facet"):  # a spread feature reaches both ends of [0, 1]
+        vals = [s.scaled[term] for s in scored]
+        if len(set(round(v, 9) for v in vals)) > 1:
+            assert min(vals) == 0.0 and max(vals) == pytest.approx(1.0)
+    shuffled = list(pool)
+    rng.shuffle(shuffled)
+    assert [s.paper_id for s in rank_candidates(score_candidates(shuffled, w))] == [s.paper_id for s in rank_candidates(scored)]
+
+
+@pytest.mark.parametrize("seed", range(20))
+def test_mmr_properties_on_random_pools(seed):
+    rng = np.random.default_rng(100 + seed)
+    n, k = int(rng.integers(1, 80)), int(rng.integers(1, 15))
+    scored = [_sc(f"P{i:03d}", float(rng.uniform(0, 3))) for i in range(n)]
+    vecs = rng.normal(size=(n, 6)).astype(np.float32)
+    lam = float(rng.choice([0.0, 0.2, 0.5, 2.0]))
+    picks = mmr_select(scored, vecs, k=k, lambda_div=lam)
+    ids = [p.paper_id for p in picks]
+    assert len(ids) == min(k, n) and len(set(ids)) == len(ids)  # exactly K unique papers (or the whole pool)
+    assert ids[0] == min(scored, key=lambda s: (-s.score, s.paper_id)).paper_id  # the first pick is the top score
+    assert [p.rank for p in picks] == list(range(1, len(ids) + 1))
+    if lam == 0.0:
+        assert ids == [s.paper_id for s in rank_candidates(scored)][: len(ids)]
+    perm = rng.permutation(n)
+    assert [p.paper_id for p in mmr_select([scored[i] for i in perm], vecs[perm], k=k, lambda_div=lam)] == ids  # order-independent
+
+
+@pytest.fixture
+def full_world(world):
+    """The mini world with canonical facets, so every score term (facet, new method, citation, session, persona) can fire."""
+    fstore = FacetStore(world.db.db_path)
+
+    def f(pid, ftype, cid, sub, text):
+        i = text.index(sub)
+        return {"paper_id": _uri(pid), "facet_type": ftype, "facet_value": sub, "canonical_id": cid,
+                "evidence_sentence": text, "start_char": i, "end_char": i + len(sub), "confidence": 0.9}
+
+    fstore.save_facets([
+        f("U1", "task", "t1", "information retrieval", IR_TEXT["U1"]), f("U2", "task", "t1", "information retrieval", IR_TEXT["U2"]),
+        f("I1", "task", "t1", "passage retrieval", IR_TEXT["I1"]), f("I1", "method", "m_new", "dense models", IR_TEXT["I1"]),
+        f("I2", "task", "t1", "information retrieval", IR_TEXT["I2"]),
+    ])
+    fstore.save_canonical_clusters([
+        {"canonical_id": "t1", "facet_type": "task", "canonical_name": "information retrieval"},
+        {"canonical_id": "m_new", "facet_type": "method", "canonical_name": "dense models"},
+    ])
+    world.facet_store = fstore
+    return world
+
+
+def test_every_explanation_is_the_dominant_feature_and_grounded(full_world):
+    cfg = CFG.with_overrides(k=12, weights={"w_nov": 2.0, "w_facet": 1.5, "w_cite": 1.0})
+    prof = build_user_profile(full_world, "u1", authored_ids=["U1", "U2"], config=cfg)
+    session = cfg.make_session(dim=2)
+    session.click("I3", full_world.store.select(["I3"])[0])
+    res = recommend(full_world, prof, session=session, config=cfg)
+
+    seen = set()
+    for item in res.items:
+        expl = item.explanation
+        assert expl.dominant_feature == dominant_feature(item.contributions)  # the shown feature is the largest contribution
+        if expl.covered:
+            assert expl.explanation.feature == expl.dominant_feature
+            seen.add(expl.explanation.feature)
+        else:
+            assert expl.failure  # an ungrounded explanation is always reported with a reason
+    assert {"facet", "new_method", "session"} <= seen  # all three kinds fire here, so their templates are all exercised
+    assert any(i.explanation.dominant_feature is None and i.explanation.failure for i in res.items)  # nothing to explain: reported
+    # every facet text quotes a span that really is in the candidate's abstract at the stored offsets
+    for item in res.items:
+        ev = item.explanation.explanation.evidence if item.explanation.covered else {}
+        for part in ([ev] if "span" in ev else [ev.get("method"), ev.get("task")]):
+            if part:
+                abstract = full_world.db.get_paper(item.paper_id)["abstract"]
+                assert abstract[part["start_char"]:part["end_char"]] == part["span"]
+
+
+def test_ungrounded_facets_are_reported_not_hidden_in_a_full_run(full_world):
+    with full_world.db.get_connection() as conn:  # break the offsets of every facet of I1
+        conn.execute("UPDATE paper_facets SET start_char = start_char + 2, end_char = end_char + 2 WHERE paper_id = ?", (_uri("I1"),))
+    cfg = CFG.with_overrides(k=12, weights={"w_nov": 5.0, "w_facet": 5.0})
+    prof = build_user_profile(full_world, "u1", authored_ids=["U1", "U2"], config=cfg)
+    res = recommend(full_world, prof, config=cfg)
+    i1 = next(i for i in res.items if i.paper_id == "I1")
+    assert i1.explanation.dominant_feature in {"facet", "new_method"} and not i1.explanation.covered
+    assert i1.explanation.failure and i1.contributions[i1.explanation.dominant_feature] > 0
+    from paperfeed.rec.explain import explanation_coverage
+    assert explanation_coverage([i.explanation for i in res.items]) < 1.0  # counts against Explanation Coverage
+
+
+def test_every_recommended_paper_passes_the_leakage_checker(world):
+    prof = _profile(world)
+    forbidden = {"F"}  # stand-in for a target paper B: published after T
+    for kwargs in ({}, {"diagnostic": True}, {"zero_pub": True}, {"k": 12}):
+        res = recommend(world, prof, config=CFG.with_overrides(**kwargs))
+        assert check_paper_ids(world.db, res.paper_ids, 2024, forbidden).clean
+    search = recommend(world, prof, mode="search", query="information retrieval", config=CFG.with_overrides(k=12))
+    assert check_paper_ids(world.db, search.paper_ids, 2024, forbidden).clean
+    assert not check_paper_ids(world.db, ["F"], 2024, forbidden).clean  # and the checker would catch a leak
+
+
+def test_multi_round_session_never_repeats_a_saved_paper(world):
+    cfg = CFG.with_overrides(k=3)
+    prof = _profile(world)
+    session = cfg.make_session(dim=2)
+    saved, previous_top = [], None
+    for _ in range(5):
+        res = recommend(world, prof, session=session, config=cfg)
+        assert not set(saved) & set(res.paper_ids)  # saved papers are in SessionConsumed, hence in E_u
+        top = res.items[0]
+        assert top.paper_id != previous_top
+        session.save(top.paper_id, world.store.select([top.paper_id])[0])
+        saved.append(top.paper_id)
+        previous_top = top.paper_id
+        assert res.n_excluded == len({"U1", "U2", "R1", "R9"}) + len(saved) - 1
+    assert len(set(saved)) == 5 and session.consumed == set(saved)
+
+
+def test_recommend_does_not_mutate_profile_or_session(world):
+    prof = _profile(world)
+    session = CFG.make_session(dim=2)
+    session.click("I3", world.store.select(["I3"])[0])
+    session.skip("I4")
+    before_session, before_persona = session.to_dict(), prof.persona.vector.copy()
+    first = recommend(world, prof, session=session, config=CFG).to_dict()
+    again = recommend(world, prof, session=session, config=CFG).to_dict()
+    assert first == again and session.to_dict() == before_session
+    np.testing.assert_array_equal(prof.persona.vector, before_persona)
