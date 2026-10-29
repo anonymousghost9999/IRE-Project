@@ -379,3 +379,105 @@ def test_compute_features_empty_and_missing_embedding(cite_db, user_facets):
     assert compute_features([], store, _unit(1, 0), user_facets, ctx, cite_db, 2024) == []
     with pytest.raises(KeyError):
         compute_features(["unknown"], store, _unit(1, 0), user_facets, ctx, cite_db, 2024)
+
+
+# ---------------------------------------------------------------------------
+# 5.3 Scaling and score
+# ---------------------------------------------------------------------------
+
+from paperfeed.rec.features import CandidateFeatures, FacetMatch, NewMethod
+from paperfeed.rec.scoring import FEATURE_NAMES, ScoringWeights, min_max, rank_candidates, score_candidates
+
+
+def _feat(pid, persona=0.5, session=None, bc=0, cc=0, s_task=0.0, s_dataset=0.0, new_method=False, penalty=0.0):
+    return CandidateFeatures(
+        paper_id=pid, persona_cos=persona, session_cos=session,
+        citation=CitationSignal(bc=bc, cc=cc), facet=FacetMatch(s_task=s_task, s_dataset=s_dataset),
+        new_method=NewMethod(flag=new_method), penalty=penalty,
+    )
+
+
+def test_min_max_scaling():
+    np.testing.assert_allclose(min_max([2.0, 4.0, 3.0]), [0.0, 1.0, 0.5])
+    np.testing.assert_allclose(min_max([0.7, 0.7, 0.7]), [0, 0, 0])  # constant -> 0
+    np.testing.assert_allclose(min_max([5.0]), [0.0])  # a one-paper pool
+    assert min_max([]).size == 0
+    np.testing.assert_allclose(min_max([-1.0, 0.0, 1.0]), [0.0, 0.5, 1.0])
+
+
+def test_score_hand_computed():
+    pool = [
+        _feat("A", persona=0.2, session=0.9, bc=0, s_task=0.0),
+        _feat("B", persona=0.6, session=0.1, bc=3, s_task=1.0, s_dataset=1.0, new_method=True, penalty=0.4),
+        _feat("C", persona=1.0, session=0.5, bc=1, s_task=0.5),
+    ]
+    w = ScoringWeights(w_pers=1.0, w_sess=1.0, w_cite=0.5, w_facet=0.5, w_nov=0.5, lambda_neg=0.5)
+    a, b, c = score_candidates(pool, w)
+
+    # persona mm: [0, .5, 1]; session mm: [1, 0, .5]; log1p(BC): [0, ln4, ln2] -> mm [0, 1, .5]; s_facet: [0, 1, .25] -> mm same
+    assert a.scaled["persona"] == 0.0 and b.scaled["persona"] == pytest.approx(0.5) and c.scaled["persona"] == 1.0
+    assert [a.scaled["session"], b.scaled["session"], c.scaled["session"]] == pytest.approx([1.0, 0.0, 0.5])
+    assert [a.scaled["citation"], b.scaled["citation"], c.scaled["citation"]] == pytest.approx([0.0, 1.0, math.log(2) / math.log(4)])
+    assert [a.scaled["facet"], b.scaled["facet"], c.scaled["facet"]] == pytest.approx([0.0, 1.0, 0.125 / 0.5])
+    assert a.score == pytest.approx(0 + 1.0 + 0 + 0 + 0 - 0)
+    assert b.score == pytest.approx(0.5 + 0.0 + 0.5 + 0.5 + 0.5 - 0.5 * 0.4)  # penalty enters raw, not scaled
+    assert c.score == pytest.approx(1.0 + 0.5 + 0.5 * 0.5 + 0.5 * 0.25 + 0.0 - 0.0)
+
+
+def test_contributions_sum_to_score_and_penalty_is_negative():
+    pool = [_feat("A", 0.1, 0.2, bc=1, penalty=0.3), _feat("B", 0.9, 0.8, bc=4, s_task=1.0, new_method=True)]
+    for s in score_candidates(pool, ScoringWeights()):
+        assert set(s.contributions) == set(FEATURE_NAMES) == set(s.scaled)
+        assert s.score == pytest.approx(sum(s.contributions.values()))
+        assert s.contributions["penalty"] <= 0 and all(v >= 0 for k, v in s.contributions.items() if k != "penalty")
+    a = score_candidates(pool, ScoringWeights(lambda_neg=2.0))[0]
+    assert a.contributions["penalty"] == pytest.approx(-0.6)
+
+
+def test_empty_session_drops_the_session_term():
+    pool = [_feat("A", persona=0.2, session=None), _feat("B", persona=0.8, session=None)]
+    a, b = score_candidates(pool, ScoringWeights(w_sess=5.0))
+    assert not a.session_active and a.contributions["session"] == 0.0 and b.contributions["session"] == 0.0
+    assert b.score == pytest.approx(1.0)  # persona term only
+
+
+def test_constant_features_contribute_nothing_and_binary_is_not_scaled():
+    # every candidate has the same persona cosine and BC: scaled to 0; the lone new-method candidate keeps the full w_nov
+    pool = [_feat("A", persona=0.5, bc=2), _feat("B", persona=0.5, bc=2, new_method=True), _feat("C", persona=0.5, bc=2)]
+    a, b, c = score_candidates(pool, ScoringWeights(w_nov=0.7))
+    assert a.score == 0.0 and c.score == 0.0
+    assert b.scaled["new_method"] == 1.0 and b.score == pytest.approx(0.7)  # not z-scored: a rare indicator does not explode
+
+
+def test_single_candidate_pool():
+    (s,) = score_candidates([_feat("A", persona=0.9, session=0.9, bc=5, s_task=1.0, new_method=True, penalty=0.2)], ScoringWeights())
+    assert s.scaled["persona"] == s.scaled["session"] == s.scaled["citation"] == s.scaled["facet"] == 0.0
+    assert s.score == pytest.approx(0.5 - 0.5 * 0.2)
+    assert score_candidates([], ScoringWeights()) == []
+
+
+def test_zero_weight_switches_a_term_off():
+    pool = [_feat("A", 0.1, bc=0), _feat("B", 0.9, bc=9)]
+    full = score_candidates(pool, ScoringWeights(w_cite=1.0))
+    no_cite = score_candidates(pool, ScoringWeights(w_cite=0.0))
+    assert full[1].score - no_cite[1].score == pytest.approx(1.0)
+    assert no_cite[1].contributions["citation"] == 0.0
+
+
+def test_rank_candidates_is_deterministic_with_ties():
+    pool = [_feat("B", 0.5), _feat("A", 0.5), _feat("C", 0.9)]
+    ranked = rank_candidates(score_candidates(pool, ScoringWeights()))
+    assert [s.paper_id for s in ranked] == ["C", "A", "B"]  # tie between A and B broken by id
+    assert [s.paper_id for s in rank_candidates(score_candidates(pool[::-1], ScoringWeights()))] == ["C", "A", "B"]
+
+
+def test_scoring_weights_validation_and_config():
+    with pytest.raises(ValueError, match="w_cite"):
+        ScoringWeights(w_cite=-0.1)
+    cfg = {"scoring_weights": {"w_pers": 1.0, "w_sess": 1.5, "w_cite": 0.25, "lambda_div": 0.2, "lambda_neg": 1.0}}
+    w = ScoringWeights.from_config(cfg)
+    assert (w.w_sess, w.w_cite, w.w_facet, w.lambda_neg) == (1.5, 0.25, 0.5, 1.0)  # unset w_facet keeps its default
+    assert ScoringWeights.from_config({}) == ScoringWeights()
+    from paperfeed.common.config import load_config
+    assert ScoringWeights.from_config(load_config()) == ScoringWeights()  # the defaults in default.yaml
+    assert w.with_overrides(w_nov=0.0).w_nov == 0.0 and w.w_nov == 0.5
