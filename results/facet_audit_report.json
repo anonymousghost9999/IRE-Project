@@ -1,0 +1,24 @@
+{
+  "sample_size": 100,
+  "total_facets_audited": 1345,
+  "grounding_rate_pct": 100.0,
+  "grounding_target_pct": 100.0,
+  "facet_density_ge_3_core_pct": 86.0,
+  "canonical_match_rate_pct": 70.0,
+  "avg_facets_per_paper": 13.45,
+  "avg_core_facets_per_paper": 8.44,
+  "type_distribution": {
+    "topic": 283,
+    "method": 510,
+    "metric": 218,
+    "dataset": 237,
+    "task": 97
+  },
+  "avg_confidence_by_type": {
+    "topic": 0.672,
+    "method": 0.743,
+    "metric": 0.745,
+    "dataset": 0.733,
+    "task": 0.686
+  }
+}
