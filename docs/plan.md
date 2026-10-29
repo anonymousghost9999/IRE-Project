@@ -56,7 +56,7 @@ results/                 runs/<run_id>/ (metrics, tables, figures, manifests)
 
 ### 0.2 Environment
 - Python virtual environment with **pinned** versions in a lock file (`requirements.lock` or equivalent).
-- Main dependencies: `httpx`/`requests` (OpenAlex), `numpy`, `pandas`, `pyarrow`, `scipy`, `torch`, `transformers`, `adapters` (SPECTER2 adapters), `faiss` (CPU build is enough for exact search), `bm25s`, `gliner`, `scispacy` + a small English model, `sentence-transformers` (facet canonicalization), `scikit-learn` (clustering), `pyyaml`, `tqdm`, `pytest`.
+- Main dependencies: `httpx`/`requests` (OpenAlex), `numpy`, `pandas`, `pyarrow`, `scipy`, `torch`, `transformers`, `adapters` (SPECTER2 adapters), `faiss` (CPU build is enough for exact search), `bm25s`, `gliner`, `sentence-transformers` (facet canonicalization), `scikit-learn` (clustering), `pyyaml`, `tqdm`, `pytest`.
 - Extended only: `lightgbm`, `shap`, `streamlit`, the hosted-LLM client library.
 - Record the GPU model, CUDA version and driver in the run manifest.
 
@@ -196,7 +196,7 @@ bm25s over title + abstract: lowercase, stop-word removal, and the same tokenize
 
 ### 3.1 GLiNER extraction
 - Model `urchade/gliner_medium-v2.1`, labels `task`, `method`, `dataset`, `metric`, `topic`.
-- Split abstracts into sentences with scispaCy and feed sentence chunks that fit GLiNER's input length.
+- Split abstracts into sentences with the built-in rule-based splitter (`split_sentences`: no optional dependency, so every machine produces identical sentences and offsets) and feed sentence chunks that fit GLiNER's input length.
 - For each entity store: `paper_id`, `facet_type`, `facet_value` (verbatim span), `start_char`, `end_char` (offsets in the full abstract), `confidence`, and `evidence_sentence`.
 - Confidence threshold: start at 0.5; adjust using the audit in 3.3 (and SciERC in 3.4 if available).
 - Cache outputs; **record the extraction time** per 1,000 abstracts.
@@ -204,7 +204,7 @@ bm25s over title + abstract: lowercase, stop-word removal, and the same tokenize
 ### 3.2 Canonicalization (D§6.3)
 1. Lowercase and lemmatize each span.
 2. Embed spans with a small sentence-embedding model.
-3. Cluster spans **per facet type** (for example agglomerative clustering with a cosine-distance threshold) and assign a `canonical_id`; the canonical name is the most frequent surface form in the cluster.
+3. Cluster spans **per facet type** with greedy leader clustering over exact nearest-neighbour lists (most frequent span first; a span joins a leader within the cosine-distance threshold; no full distance matrix, so it scales to the whole corpus) and assign a `canonical_id`; the canonical name is the most frequent surface form in the cluster.
 4. Choose the threshold by inspecting samples of clusters (too loose merges unrelated methods; too tight never matches).
 5. Store `canonical_id` in `paper_facets` and the cluster table in `facet_canon`.
 

@@ -22,38 +22,50 @@ DEFAULT_MODEL_NAME = "urchade/gliner_medium-v2.1"
 LOCAL_MODEL_DIR = Path(__file__).resolve().parent.parent.parent.parent / "models" / "gliner_medium-v2.1"
 
 
-def split_sentences_spacy(text: str) -> List[Tuple[str, int, int]]:
-    """Split text into sentences preserving verbatim character offsets.
+# A period after one of these does not end a sentence ("e.g. the", "et al. show", "Fig. 3").
+_ABBREVIATIONS = frozenset({
+    "e.g", "i.e", "et al", "al", "fig", "figs", "eq", "eqs", "sec", "secs", "tab", "vs", "cf", "etc",
+    "approx", "resp", "no", "nos", "dr", "prof", "ref", "refs", "ca", "viz", "inc", "ltd", "st",
+})
+_BOUNDARY = re.compile(r"[.!?]+[\"')\]]*\s+")
+_SENTENCE_START = re.compile(r"[A-Z0-9\"'(\[]")
 
-    Returns a list of (sentence_text, start_char, end_char) tuples.
+
+def split_sentences(text: str) -> List[Tuple[str, int, int]]:
+    """Split text into sentences with exact character offsets: ``text[start:end] == sentence``.
+
+    A rule-based splitter with no optional dependencies, so every machine produces the same sentences
+    (and therefore the same facets). A boundary is terminal punctuation followed by whitespace and a
+    sentence-initial character, unless the word before it is a known abbreviation or a single initial.
     """
     if not text or not text.strip():
         return []
 
-    try:
-        import spacy
-        nlp = spacy.blank("en")
-        if "sentencizer" not in nlp.pipe_names:
-            nlp.add_pipe("sentencizer")
-        doc = nlp(text)
-        sentences = [(sent.text, sent.start_char, sent.end_char) for sent in doc.sents]
-        if sentences:
-            return sentences
-    except Exception as e:
-        logger.debug("spacy sentencizer fallback: %s", e)
+    sentences: List[Tuple[str, int, int]] = []
+    start = 0
+    for m in _BOUNDARY.finditer(text):
+        end = m.start() + len(m.group().rstrip())
+        nxt = text[m.end() : m.end() + 1]
+        if not nxt or not _SENTENCE_START.match(nxt):
+            continue
+        word = re.split(r"\s+", text[start:m.start()].rstrip().lower())[-1] if text[start:m.start()].strip() else ""
+        word = word.strip("([\"'")
+        # Single capital initial ("J. Smith") or a known abbreviation: not a boundary.
+        if m.group().startswith(".") and (word in _ABBREVIATIONS or (len(word) == 1 and word.isalpha())):
+            continue
+        sentences.append((start, end))
+        start = m.end()
+    sentences.append((start, len(text)))
 
-    # Fallback rule-based splitter preserving offsets
-    sentences = []
-    # Match sentences ending with period, exclamation, or question mark followed by whitespace or end
-    pattern = re.compile(r'([^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$)')
-    for m in pattern.finditer(text):
-        s_text = m.group()
-        if s_text.strip():
-            sentences.append((s_text, m.start(), m.end()))
-
-    if not sentences:
-        sentences = [(text, 0, len(text))]
-    return sentences
+    result: List[Tuple[str, int, int]] = []
+    for s_start, s_end in sentences:
+        chunk = text[s_start:s_end]
+        stripped = chunk.strip()
+        if not stripped:
+            continue
+        lead = len(chunk) - len(chunk.lstrip())
+        result.append((stripped, s_start + lead, s_start + lead + len(stripped)))
+    return result
 
 
 class FacetExtractor:
@@ -116,7 +128,7 @@ class FacetExtractor:
 
         self._ensure_model_loaded()
 
-        sentences = split_sentences_spacy(abstract)
+        sentences = split_sentences(abstract)
         if not sentences:
             return []
 
@@ -202,7 +214,7 @@ class FacetExtractor:
             abstract = p.get("abstract", "")
             if not p_id or not abstract or not abstract.strip():
                 continue
-            sentences = split_sentences_spacy(abstract)
+            sentences = split_sentences(abstract)
             for sent_text, sent_start, sent_end in sentences:
                 if sent_text.strip():
                     sent_items.append((p_id, abstract, sent_text, sent_start, sent_end))

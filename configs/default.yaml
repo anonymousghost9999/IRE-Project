@@ -31,6 +31,14 @@ index:
   min_abstract_chars: 150     # shorter abstracts are boilerplate ("Peer Reviewed", cover-page text), not indexed
   embed_checkpoint_every: 10000  # save the embedding store after this many new papers
 
+facets:
+  labels: [task, method, dataset, metric, topic]
+  threshold: 0.5                 # GLiNER confidence threshold
+  paper_batch_size: 32           # papers per extraction batch and checkpoint
+  sentence_batch_size: 32        # sentences per GLiNER forward pass
+  canon_distance_threshold: 0.25 # max cosine distance between a span and its cluster leader
+  canon_neighbours: 64           # nearest neighbours examined per span
+
 retrieval:
   candidate_pool_size: 100       # M = 100
   channel_depth: 200             # M_channel = 200 per channel before RRF

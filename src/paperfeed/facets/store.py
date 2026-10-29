@@ -21,6 +21,44 @@ class FacetStore:
         self.db_path = Path(db_path)
         if not self.db_path.exists():
             raise FileNotFoundError(f"Database not found at {self.db_path}")
+        self._ensure_progress_table()
+
+    def _ensure_progress_table(self) -> None:
+        """`facet_progress` records every paper the extractor has finished, including papers with no facets,
+        so a resumed run does not re-extract them."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS facet_progress (
+                        paper_id TEXT PRIMARY KEY,
+                        FOREIGN KEY (paper_id) REFERENCES papers(paper_id) ON DELETE CASCADE
+                    )
+                    """
+                )
+                # Databases extracted before this table existed: papers that already have facets are done.
+                conn.execute("INSERT OR IGNORE INTO facet_progress SELECT DISTINCT paper_id FROM paper_facets")
+        finally:
+            conn.close()
+
+    def clear_all(self) -> None:
+        """Remove all facets, canonical clusters and extraction progress."""
+        conn = self._get_connection()
+        try:
+            with conn:
+                conn.execute("DELETE FROM paper_facets")
+                conn.execute("DELETE FROM facet_canon")
+                conn.execute("DELETE FROM facet_progress")
+        finally:
+            conn.close()
+
+    def count_processed(self) -> int:
+        conn = self._get_connection()
+        try:
+            return conn.execute("SELECT COUNT(*) FROM facet_progress").fetchone()[0]
+        finally:
+            conn.close()
 
     def _get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(str(self.db_path))
@@ -32,6 +70,7 @@ class FacetStore:
         self,
         facets: Sequence[Dict[str, Any]],
         clear_existing: bool = False,
+        processed_paper_ids: Optional[Sequence[str]] = None,
     ) -> int:
         """Batch insert facets into `paper_facets`.
 
@@ -40,11 +79,13 @@ class FacetStore:
                 paper_id, facet_type, facet_value, canonical_id,
                 evidence_sentence, start_char, end_char, confidence.
             clear_existing: If True, clears all rows in `paper_facets` first.
+            processed_paper_ids: Papers this batch finished (with or without facets); recorded in
+                `facet_progress` in the same transaction as the facets.
 
         Returns:
             Number of rows inserted.
         """
-        if not facets:
+        if not facets and not processed_paper_ids:
             return 0
 
         rows = [
@@ -75,6 +116,11 @@ class FacetStore:
                 if clear_existing:
                     cur.execute("DELETE FROM paper_facets")
                 cur.executemany(query, rows)
+                if processed_paper_ids:
+                    cur.executemany(
+                        "INSERT OR IGNORE INTO facet_progress (paper_id) VALUES (?)",
+                        [(pid,) for pid in processed_paper_ids],
+                    )
         finally:
             conn.close()
 

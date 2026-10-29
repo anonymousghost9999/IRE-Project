@@ -143,7 +143,7 @@ Tables (aligned with `prob.md` §6D): `papers`, `paper_facets` (adds `canonical_
 - **Extractor:** GLiNER (`urchade/gliner_medium-v2.1`), zero-shot, run locally on every candidate abstract.
 - **Five facets:** `task`, `method`, `dataset`, `metric`, `topic`. Each is a verbatim span with character offsets, confidence, and the full sentence containing it as evidence.
 - **Domain and prior work are not GLiNER facets.** Domain comes from OpenAlex topics; related prior work is `referenced_works`.
-- scispaCy is used only for sentence splitting.
+- A built-in rule-based splitter (`split_sentences`) is used for sentence splitting; it has no optional dependency so every machine produces identical facets.
 
 ### 6.3 Facet canonicalization (F5)
 Exact string equality on verbatim spans ("BERT-based dual encoder", "dense passage retriever") almost never matches across papers. Facets are therefore canonicalized before any matching:
