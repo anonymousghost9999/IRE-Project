@@ -41,6 +41,20 @@ logging.basicConfig(
 logger = logging.getLogger("evaluate_scierc")
 
 
+def get_git_commit() -> str:
+    """Return the current git commit short hash, or 'unknown'."""
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        return out or "unknown"
+    except Exception:
+        return "unknown"
+
+
 def parse_args() -> argparse.Namespace:
     cfg = load_config()
     fcfg = cfg.get("facets", {})
@@ -187,6 +201,19 @@ def main() -> int:
     logger.info("Running SciERC evaluation across %d documents...", len(docs))
     t0 = time.time()
 
+    git_commit = get_git_commit()
+    base_metadata: Dict[str, Any] = {
+        "model": args.model,
+        "device": extractor.device,
+        "split_file": str(args.data_path.name),
+        "document_count": len(docs),
+        "git_commit": git_commit,
+        "label_prompts": active_labels,
+        "label_map": label_map,
+        "batch_size": args.batch_size,
+        "native_labels_prompted": args.native_labels,
+    }
+
     if sweep_thresholds:
         # Extract base predictions once at minimum threshold
         logger.info("Extracting base predictions once at minimum threshold %.2f...", initial_threshold)
@@ -200,11 +227,8 @@ def main() -> int:
                 docs,
                 predictions=t_preds,
                 metadata={
-                    "model": args.model,
+                    **base_metadata,
                     "threshold": t,
-                    "device": extractor.device,
-                    "batch_size": args.batch_size,
-                    "native_labels_prompted": args.native_labels,
                 },
             )
             sweep_rows.append({
@@ -226,11 +250,8 @@ def main() -> int:
             docs,
             batch_size=args.batch_size,
             metadata={
-                "model": args.model,
+                **base_metadata,
                 "threshold": args.threshold,
-                "device": extractor.device,
-                "batch_size": args.batch_size,
-                "native_labels_prompted": args.native_labels,
                 "evaluation_time_seconds": 0.0,
             },
         )

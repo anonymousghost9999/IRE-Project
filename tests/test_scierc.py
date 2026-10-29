@@ -532,6 +532,16 @@ def test_macro_average_with_zero_gold_labels():
     assert pytest.approx(results.relaxed_macro_f1) == 1.0
 
 
+def test_reproducibility_git_commit_helper():
+    """Verify get_git_commit returns a valid git hash string or fallback."""
+    import sys
+    sys.path.insert(0, "scripts")
+    from evaluate_scierc import get_git_commit
+    commit = get_git_commit()
+    assert isinstance(commit, str)
+    assert len(commit) >= 4 or commit == "unknown"
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
