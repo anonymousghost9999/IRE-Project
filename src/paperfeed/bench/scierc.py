@@ -419,11 +419,16 @@ class SciERCEvaluator:
         eval_labels: Optional[List[str]] = None,
         extractor: Optional[Any] = None,
         ignore_generic: bool = True,
+        strict_errors: bool = False,
+        max_error_fraction: float = 0.1,
     ) -> None:
         self.label_map = label_map or DEFAULT_LABEL_MAP
         self.eval_labels = eval_labels or EVALUATION_LABELS
         self.extractor = extractor
         self.ignore_generic = ignore_generic
+        self.strict_errors = strict_errors
+        self.max_error_fraction = max_error_fraction
+        self.error_count: int = 0
 
     def predict_document_spans(self, doc: SciERCDocument) -> List[EntitySpan]:
         """Extract entities from a SciERCDocument using the attached extractor (sentence-by-sentence)."""
@@ -449,31 +454,38 @@ class SciERCEvaluator:
 
             # Extract raw entities from this sentence
             raw_entities = []
-            if hasattr(self.extractor, "extract_from_abstract"):
-                facets = self.extractor.extract_from_abstract(f"{doc.doc_key}_s{s_idx}", sent_text)
-                for f in facets:
-                    raw_entities.append({
-                        "start": f["start_char"],
-                        "end": f["end_char"],
-                        "label": f["facet_type"],
-                        "text": f["facet_value"],
-                        "confidence": f.get("confidence"),
-                    })
-            elif hasattr(self.extractor, "predict_entities"):
-                labels_to_query = list(self.label_map.keys())
-                ents = self.extractor.predict_entities(sent_text, labels_to_query)
-                for e in ents:
-                    raw_entities.append({
-                        "start": e["start"],
-                        "end": e["end"],
-                        "label": e["label"],
-                        "text": e["text"],
-                        "confidence": e.get("score"),
-                    })
-            elif callable(self.extractor):
-                raw_entities = self.extractor(sent_text)
-            else:
-                raise TypeError(f"Unsupported extractor type: {type(self.extractor)}")
+            try:
+                if hasattr(self.extractor, "extract_from_abstract"):
+                    facets = self.extractor.extract_from_abstract(f"{doc.doc_key}_s{s_idx}", sent_text)
+                    for f in facets:
+                        raw_entities.append({
+                            "start": f["start_char"],
+                            "end": f["end_char"],
+                            "label": f["facet_type"],
+                            "text": f["facet_value"],
+                            "confidence": f.get("confidence"),
+                        })
+                elif hasattr(self.extractor, "predict_entities"):
+                    labels_to_query = list(self.label_map.keys())
+                    ents = self.extractor.predict_entities(sent_text, labels_to_query)
+                    for e in ents:
+                        raw_entities.append({
+                            "start": e["start"],
+                            "end": e["end"],
+                            "label": e["label"],
+                            "text": e["text"],
+                            "confidence": e.get("score"),
+                        })
+                elif callable(self.extractor):
+                    raw_entities = self.extractor(sent_text)
+                else:
+                    raise TypeError(f"Unsupported extractor type: {type(self.extractor)}")
+            except Exception as exc:
+                self.error_count += 1
+                logger.warning("Error extracting entities for doc %s sentence %d: %s", doc.doc_key, s_idx, exc)
+                if self.strict_errors:
+                    raise RuntimeError(f"Extractor failed on doc {doc.doc_key} sentence {s_idx}: {exc}") from exc
+                raw_entities = []
 
             spans = _entities_to_spans(
                 raw_entities=raw_entities,
@@ -528,28 +540,37 @@ class SciERCEvaluator:
         ents_per_sent: List[List[Dict[str, Any]]] = []
         for i in range(0, len(all_sent_texts), batch_size):
             chunk = all_sent_texts[i : i + batch_size]
-            if hasattr(self.extractor, "batch_predict_entities"):
-                try:
-                    chunk_preds = self.extractor.batch_predict_entities(
+            try:
+                if hasattr(self.extractor, "batch_predict_entities"):
+                    try:
+                        chunk_preds = self.extractor.batch_predict_entities(
+                            chunk,
+                            labels_to_query,
+                            threshold=getattr(self.extractor, "threshold", 0.5),
+                            batch_size=len(chunk),
+                        )
+                    except TypeError:
+                        chunk_preds = self.extractor.batch_predict_entities(
+                            chunk,
+                            labels_to_query,
+                            batch_size=len(chunk),
+                        )
+                elif hasattr(self.extractor, "_model"):
+                    self.extractor._ensure_model_loaded()
+                    chunk_preds = self.extractor._model.batch_predict_entities(
                         chunk,
                         labels_to_query,
                         threshold=getattr(self.extractor, "threshold", 0.5),
                         batch_size=len(chunk),
                     )
-                except TypeError:
-                    chunk_preds = self.extractor.batch_predict_entities(
-                        chunk,
-                        labels_to_query,
-                        batch_size=len(chunk),
-                    )
-            elif hasattr(self.extractor, "_model"):
-                self.extractor._ensure_model_loaded()
-                chunk_preds = self.extractor._model.batch_predict_entities(
-                    chunk,
-                    labels_to_query,
-                    threshold=getattr(self.extractor, "threshold", 0.5),
-                    batch_size=len(chunk),
-                )
+                else:
+                    raise TypeError(f"Unsupported batch extractor type: {type(self.extractor)}")
+            except Exception as exc:
+                self.error_count += len(chunk)
+                logger.warning("Error during batched entity prediction on %d sentences: %s", len(chunk), exc)
+                if self.strict_errors:
+                    raise RuntimeError(f"Batched extractor failed on chunk of {len(chunk)} sentences: {exc}") from exc
+                chunk_preds = [[] for _ in chunk]
             ents_per_sent.extend(chunk_preds)
 
         # 3. Assemble document-level EntitySpans
@@ -587,9 +608,18 @@ class SciERCEvaluator:
 
         target_labels_set = set(self.eval_labels)
 
+        self.error_count = 0
+        total_sentences = sum(len(d.sentences) for d in docs)
+
         # If predictions were not precomputed, extract in batch
         if predictions is None:
             predictions = self.predict_batch_documents(docs, batch_size=batch_size)
+
+        if total_sentences > 0 and (self.error_count / total_sentences) > self.max_error_fraction:
+            raise RuntimeError(
+                f"Benchmark aborted: {self.error_count}/{total_sentences} "
+                f"({self.error_count / total_sentences:.1%}) sentences failed extraction."
+            )
 
         for doc in docs:
             gold_spans = doc.get_gold_spans(target_labels=target_labels_set)
@@ -691,6 +721,7 @@ class SciERCEvaluator:
         run_metadata = dict(metadata or {})
         run_metadata["ignore_generic"] = should_ignore_generic
         run_metadata["predictions_ignored_generic"] = total_predictions_ignored_generic
+        run_metadata["sentence_extraction_errors"] = self.error_count
 
         return BenchmarkResults(
             strict_per_label=strict_per_label,

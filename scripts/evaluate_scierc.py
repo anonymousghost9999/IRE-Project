@@ -93,6 +93,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Prompt GLiNER directly with SciERC's native labels (Task, Method, Metric, Material, OtherScientificTerm)",
     )
+    parser.add_argument(
+        "--strict-errors",
+        action="store_true",
+        help="Abort benchmark immediately if any sentence extraction fails",
+    )
     return parser.parse_args()
 
 
@@ -139,12 +144,14 @@ def main() -> int:
         labels=active_labels,
         threshold=args.threshold,
         device=args.device,
+        strict_errors=args.strict_errors,
     )
 
     evaluator = SciERCEvaluator(
         label_map=label_map,
         eval_labels=EVALUATION_LABELS,
         extractor=extractor,
+        strict_errors=args.strict_errors,
     )
 
     logger.info("Running SciERC evaluation across %d documents...", len(docs))

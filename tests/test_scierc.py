@@ -400,6 +400,42 @@ def test_batched_matches_per_sentence_predictions(sample_scierc_record: dict):
     assert per_sentence_spans == batched_preds_32[doc.doc_key]
 
 
+def test_extractor_errors_not_swallowed(sample_scierc_record: dict):
+    """Verify that an extractor raising on every sentence aborts the benchmark with a clear error."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    class BrokenExtractor:
+        def predict_entities(self, text, labels, threshold=0.5):
+            raise RuntimeError("CUDA out of memory error during extraction")
+
+    broken = BrokenExtractor()
+    evaluator = SciERCEvaluator(
+        label_map=DEFAULT_LABEL_MAP,
+        eval_labels=EVALUATION_LABELS,
+        extractor=broken,
+    )
+
+    # Calling evaluate should raise RuntimeError and abort rather than returning 0 F1 silently
+    with pytest.raises(RuntimeError) as exc_info:
+        evaluator.evaluate([doc])
+    assert "Benchmark aborted" in str(exc_info.value) or "failed" in str(exc_info.value)
+
+    # When strict_errors=True, it fails immediately on the sentence
+    evaluator_strict = SciERCEvaluator(
+        label_map=DEFAULT_LABEL_MAP,
+        eval_labels=EVALUATION_LABELS,
+        extractor=broken,
+        strict_errors=True,
+    )
+    with pytest.raises(RuntimeError) as exc_info_strict:
+        evaluator_strict.evaluate([doc])
+    assert "CUDA out of memory error" in str(exc_info_strict.value)
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""

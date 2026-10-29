@@ -77,9 +77,12 @@ class FacetExtractor:
         labels: Optional[List[str]] = None,
         threshold: float = 0.5,
         device: Optional[str] = None,
+        strict_errors: bool = False,
     ):
         self.labels = [lbl.lower().strip() for lbl in (labels or DEFAULT_FACET_LABELS)]
         self.threshold = float(threshold)
+        self.strict_errors = bool(strict_errors)
+        self.error_count: int = 0
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -117,12 +120,19 @@ class FacetExtractor:
         if not sentences:
             return []
         self._ensure_model_loaded()
-        return self._model.batch_predict_entities(
-            sentences,
-            labels=labels or self.labels,
-            threshold=self.threshold if threshold is None else threshold,
-            batch_size=batch_size,
-        )
+        try:
+            return self._model.batch_predict_entities(
+                sentences,
+                labels=labels or self.labels,
+                threshold=self.threshold if threshold is None else threshold,
+                batch_size=batch_size,
+            )
+        except Exception as e:
+            self.error_count += len(sentences)
+            if self.strict_errors:
+                raise
+            logger.warning("Error in FacetExtractor.batch_predict_entities: %s", e)
+            raise
 
     def extract_from_abstract(
         self,
@@ -164,6 +174,9 @@ class FacetExtractor:
                     threshold=self.threshold,
                 )
             except Exception as e:
+                self.error_count += 1
+                if self.strict_errors:
+                    raise
                 logger.warning("GLiNER error predicting entities for paper %s: %s", paper_id, e)
                 continue
 
