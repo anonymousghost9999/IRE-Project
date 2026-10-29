@@ -106,6 +106,24 @@ class FacetExtractor:
         self._model.to(self.device)
         self._model.eval()
 
+    def batch_predict_entities(
+        self,
+        sentences: List[str],
+        labels: Optional[List[str]] = None,
+        threshold: Optional[float] = None,
+        batch_size: int = 32,
+    ) -> List[List[Dict[str, Any]]]:
+        """Run batched entity prediction on a list of sentences using GLiNER."""
+        if not sentences:
+            return []
+        self._ensure_model_loaded()
+        return self._model.batch_predict_entities(
+            sentences,
+            labels=labels or self.labels,
+            threshold=self.threshold if threshold is None else threshold,
+            batch_size=batch_size,
+        )
+
     def extract_from_abstract(
         self,
         paper_id: str,

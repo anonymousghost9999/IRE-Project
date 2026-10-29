@@ -202,6 +202,65 @@ def char_to_token_offsets(
     return (overlapping[0], overlapping[-1])
 
 
+def _supports_batch_prediction(extractor: Any) -> bool:
+    """Check if the extractor supports batched inference (and is not an unconfigured Mock)."""
+    if extractor is None:
+        return False
+    try:
+        from unittest.mock import Mock
+        if isinstance(extractor, Mock):
+            return "batch_predict_entities" in extractor._mock_children
+    except ImportError:
+        pass
+
+    if callable(getattr(extractor, "batch_predict_entities", None)):
+        return True
+    if hasattr(extractor, "_model") and callable(getattr(extractor._model, "batch_predict_entities", None)):
+        return True
+    return False
+
+
+def _entities_to_spans(
+    raw_entities: List[Dict[str, Any]],
+    s_offset: int,
+    token_char_spans: List[Tuple[int, int]],
+    flat_tokens: List[str],
+    label_map: Dict[str, str],
+    eval_labels: List[str],
+) -> List[EntitySpan]:
+    """Map raw sentence-level character entity predictions to document-level EntitySpans."""
+    spans: List[EntitySpan] = []
+    for ent in raw_entities:
+        c_start = ent["start"]
+        c_end = ent["end"]
+        raw_label = str(ent["label"]).lower().strip()
+        mapped_label = label_map.get(raw_label, label_map.get(ent["label"], ent["label"]))
+        if mapped_label not in eval_labels:
+            continue
+
+        tok_span = char_to_token_offsets(c_start, c_end, token_char_spans)
+        if tok_span is None:
+            continue
+
+        rel_tok_start, rel_tok_end = tok_span
+        doc_tok_start = s_offset + rel_tok_start
+        doc_tok_end = s_offset + rel_tok_end
+
+        span_tokens = flat_tokens[doc_tok_start : doc_tok_end + 1]
+        verbatim_text = " ".join(span_tokens)
+
+        spans.append(
+            EntitySpan(
+                start_token=doc_tok_start,
+                end_token=doc_tok_end,
+                label=mapped_label,
+                text=verbatim_text,
+                confidence=ent.get("confidence", ent.get("score")),
+            )
+        )
+    return spans
+
+
 @dataclass
 class LabelMetrics:
     """Precision, Recall, and F1 counts and scores for a single entity label."""
@@ -361,10 +420,7 @@ class SciERCEvaluator:
         self.ignore_generic = ignore_generic
 
     def predict_document_spans(self, doc: SciERCDocument) -> List[EntitySpan]:
-        """Extract entities from a SciERCDocument using the attached extractor.
-
-        Processes sentence-by-sentence to preserve SciERC token alignment.
-        """
+        """Extract entities from a SciERCDocument using the attached extractor (sentence-by-sentence)."""
         if self.extractor is None:
             raise ValueError("No extractor provided to SciERCEvaluator.")
 
@@ -388,7 +444,6 @@ class SciERCEvaluator:
             # Extract raw entities from this sentence
             raw_entities = []
             if hasattr(self.extractor, "extract_from_abstract"):
-                # Use FacetExtractor API
                 facets = self.extractor.extract_from_abstract(f"{doc.doc_key}_s{s_idx}", sent_text)
                 for f in facets:
                     raw_entities.append({
@@ -399,7 +454,6 @@ class SciERCEvaluator:
                         "confidence": f.get("confidence"),
                     })
             elif hasattr(self.extractor, "predict_entities"):
-                # Direct GLiNER model API
                 labels_to_query = list(self.label_map.keys())
                 ents = self.extractor.predict_entities(sent_text, labels_to_query)
                 for e in ents:
@@ -411,43 +465,102 @@ class SciERCEvaluator:
                         "confidence": e.get("score"),
                     })
             elif callable(self.extractor):
-                # Generic callable fn(text) -> list of entity dicts
                 raw_entities = self.extractor(sent_text)
             else:
                 raise TypeError(f"Unsupported extractor type: {type(self.extractor)}")
 
-            for ent in raw_entities:
-                c_start = ent["start"]
-                c_end = ent["end"]
-                raw_label = ent["label"].lower().strip()
-
-                # Map to SciERC ontology
-                mapped_label = self.label_map.get(raw_label, raw_label)
-                if mapped_label not in self.eval_labels:
-                    continue
-
-                tok_span = char_to_token_offsets(c_start, c_end, token_char_spans)
-                if tok_span is None:
-                    continue
-
-                rel_tok_start, rel_tok_end = tok_span
-                doc_tok_start = s_offset + rel_tok_start
-                doc_tok_end = s_offset + rel_tok_end
-
-                span_tokens = flat[doc_tok_start : doc_tok_end + 1]
-                verbatim_text = " ".join(span_tokens)
-
-                predicted_spans.append(
-                    EntitySpan(
-                        start_token=doc_tok_start,
-                        end_token=doc_tok_end,
-                        label=mapped_label,
-                        text=verbatim_text,
-                        confidence=ent.get("confidence"),
-                    )
-                )
+            spans = _entities_to_spans(
+                raw_entities=raw_entities,
+                s_offset=s_offset,
+                token_char_spans=token_char_spans,
+                flat_tokens=flat,
+                label_map=self.label_map,
+                eval_labels=self.eval_labels,
+            )
+            predicted_spans.extend(spans)
 
         return predicted_spans
+
+    def predict_batch_documents(
+        self,
+        docs: List[SciERCDocument],
+        batch_size: int = 32,
+    ) -> Dict[str, List[EntitySpan]]:
+        """Extract entities for multiple documents using batched sentence inference.
+
+        Falls back to per-sentence predict_document_spans if the extractor does not support batching.
+        """
+        if self.extractor is None:
+            raise ValueError("No extractor provided to SciERCEvaluator.")
+
+        if not _supports_batch_prediction(self.extractor):
+            return {doc.doc_key: self.predict_document_spans(doc) for doc in docs}
+
+        # 1. Collect all sentences across all docs with mapping metadata
+        sentence_items = []
+        for doc in docs:
+            flat = doc.flat_tokens
+            offsets = doc.sentence_offsets
+            for s_idx, (tokens, s_offset) in enumerate(zip(doc.sentences, offsets)):
+                if not tokens:
+                    continue
+                sent_text = " ".join(tokens)
+                token_char_spans = []
+                curr = 0
+                for tok in tokens:
+                    token_char_spans.append((curr, curr + len(tok)))
+                    curr += len(tok) + 1
+                sentence_items.append((doc.doc_key, s_idx, tokens, s_offset, sent_text, token_char_spans, flat))
+
+        if not sentence_items:
+            return {doc.doc_key: [] for doc in docs}
+
+        all_sent_texts = [item[4] for item in sentence_items]
+        labels_to_query = list(self.label_map.keys())
+
+        # 2. Call batched inference in chunks of batch_size
+        ents_per_sent: List[List[Dict[str, Any]]] = []
+        for i in range(0, len(all_sent_texts), batch_size):
+            chunk = all_sent_texts[i : i + batch_size]
+            if hasattr(self.extractor, "batch_predict_entities"):
+                try:
+                    chunk_preds = self.extractor.batch_predict_entities(
+                        chunk,
+                        labels_to_query,
+                        threshold=getattr(self.extractor, "threshold", 0.5),
+                        batch_size=len(chunk),
+                    )
+                except TypeError:
+                    chunk_preds = self.extractor.batch_predict_entities(
+                        chunk,
+                        labels_to_query,
+                        batch_size=len(chunk),
+                    )
+            elif hasattr(self.extractor, "_model"):
+                self.extractor._ensure_model_loaded()
+                chunk_preds = self.extractor._model.batch_predict_entities(
+                    chunk,
+                    labels_to_query,
+                    threshold=getattr(self.extractor, "threshold", 0.5),
+                    batch_size=len(chunk),
+                )
+            ents_per_sent.extend(chunk_preds)
+
+        # 3. Assemble document-level EntitySpans
+        doc_predictions: Dict[str, List[EntitySpan]] = {doc.doc_key: [] for doc in docs}
+        for item, sent_ents in zip(sentence_items, ents_per_sent):
+            doc_key, s_idx, tokens, s_offset, sent_text, token_char_spans, flat = item
+            spans = _entities_to_spans(
+                raw_entities=sent_ents,
+                s_offset=s_offset,
+                token_char_spans=token_char_spans,
+                flat_tokens=flat,
+                label_map=self.label_map,
+                eval_labels=self.eval_labels,
+            )
+            doc_predictions[doc_key].extend(spans)
+
+        return doc_predictions
 
     def evaluate(
         self,
@@ -455,6 +568,7 @@ class SciERCEvaluator:
         predictions: Optional[Dict[str, List[EntitySpan]]] = None,
         metadata: Optional[Dict[str, Any]] = None,
         ignore_generic: Optional[bool] = None,
+        batch_size: int = 32,
     ) -> BenchmarkResults:
         """Run full evaluation on a list of SciERCDocuments."""
         strict_accum: Dict[str, List[int]] = {lbl: [0, 0, 0] for lbl in self.eval_labels}
@@ -467,14 +581,15 @@ class SciERCEvaluator:
 
         target_labels_set = set(self.eval_labels)
 
+        # If predictions were not precomputed, extract in batch
+        if predictions is None:
+            predictions = self.predict_batch_documents(docs, batch_size=batch_size)
+
         for doc in docs:
             gold_spans = doc.get_gold_spans(target_labels=target_labels_set)
             total_gold += len(gold_spans)
 
-            if predictions is not None and doc.doc_key in predictions:
-                pred_spans = list(predictions[doc.doc_key])
-            else:
-                pred_spans = self.predict_document_spans(doc)
+            pred_spans = list(predictions.get(doc.doc_key, []))
 
             # Filter pred_spans to target labels
             pred_spans = [p for p in pred_spans if p.label in target_labels_set]

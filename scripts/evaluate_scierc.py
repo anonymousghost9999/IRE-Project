@@ -83,6 +83,12 @@ def parse_args() -> argparse.Namespace:
         help="Limit number of documents to evaluate (for testing)",
     )
     parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=32,
+        help="Sentence batch size for GLiNER inference (default: 32)",
+    )
+    parser.add_argument(
         "--native-labels",
         action="store_true",
         help="Prompt GLiNER directly with SciERC's native labels (Task, Method, Metric, Material, OtherScientificTerm)",
@@ -145,10 +151,12 @@ def main() -> int:
     t0 = time.time()
     results = evaluator.evaluate(
         docs,
+        batch_size=args.batch_size,
         metadata={
             "model": args.model,
             "threshold": args.threshold,
             "device": extractor.device,
+            "batch_size": args.batch_size,
             "native_labels_prompted": args.native_labels,
             "evaluation_time_seconds": 0.0,
         },

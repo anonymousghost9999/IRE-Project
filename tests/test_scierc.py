@@ -331,6 +331,53 @@ def test_generic_gold_entities_ignored():
     assert results_no_ignore.strict_micro.precision == 0.5
 
 
+def test_batched_matches_per_sentence_predictions(sample_scierc_record: dict):
+    """Verify batched and per-sentence predictions produce identical EntitySpans on a mock extractor."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    mapping = {
+        "We propose BERT for text classification .": [
+            {"start": 11, "end": 15, "label": "method", "text": "BERT", "score": 0.95},
+            {"start": 20, "end": 39, "label": "task", "text": "text classification", "score": 0.91},
+        ],
+        "Experiments on GLUE show 92 % accuracy .": [
+            {"start": 15, "end": 19, "label": "dataset", "text": "GLUE", "score": 0.88},
+            {"start": 30, "end": 38, "label": "metric", "text": "accuracy", "score": 0.89},
+        ],
+    }
+
+    class MockGLiNER:
+        def predict_entities(self, text, labels, threshold=0.5):
+            return mapping.get(text, [])
+
+        def batch_predict_entities(self, texts, labels, threshold=0.5, batch_size=32):
+            return [mapping.get(t, []) for t in texts]
+
+    mock = MockGLiNER()
+    evaluator = SciERCEvaluator(
+        label_map=DEFAULT_LABEL_MAP,
+        eval_labels=EVALUATION_LABELS,
+        extractor=mock,
+    )
+
+    # 1. Per-sentence prediction
+    per_sentence_spans = evaluator.predict_document_spans(doc)
+    assert len(per_sentence_spans) == 4
+
+    # 2. Batched prediction with chunk sizes 1 and 32
+    batched_preds_1 = evaluator.predict_batch_documents([doc], batch_size=1)
+    batched_preds_32 = evaluator.predict_batch_documents([doc], batch_size=32)
+
+    assert doc.doc_key in batched_preds_1
+    assert doc.doc_key in batched_preds_32
+    assert per_sentence_spans == batched_preds_1[doc.doc_key]
+    assert per_sentence_spans == batched_preds_32[doc.doc_key]
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
