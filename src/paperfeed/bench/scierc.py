@@ -212,16 +212,9 @@ def char_to_token_offsets(
 
 
 def _supports_batch_prediction(extractor: Any) -> bool:
-    """Check if the extractor supports batched inference (and is not an unconfigured Mock)."""
+    """Check if the extractor supports batched inference."""
     if extractor is None:
         return False
-    try:
-        from unittest.mock import Mock
-        if isinstance(extractor, Mock):
-            return "batch_predict_entities" in extractor._mock_children
-    except ImportError:
-        pass
-
     if callable(getattr(extractor, "batch_predict_entities", None)):
         return True
     if hasattr(extractor, "_model") and callable(getattr(extractor._model, "batch_predict_entities", None)):
@@ -566,10 +559,25 @@ class SciERCEvaluator:
         """Extract entities for multiple documents using batched sentence inference.
 
         Falls back to per-sentence predict_document_spans if the extractor does not support batching.
+        Resets the error counters and aborts if too many sentences failed, so every caller (including
+        the threshold sweep, which scores precomputed predictions) gets the same protection.
         """
         if self.extractor is None:
             raise ValueError("No extractor provided to SciERCEvaluator.")
 
+        self.error_count = 0
+        self.grounding_dropped_count = 0
+        predictions = self._predict_all(docs, batch_size)
+
+        total_sentences = sum(len(d.sentences) for d in docs)
+        if total_sentences > 0 and (self.error_count / total_sentences) > self.max_error_fraction:
+            raise RuntimeError(
+                f"Benchmark aborted: {self.error_count}/{total_sentences} "
+                f"({self.error_count / total_sentences:.1%}) sentences failed extraction."
+            )
+        return predictions
+
+    def _predict_all(self, docs: List[SciERCDocument], batch_size: int) -> Dict[str, List[EntitySpan]]:
         if not _supports_batch_prediction(self.extractor):
             return {doc.doc_key: self.predict_document_spans(doc) for doc in docs}
 
@@ -668,19 +676,10 @@ class SciERCEvaluator:
 
         target_labels_set = set(self.eval_labels)
 
-        self.error_count = 0
-        self.grounding_dropped_count = 0
-        total_sentences = sum(len(d.sentences) for d in docs)
-
-        # If predictions were not precomputed, extract in batch
+        # If predictions were not precomputed, extract in batch (this also resets and checks the error counters;
+        # with precomputed predictions the counters still describe the run that produced them).
         if predictions is None:
             predictions = self.predict_batch_documents(docs, batch_size=batch_size)
-
-        if total_sentences > 0 and (self.error_count / total_sentences) > self.max_error_fraction:
-            raise RuntimeError(
-                f"Benchmark aborted: {self.error_count}/{total_sentences} "
-                f"({self.error_count / total_sentences:.1%}) sentences failed extraction."
-            )
 
         for doc in docs:
             gold_spans = doc.get_gold_spans(target_labels=target_labels_set)

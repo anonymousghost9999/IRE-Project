@@ -117,23 +117,20 @@ class FacetExtractor:
         threshold: Optional[float] = None,
         batch_size: int = 32,
     ) -> List[List[Dict[str, Any]]]:
-        """Run batched entity prediction on a list of sentences using GLiNER."""
+        """Run batched entity prediction on a list of sentences using GLiNER.
+
+        Errors propagate: the caller decides whether to count, skip or abort (the SciERC evaluator counts
+        failed sentences itself).
+        """
         if not sentences:
             return []
         self._ensure_model_loaded()
-        try:
-            return self._model.batch_predict_entities(
-                sentences,
-                labels=labels or self.labels,
-                threshold=self.threshold if threshold is None else threshold,
-                batch_size=batch_size,
-            )
-        except Exception as e:
-            self.error_count += len(sentences)
-            if self.strict_errors:
-                raise
-            logger.warning("Error in FacetExtractor.batch_predict_entities: %s", e)
-            raise
+        return self._model.batch_predict_entities(
+            sentences,
+            labels=labels or self.labels,
+            threshold=self.threshold if threshold is None else threshold,
+            batch_size=batch_size,
+        )
 
     def extract_from_abstract(
         self,
@@ -266,6 +263,8 @@ class FacetExtractor:
                 batch_size=sentence_batch_size,
             )
         except Exception as e:
+            if self.strict_errors:
+                raise
             logger.warning("Error during batched entity prediction: %s. Falling back to sequential.", e)
             return [f for p in papers for f in self.extract_from_abstract(p.get("paper_id", ""), p.get("abstract", ""))]
 

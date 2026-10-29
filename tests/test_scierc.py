@@ -15,6 +15,7 @@ from paperfeed.bench.scierc import (
     LabelMetrics,
     SciERCDocument,
     SciERCEvaluator,
+    _supports_batch_prediction,
     char_to_token_offsets,
     compute_span_overlap_iou,
     evaluate_document_spans,
@@ -213,7 +214,7 @@ def test_scierc_evaluator_end_to_end(sample_scierc_record: dict):
     # Mock extractor simulating GLiNER returning lowercase production facets:
     # Sentence 0: "We propose BERT for text classification ."
     # Sentence 1: "Experiments on GLUE show 92 % accuracy ."
-    mock_extractor = MagicMock()
+    mock_extractor = MagicMock(spec=["extract_from_abstract"])
     mock_extractor.extract_from_abstract.side_effect = [
         # Sentence 0 output:
         [
@@ -269,7 +270,7 @@ def test_native_label_prompts_map_to_scierc_labels():
         sentences=[["We", "use", "BLEU", "."]],
         gold_ner=[[(2, 2, "Metric"), ]],
     )
-    extractor = MagicMock()
+    extractor = MagicMock(spec=["extract_from_abstract"])
     extractor.extract_from_abstract.return_value = [
         {"facet_type": "metric", "facet_value": "BLEU", "start_char": 7, "end_char": 11, "confidence": 0.9},
     ]
@@ -450,6 +451,51 @@ def test_extractor_errors_not_swallowed(sample_scierc_record: dict):
     with pytest.raises(RuntimeError) as exc_info_strict:
         evaluator_strict.evaluate([doc])
     assert "CUDA out of memory error" in str(exc_info_strict.value)
+
+
+def test_batch_prediction_aborts_on_failing_extractor(sample_scierc_record: dict):
+    """The error-rate guard lives in predict_batch_documents, so the threshold sweep (which scores
+    precomputed predictions) is protected too."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    class BrokenBatchGLiNER:
+        def batch_predict_entities(self, texts, labels, threshold=0.5, batch_size=32):
+            raise RuntimeError("CUDA out of memory error during extraction")
+
+    evaluator = SciERCEvaluator(extractor=BrokenBatchGLiNER())
+    with pytest.raises(RuntimeError, match="Benchmark aborted"):
+        evaluator.predict_batch_documents([doc])
+    assert evaluator.error_count == 2
+
+
+def test_evaluate_with_precomputed_predictions_keeps_run_counters(sample_scierc_record: dict):
+    """evaluate(predictions=...) must not zero the error/grounding counters of the run that produced them."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    class OffsetBatchGLiNER:
+        def batch_predict_entities(self, texts, labels, threshold=0.5, batch_size=32):
+            # An entity entirely outside the sentence text: dropped by the grounding guard
+            return [[{"start": 500, "end": 510, "label": "method", "text": "x", "score": 0.9}] for _ in texts]
+
+    evaluator = SciERCEvaluator(extractor=OffsetBatchGLiNER())
+    predictions = evaluator.predict_batch_documents([doc])
+    assert evaluator.grounding_dropped_count == 2
+
+    results = evaluator.evaluate([doc], predictions=predictions)
+    assert results.metadata["grounding_guard_dropped_entities"] == 2
+
+
+def test_mock_extractor_without_batch_api_uses_per_sentence_path():
+    """A mock restricted to extract_from_abstract is not mistaken for a batch-capable extractor."""
+    assert not _supports_batch_prediction(MagicMock(spec=["extract_from_abstract"]))
 
 
 def test_report_flags_low_confidence_and_3label_averages(sample_scierc_record: dict):
