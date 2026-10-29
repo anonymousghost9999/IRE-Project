@@ -83,6 +83,7 @@ class FacetExtractor:
         self.threshold = float(threshold)
         self.strict_errors = bool(strict_errors)
         self.error_count: int = 0
+        self.grounding_dropped_count: int = 0
 
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -205,6 +206,7 @@ class FacetExtractor:
 
                 # Exact verbatim grounding check
                 if actual_span != span_text:
+                    self.grounding_dropped_count += 1
                     continue
 
                 # Deduplicate identical (facet_type, abs_start, abs_end)
@@ -295,6 +297,7 @@ class FacetExtractor:
                         actual_span = abstract[abs_start:abs_end]
 
                 if actual_span != span_text:
+                    self.grounding_dropped_count += 1
                     continue
 
                 span_key = (label, abs_start, abs_end)

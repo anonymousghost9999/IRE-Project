@@ -236,9 +236,14 @@ def _entities_to_spans(
     flat_tokens: List[str],
     label_map: Dict[str, str],
     eval_labels: List[str],
-) -> List[EntitySpan]:
-    """Map raw sentence-level character entity predictions to document-level EntitySpans."""
+) -> Tuple[List[EntitySpan], int]:
+    """Map raw sentence-level character entity predictions to document-level EntitySpans.
+
+    Returns:
+        (spans, dropped_by_guard_count)
+    """
     spans: List[EntitySpan] = []
+    dropped_by_guard: int = 0
     for ent in raw_entities:
         c_start = ent["start"]
         c_end = ent["end"]
@@ -249,6 +254,7 @@ def _entities_to_spans(
 
         tok_span = char_to_token_offsets(c_start, c_end, token_char_spans)
         if tok_span is None:
+            dropped_by_guard += 1
             continue
 
         rel_tok_start, rel_tok_end = tok_span
@@ -267,7 +273,7 @@ def _entities_to_spans(
                 confidence=ent.get("confidence", ent.get("score")),
             )
         )
-    return spans
+    return spans, dropped_by_guard
 
 
 @dataclass
@@ -480,6 +486,7 @@ class SciERCEvaluator:
         self.strict_errors = strict_errors
         self.max_error_fraction = max_error_fraction
         self.error_count: int = 0
+        self.grounding_dropped_count: int = 0
 
     def predict_document_spans(self, doc: SciERCDocument) -> List[EntitySpan]:
         """Extract entities from a SciERCDocument using the attached extractor (sentence-by-sentence)."""
@@ -538,7 +545,7 @@ class SciERCEvaluator:
                     raise RuntimeError(f"Extractor failed on doc {doc.doc_key} sentence {s_idx}: {exc}") from exc
                 raw_entities = []
 
-            spans = _entities_to_spans(
+            spans, dropped_count = _entities_to_spans(
                 raw_entities=raw_entities,
                 s_offset=s_offset,
                 token_char_spans=token_char_spans,
@@ -546,6 +553,7 @@ class SciERCEvaluator:
                 label_map=self.label_map,
                 eval_labels=self.eval_labels,
             )
+            self.grounding_dropped_count += dropped_count
             predicted_spans.extend(spans)
 
         return predicted_spans
@@ -628,7 +636,7 @@ class SciERCEvaluator:
         doc_predictions: Dict[str, List[EntitySpan]] = {doc.doc_key: [] for doc in docs}
         for item, sent_ents in zip(sentence_items, ents_per_sent):
             doc_key, s_idx, tokens, s_offset, sent_text, token_char_spans, flat = item
-            spans = _entities_to_spans(
+            spans, dropped_count = _entities_to_spans(
                 raw_entities=sent_ents,
                 s_offset=s_offset,
                 token_char_spans=token_char_spans,
@@ -636,6 +644,7 @@ class SciERCEvaluator:
                 label_map=self.label_map,
                 eval_labels=self.eval_labels,
             )
+            self.grounding_dropped_count += dropped_count
             doc_predictions[doc_key].extend(spans)
 
         return doc_predictions
@@ -660,6 +669,7 @@ class SciERCEvaluator:
         target_labels_set = set(self.eval_labels)
 
         self.error_count = 0
+        self.grounding_dropped_count = 0
         total_sentences = sum(len(d.sentences) for d in docs)
 
         # If predictions were not precomputed, extract in batch
@@ -831,6 +841,8 @@ class SciERCEvaluator:
         run_metadata["ignore_generic"] = should_ignore_generic
         run_metadata["predictions_ignored_generic"] = total_predictions_ignored_generic
         run_metadata["sentence_extraction_errors"] = self.error_count
+        total_grounding_dropped = self.grounding_dropped_count + getattr(self.extractor, "grounding_dropped_count", 0)
+        run_metadata["grounding_guard_dropped_entities"] = total_grounding_dropped
 
         return BenchmarkResults(
             strict_per_label=strict_per_label,

@@ -542,6 +542,31 @@ def test_reproducibility_git_commit_helper():
     assert len(commit) >= 4 or commit == "unknown"
 
 
+def test_grounding_guard_dropped_entities_counted(sample_scierc_record: dict):
+    """Verify entities dropped by token/grounding alignment guards are tracked in metadata."""
+    doc = SciERCDocument(
+        doc_key=sample_scierc_record["doc_key"],
+        sentences=sample_scierc_record["sentences"],
+        gold_ner=sample_scierc_record["ner"],
+    )
+
+    class MisalignedExtractor:
+        def predict_entities(self, text, labels, threshold=0.5):
+            # Return an entity with out-of-bounds char offsets (e.g. 500-600)
+            return [
+                {"start": 500, "end": 600, "label": "Method", "text": "Out", "score": 0.9}
+            ]
+
+    evaluator = SciERCEvaluator(
+        label_map=DEFAULT_LABEL_MAP,
+        eval_labels=EVALUATION_LABELS,
+        extractor=MisalignedExtractor(),
+    )
+    results = evaluator.evaluate([doc])
+    assert results.metadata["grounding_guard_dropped_entities"] == 2  # 2 sentences, 1 dropped each
+    assert results.total_predicted_entities == 0
+
+
 
 def test_real_scierc_test_file_if_present():
     """Verify parsing and structure of the real official SciERC test split if present on disk."""
