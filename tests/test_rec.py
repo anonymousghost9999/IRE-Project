@@ -786,3 +786,260 @@ def test_explained_feature_always_matches_the_scored_dominant_contribution(cite_
     ex = _explainer(cite_db, user_facets)
     for s in scored:
         assert ex.explain(s).dominant_feature == dominant_feature(s.contributions)
+
+
+# ---------------------------------------------------------------------------
+# 5.6 Recommender interface
+# ---------------------------------------------------------------------------
+
+import json
+
+from paperfeed.rec.recommender import (
+    RecommendConfig,
+    RecommenderResources,
+    UserProfile,
+    _check_output,
+    build_user_profile,
+    recommend,
+)
+
+IR_TEXT = {
+    "U1": "information retrieval authored alpha", "U2": "information retrieval authored beta",
+    "I1": "We study passage retrieval with dense models.", "I2": "information retrieval ranking gamma",
+    "I3": "information retrieval evaluation delta", "I4": "information retrieval systems epsilon",
+    "R1": "information retrieval cited zeta", "F": "information retrieval future eta", "N": "information retrieval noncandidate theta",
+}
+AST_TEXT = {"A1": "astronomy galaxies one", "A2": "astronomy telescopes two", "A3": "astronomy stars three"}
+VECS = {
+    "U1": (1, 0.1), "U2": (1, 0.2), "I1": (1, 0.3), "I2": (1, 0.4), "I3": (1, 0.5), "I4": (1, 0.6), "R1": (1, 0.35),
+    "F": (1, 0.15), "N": (1, 0.12), "A1": (0.1, 1), "A2": (0.2, 1), "A3": (0.3, 1),
+}
+
+
+class WorldEncoder:
+    """Fake SPECTER2: every query embeds to the +x ('IR') axis unless it mentions astronomy."""
+
+    def embed_query(self, query):
+        return _unit(0.1, 1) if "astronomy" in query else _unit(1, 0.2)
+
+    def embed_queries(self, queries):
+        return np.vstack([self.embed_query(q) for q in queries])
+
+    def embed_papers(self, papers, batch_size=32, show_progress=False):
+        return np.vstack([_unit(1, 0.25) for _ in papers])
+
+
+@pytest.fixture
+def world(tmp_path):
+    db = DatabaseManager(db_path=tmp_path / "w.sqlite3", cutoff_year=2024)
+    texts = {**IR_TEXT, **AST_TEXT}
+    rows = []
+    for pid, text in texts.items():
+        row = _paper_row(pid, year=2025 if pid == "F" else 2022, title=f"Title {pid}")
+        row["abstract"] = text
+        row["in_candidates"] = 0 if pid == "N" else 1
+        rows.append(row)
+    db.insert_papers_batch(rows)
+    db.insert_citations_batch([(_uri(s), _uri(t), 2022) for s, t in [("U1", "R1"), ("U1", "R9"), ("I1", "R9"), ("U2", "R9")]])
+
+    ids = list(texts)
+    vecs = np.array([VECS[i] for i in ids], dtype=np.float32)
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+    dense = DenseIndex(dimension=2)
+    dense.add_documents(ids, vecs)
+    lex = LexicalIndex(stopwords="en")
+    lex.index_documents(ids, [texts[i] for i in ids], show_progress=False)
+    retriever = HybridRetriever(dense, lex, channel_depth=12, candidate_pool_size=12)
+    return RecommenderResources(
+        db=db, store=EmbeddingStore(ids, vecs), retriever=retriever, cutoff_year=2024,
+        eligible=eligible_paper_ids(db, 2024), facet_store=None, encoder=WorldEncoder(),
+    )
+
+
+CFG = RecommendConfig(k=4, lambda_div=0.0)
+
+
+def _profile(world, authored=("U1", "U2")):
+    return build_user_profile(world, "u1", authored_ids=list(authored), config=CFG)
+
+
+def test_feed_recommendations_respect_every_filter(world):
+    prof = _profile(world)
+    res = recommend(world, prof, config=CFG)
+    ids = res.paper_ids
+    assert 0 < len(ids) <= 4 and len(set(ids)) == len(ids)
+    assert not {"U1", "U2"} & set(ids)  # authored
+    assert "R1" not in ids  # cited by the user
+    assert "F" not in ids  # published after T
+    assert "N" not in ids  # not a candidate
+    assert [i.rank for i in res.items] == list(range(1, len(ids) + 1))
+    assert res.n_excluded == len({"U1", "U2", "R1", "R9"}) and not res.session_active
+    assert all(i.title.startswith("Title") and i.score is not None and i.dense_rank for i in res.items)
+
+
+def test_recommend_is_deterministic(world):
+    prof = _profile(world)
+    a = json.dumps(recommend(world, prof, config=CFG).to_dict(), sort_keys=True)
+    b = json.dumps(recommend(world, _profile(world), config=CFG).to_dict(), sort_keys=True)
+    assert a == b
+
+
+def test_diagnostic_mode_makes_cited_papers_eligible_again(world):
+    prof = _profile(world)
+    assert "R1" not in recommend(world, prof, config=CFG.with_overrides(k=12)).paper_ids
+    diag = recommend(world, prof, config=CFG.with_overrides(k=12, diagnostic=True))
+    assert "R1" in diag.paper_ids and not {"U1", "U2"} & set(diag.paper_ids)  # authored stay excluded
+
+
+def test_zero_pub_switch_empties_the_exclusion_set(world):
+    res = recommend(world, _profile(world), config=CFG.with_overrides(k=12, zero_pub=True))
+    assert res.n_excluded == 0 and {"U1", "U2", "R1"} <= set(res.paper_ids)
+    assert "F" not in res.paper_ids and "N" not in res.paper_ids  # the eligibility filter still applies
+
+
+def test_session_shifts_recommendations_and_saved_papers_are_excluded(world):
+    prof = _profile(world)
+    cfg = CFG.with_overrides(k=3, rho=0.1, weights={"w_sess": 3.0})
+    base = recommend(world, prof, config=cfg)
+    assert not any(p.startswith("A") for p in base.paper_ids)
+
+    session = cfg.make_session(dim=2)
+    session.save("A1", world.store.select(["A1"])[0])
+    session.click("A2", world.store.select(["A2"])[0])
+    shifted = recommend(world, prof, session=session, config=cfg)
+    assert shifted.session_active and any(p.startswith("A") for p in shifted.paper_ids)
+    assert "A1" not in shifted.paper_ids  # saved -> SessionConsumed -> excluded
+    assert shifted.n_excluded == base.n_excluded + 1
+    assert any(i.contributions["session"] > 0 for i in shifted.items)
+
+
+def test_skipped_papers_are_penalised(world):
+    prof = _profile(world)
+    cfg = CFG.with_overrides(k=12)
+    session = cfg.make_session(dim=2)
+    session.skip("I2")
+    res = recommend(world, prof, session=session, config=cfg)
+    assert not res.session_active  # a skip alone does not start a session vector
+    by_id = {i.paper_id: i for i in res.items}
+    assert by_id["I3"].contributions["penalty"] < 0  # I3 is close to the skipped I2
+    assert by_id["A3"].contributions["penalty"] > by_id["I3"].contributions["penalty"]  # far from it: smaller deduction
+
+
+def test_ablation_switches(world):
+    prof = _profile(world)
+    no_cite = recommend(world, prof, config=CFG.with_overrides(k=12, weights={"w_cite": 0.0}))
+    assert all(i.contributions["citation"] == 0.0 for i in no_cite.items)
+    with_cite = recommend(world, prof, config=CFG.with_overrides(k=12, weights={"w_cite": 2.0}))
+    assert any(i.contributions["citation"] > 0 for i in with_cite.items)  # I1 shares R9 with the user's papers
+
+    assert len(recommend(world, prof, config=CFG.with_overrides(k=2)).items) == 2
+    small_pool = recommend(world, prof, config=CFG.with_overrides(k=10, pool_size=3))
+    assert small_pool.n_candidates == 3 and len(small_pool.items) == 3
+
+    # lambda_div = 0 is the pure score order
+    ranked = recommend(world, prof, config=CFG.with_overrides(k=12, lambda_div=0.0)).items
+    assert [i.score for i in ranked] == sorted([i.score for i in ranked], reverse=True)
+
+
+def test_explanations_can_be_switched_off(world):
+    prof = _profile(world)
+    on = recommend(world, prof, config=CFG)
+    off = recommend(world, prof, config=CFG.with_overrides(explain=False))
+    assert all(i.explanation is not None for i in on.items) and all(i.explanation is None for i in off.items)
+    assert on.paper_ids == off.paper_ids  # explaining never changes the ranking
+    assert all(i.explanation.dominant_feature in {"persona", "citation"} for i in on.items)  # no facets or session here
+
+
+def test_pseudo_query_comes_from_recent_authored_titles(world):
+    res = recommend(world, _profile(world), config=CFG)
+    assert "Title U1" in res.pseudo_query and "Title U2" in res.pseudo_query
+
+
+def test_search_mode(world):
+    prof = _profile(world)
+    res = recommend(world, prof, mode="search", query="astronomy galaxies", config=CFG)
+    assert res.mode == "search" and res.paper_ids[0] == "A1"
+    assert all(i.score is None and i.explanation is None and i.contributions == {} for i in res.items)
+    assert res.pseudo_query == "astronomy galaxies"
+    ir = recommend(world, prof, mode="search", query="information retrieval", config=CFG.with_overrides(k=12))
+    assert not {"U1", "U2", "R1", "F", "N"} & set(ir.paper_ids)  # E_u and the eligibility filter apply here too
+    assert recommend(world, prof, mode="search", query="   ", config=CFG).items == []
+    with pytest.raises(ValueError, match="Unknown mode"):
+        recommend(world, prof, mode="browse")
+    world.encoder = None
+    with pytest.raises(ValueError, match="encoder"):
+        recommend(world, prof, mode="search", query="x")
+
+
+def test_zero_publication_profile_and_recommendations(world):
+    prof = build_user_profile(world, "z1", seed_topics=["information retrieval", "dense retrieval"], config=CFG)
+    assert prof.zero_pub and prof.persona.source == "seed_topics" and prof.exclusion_sources.build() == set()
+    res = recommend(world, prof, config=CFG.with_overrides(k=12))
+    assert res.n_excluded == 0 and "F" not in res.paper_ids and len(res.items) > 0
+    assert all(i.contributions["citation"] == 0.0 for i in res.items)  # BC = CC = 0 without authored papers
+    world.encoder = None
+    with pytest.raises(ValueError, match="encoder"):
+        build_user_profile(world, "z2", seed_topics=["x"])
+
+
+def test_profile_embeds_authored_papers_missing_from_the_store(world):
+    world.db.insert_papers_batch([{**_paper_row("U3", 2023, "Title U3"), "abstract": ""}])  # title-only, not in the store
+    prof = build_user_profile(world, "u3", authored_ids=["U1", "U3"], config=CFG)
+    assert prof.persona.n_embedded_on_the_fly == 1 and prof.persona.paper_ids == ["U1", "U3"]
+
+
+def test_facets_feed_the_score_when_available(world, tmp_path):
+    fstore = FacetStore(world.db.db_path)
+
+    def f(pid, ftype, cid, sub, text):
+        i = text.index(sub)
+        return {"paper_id": _uri(pid), "facet_type": ftype, "facet_value": sub, "canonical_id": cid,
+                "evidence_sentence": text, "start_char": i, "end_char": i + len(sub), "confidence": 0.9}
+
+    fstore.save_facets([
+        f("U1", "task", "t1", "information retrieval", IR_TEXT["U1"]), f("U2", "task", "t1", "information retrieval", IR_TEXT["U2"]),
+        f("I1", "task", "t1", "passage retrieval", IR_TEXT["I1"]),
+    ])
+    fstore.save_canonical_clusters([{"canonical_id": "t1", "facet_type": "task", "canonical_name": "information retrieval"}])
+    world.facet_store = fstore
+    prof = _profile(world)
+    assert prof.user_facets.ids == {"t1"} and prof.user_facets.freq("t1") == 1.0
+    res = recommend(world, prof, config=CFG.with_overrides(k=12))
+    by_id = {i.paper_id: i for i in res.items}
+    assert by_id["I1"].contributions["facet"] > 0 and by_id["I2"].contributions["facet"] == 0
+    assert "information retrieval" in res.pseudo_query  # facet terms enter the lexical query
+
+
+def test_output_guard_rejects_forbidden_papers(world):
+    _check_output(["I1", "I2"], world, {"U1"})
+    with pytest.raises(RuntimeError, match="excluded"):
+        _check_output(["I1", "U1"], world, {"U1"})
+    with pytest.raises(RuntimeError, match="ineligible"):
+        _check_output(["F"], world, set())
+    with pytest.raises(RuntimeError, match="duplicate"):
+        _check_output(["I1", "I1"], world, set())
+
+
+def test_recommend_config_from_defaults_and_overrides():
+    from paperfeed.common.config import load_config
+
+    cfg = RecommendConfig.from_config(load_config())
+    assert (cfg.k, cfg.lambda_div, cfg.rho, cfg.n_terms, cfg.n_titles) == (10, 0.2, 0.3, 10, 3)
+    assert (cfg.channel_depth, cfg.pool_size, cfg.alpha_sess, cfg.use_gate, cfg.gamma_rec) == (200, 100, 0.5, False, 0.9)
+    assert cfg.weights == ScoringWeights()
+    changed = cfg.with_overrides(k=5, weights={"w_nov": 0.0}, use_gate=True)
+    assert changed.k == 5 and changed.weights.w_nov == 0.0 and changed.weights.w_cite == 0.5 and cfg.k == 10
+    session = changed.make_session(dim=2)
+    assert session.use_gate and session.alpha_sess == 0.5
+
+
+def test_result_is_json_serialisable(world):
+    res = recommend(world, _profile(world), config=CFG)
+    payload = json.loads(json.dumps(res.to_dict()))
+    assert payload["mode"] == "feed" and len(payload["items"]) == len(res.items)
+    assert payload["items"][0]["explanation"] == res.items[0].explanation.explanation.text
+
+
+def test_unpenalised_paper_has_positive_zero_penalty_contribution():
+    (s,) = score_candidates([_feat("A", penalty=0.0)], ScoringWeights(lambda_neg=0.5))
+    assert str(s.contributions["penalty"]) == "0.0"  # not "-0.0", which would leak into JSON run logs

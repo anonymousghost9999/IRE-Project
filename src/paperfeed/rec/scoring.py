@@ -100,7 +100,7 @@ def score_candidates(
             "citation": w.w_cite * scaled["citation"],
             "facet": w.w_facet * scaled["facet"],
             "new_method": w.w_nov * scaled["new_method"],
-            "penalty": -w.lambda_neg * scaled["penalty"],
+            "penalty": 0.0 - w.lambda_neg * scaled["penalty"],  # "0.0 -" keeps an unpenalised paper at 0.0, not -0.0
         }
         scored.append(
             ScoredCandidate(

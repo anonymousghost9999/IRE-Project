@@ -79,12 +79,19 @@ def feed_candidates(
     candidate_filter: Optional[Iterable[str]] = None,
     rho: float = DEFAULT_RHO,
     normalize_session: bool = False,
+    channel_depth: Optional[int] = None,
+    top_m: Optional[int] = None,
 ) -> List[RetrievedCandidate]:
-    """Feed-mode candidates: dense kNN on q_t + BM25s on the pseudo-query, fused by RRF."""
+    """Feed-mode candidates: dense kNN on q_t + BM25s on the pseudo-query, fused by RRF.
+
+    ``channel_depth`` / ``top_m`` override the retriever's M_channel / M for this call (ablations).
+    """
     q_t = query_vector(persona_vec, session_vec, rho, normalize_session)
     return retriever.retrieve_candidates(
         dense_query_vec=q_t,
         lexical_query=pseudo_query,
+        channel_depth=channel_depth,
+        top_m=top_m,
         exclusion_set=exclusion_set,
         candidate_filter=candidate_filter,
     )
@@ -96,6 +103,8 @@ def search_candidates(
     query: str,
     exclusion_set: Optional[Iterable[str]] = None,
     candidate_filter: Optional[Iterable[str]] = None,
+    channel_depth: Optional[int] = None,
+    top_m: Optional[int] = None,
 ) -> List[RetrievedCandidate]:
     """Search-mode candidates: ``adhoc_query`` embedding + BM25s on the query text, fused by RRF."""
     query = (query or "").strip()
@@ -104,6 +113,8 @@ def search_candidates(
     return retriever.retrieve_candidates(
         dense_query_vec=encoder.embed_query(query),
         lexical_query=query,
+        channel_depth=channel_depth,
+        top_m=top_m,
         exclusion_set=exclusion_set,
         candidate_filter=candidate_filter,
     )
