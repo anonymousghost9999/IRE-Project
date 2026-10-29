@@ -481,3 +481,104 @@ def test_scoring_weights_validation_and_config():
     from paperfeed.common.config import load_config
     assert ScoringWeights.from_config(load_config()) == ScoringWeights()  # the defaults in default.yaml
     assert w.with_overrides(w_nov=0.0).w_nov == 0.0 and w.w_nov == 0.5
+
+
+# ---------------------------------------------------------------------------
+# 5.4 MMR
+# ---------------------------------------------------------------------------
+
+from paperfeed.rec.mmr import mmr_select, mmr_settings, select_top_k
+from paperfeed.rec.scoring import ScoredCandidate
+
+
+def _sc(pid, score):
+    return ScoredCandidate(paper_id=pid, features=_feat(pid), scaled={}, contributions={}, score=score)
+
+
+def _pool():
+    """A and B are near-duplicates (same direction); C is on another axis."""
+    scored = [_sc("A", 1.0), _sc("B", 0.95), _sc("C", 0.6)]
+    vecs = np.array([[1, 0], [1, 0], [0, 1]], dtype=np.float32)
+    return scored, vecs
+
+
+def test_mmr_lambda_zero_is_pure_score_order():
+    scored, vecs = _pool()
+    assert [p.paper_id for p in mmr_select(scored, vecs, k=3, lambda_div=0.0)] == ["A", "B", "C"]
+
+
+def test_mmr_diversifies_hand_computed():
+    scored, vecs = _pool()
+    picks = mmr_select(scored, vecs, k=3, lambda_div=0.5)
+    # 1st: A (1.0). 2nd: B = 0.95 - 0.5 * 1 = 0.45 vs C = 0.6 - 0.5 * 0 = 0.6 -> C. 3rd: B = 0.45.
+    assert [p.paper_id for p in picks] == ["A", "C", "B"]
+    assert [p.rank for p in picks] == [1, 2, 3]
+    assert picks[0].max_similarity == 0.0 and picks[0].mmr_value == pytest.approx(1.0)
+    assert picks[1].mmr_value == pytest.approx(0.6)
+    assert picks[2].max_similarity == pytest.approx(1.0) and picks[2].mmr_value == pytest.approx(0.45)
+
+
+def test_mmr_small_lambda_keeps_the_relevant_duplicate():
+    scored, vecs = _pool()
+    assert [p.paper_id for p in mmr_select(scored, vecs, k=2, lambda_div=0.01)] == ["A", "B"]  # 0.94 still beats C
+
+
+def test_mmr_uses_max_similarity_over_the_picked_set():
+    scored = [_sc("A", 1.0), _sc("B", 0.9), _sc("C", 0.8), _sc("D", 0.79)]
+    vecs = np.array([[1, 0], [0, 1], [1, 0.1], [0.5, 0.5]], dtype=np.float32)
+    picks = mmr_select(scored, vecs, k=4, lambda_div=1.0)
+    # after A, B: C is near A (cos ~ 0.995), D is 0.707 from both; pick order is A, B, then D (0.79 - 0.707 > 0.8 - 0.995)
+    assert [p.paper_id for p in picks] == ["A", "B", "D", "C"]
+    assert picks[2].max_similarity == pytest.approx(0.5 ** 0.5, abs=1e-5)
+
+
+def test_mmr_returns_k_unique_papers():
+    rng = np.random.default_rng(0)
+    scored = [_sc(f"P{i:03d}", float(rng.random())) for i in range(100)]
+    vecs = rng.normal(size=(100, 8)).astype(np.float32)
+    picks = mmr_select(scored, vecs, k=10, lambda_div=0.2)
+    assert len(picks) == 10 and len({p.paper_id for p in picks}) == 10
+    assert picks[0].paper_id == max(scored, key=lambda s: s.score).paper_id  # the first pick is the top-scored paper
+
+
+def test_mmr_k_larger_than_pool_and_edge_cases():
+    scored, vecs = _pool()
+    assert len(mmr_select(scored, vecs, k=10)) == 3
+    assert mmr_select(scored, vecs, k=0) == []
+    assert mmr_select([], np.empty((0, 2)), k=5) == []
+    with pytest.raises(ValueError, match="mismatch"):
+        mmr_select(scored, vecs[:2])
+    with pytest.raises(ValueError, match="unique"):
+        mmr_select([_sc("A", 1.0), _sc("A", 0.5)], np.eye(2, dtype=np.float32))
+    with pytest.raises(ValueError):
+        mmr_select(scored, vecs, lambda_div=-1)
+
+
+def test_mmr_ties_break_by_paper_id_and_ignore_input_order():
+    scored = [_sc("B", 0.5), _sc("A", 0.5), _sc("C", 0.5)]
+    vecs = np.array([[1, 0], [0, 1], [-1, 0]], dtype=np.float32)
+    order = [p.paper_id for p in mmr_select(scored, vecs, k=3, lambda_div=0.0)]
+    assert order == ["A", "B", "C"]
+    perm = [2, 0, 1]
+    shuffled = mmr_select([scored[i] for i in perm], vecs[perm], k=3, lambda_div=0.0)
+    assert [p.paper_id for p in shuffled] == order
+
+
+def test_mmr_negative_similarity_is_a_bonus_not_clamped_to_zero():
+    # after picking A, B is opposite to A (cos = -1): with lambda 0.5 its value rises above its raw score
+    scored = [_sc("A", 1.0), _sc("B", 0.5), _sc("C", 0.6)]
+    vecs = np.array([[1, 0], [-1, 0], [0, 1]], dtype=np.float32)
+    picks = mmr_select(scored, vecs, k=2, lambda_div=0.5)
+    assert [p.paper_id for p in picks] == ["A", "B"]  # B: 0.5 + 0.5 = 1.0 beats C: 0.6
+
+
+def test_select_top_k_reads_vectors_from_the_store():
+    scored, vecs = _pool()
+    store = EmbeddingStore(["A", "B", "C", "X"], np.vstack([vecs, [[1, 1]]]).astype(np.float32))
+    assert [p.paper_id for p in select_top_k(scored, store, k=3, lambda_div=0.5)] == ["A", "C", "B"]
+    assert select_top_k([], store) == []
+
+
+def test_mmr_settings_from_config():
+    assert mmr_settings({"retrieval": {"feed_size": 5}, "scoring_weights": {"lambda_div": 0.3}}) == {"k": 5, "lambda_div": 0.3}
+    assert mmr_settings({}) == {"k": 10, "lambda_div": 0.2}
