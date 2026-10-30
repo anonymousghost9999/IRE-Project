@@ -92,7 +92,10 @@ class FacetExtractor:
 
         if model_name_or_path:
             self.model_path = model_name_or_path
-        elif LOCAL_MODEL_DIR.exists() and (LOCAL_MODEL_DIR / "model.safetensors").exists():
+        elif LOCAL_MODEL_DIR.exists() and any(
+            (LOCAL_MODEL_DIR / fname).exists()
+            for fname in ("gliner_config.json", "model.safetensors", "pytorch_model.bin")
+        ):
             self.model_path = str(LOCAL_MODEL_DIR)
         else:
             self.model_path = DEFAULT_MODEL_NAME

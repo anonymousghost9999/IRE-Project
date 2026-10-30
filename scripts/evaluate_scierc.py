@@ -61,7 +61,11 @@ def parse_args() -> argparse.Namespace:
     cfg = load_config()
     fcfg = cfg.get("facets", {})
     local_model = project_root / "models" / "gliner_medium-v2.1"
-    default_model = str(local_model) if local_model.exists() else cfg.get("models", {}).get("gliner_model", "urchade/gliner_medium-v2.1")
+    has_local_weights = local_model.exists() and any(
+        (local_model / fname).exists()
+        for fname in ("gliner_config.json", "model.safetensors", "pytorch_model.bin")
+    )
+    default_model = str(local_model) if has_local_weights else cfg.get("models", {}).get("gliner_model", "urchade/gliner_medium-v2.1")
 
     parser = argparse.ArgumentParser(description="Evaluate GLiNER on SciERC gold standard test split.")
     parser.add_argument(
