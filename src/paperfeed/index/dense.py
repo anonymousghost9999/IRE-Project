@@ -105,7 +105,11 @@ class DenseIndex:
             query_vector = np.ascontiguousarray(query_vector)
 
         clean_exclusions = {clean_id(x) for x in exclusion_set} if exclusion_set else set()
-        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter is not None else None
+        if candidate_filter is not None:
+            sample = next(iter(candidate_filter), None) if candidate_filter else None
+            clean_candidates = candidate_filter if isinstance(candidate_filter, set) and (sample is None or not sample.startswith("http")) else {clean_id(x) for x in candidate_filter}
+        else:
+            clean_candidates = None
 
         # Over-fetch to absorb exclusions and the whitelist. When the depth is not pinned by the caller,
         # widen it until k hits survive the filters or the whole index has been scanned.

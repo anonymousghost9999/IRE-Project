@@ -95,7 +95,11 @@ class LexicalIndex:
         query_tokens = bm25s.tokenize([query], stopwords=self.stopwords, show_progress=False)
 
         clean_exclusions = {clean_id(x) for x in exclusion_set} if exclusion_set else set()
-        clean_candidates = {clean_id(x) for x in candidate_filter} if candidate_filter is not None else None
+        if candidate_filter is not None:
+            sample = next(iter(candidate_filter), None) if candidate_filter else None
+            clean_candidates = candidate_filter if isinstance(candidate_filter, set) and (sample is None or not sample.startswith("http")) else {clean_id(x) for x in candidate_filter}
+        else:
+            clean_candidates = None
 
         # Same adaptive over-fetch as the dense channel (see DenseIndex.search).
         adaptive = fetch_depth is None
