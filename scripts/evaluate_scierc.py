@@ -209,8 +209,21 @@ def main() -> int:
     t0 = time.time()
 
     git_commit = get_git_commit()
+    # Normalize model path to a portable relative path or HuggingFace ID
+    model_repr = str(args.model)
+    try:
+        mpath = Path(model_repr)
+        if mpath.is_absolute():
+            try:
+                rel = mpath.relative_to(project_root)
+                model_repr = str(rel).replace("\\", "/")
+            except ValueError:
+                pass
+    except Exception:
+        pass
+
     base_metadata: Dict[str, Any] = {
-        "model": args.model,
+        "model": model_repr,
         "device": extractor.device,
         "split_file": str(args.data_path.name),
         "document_count": len(docs),

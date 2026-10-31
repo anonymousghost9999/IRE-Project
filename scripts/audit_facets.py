@@ -270,8 +270,8 @@ def main():
             f.write(f"> [!WARNING]\n> {len(grounding_failures)} grounding mismatches observed in sample.\n\n")
 
         f.write("## 4. Annotation Artifacts\n\n")
-        f.write(f"- Machine-readable audit: [`facet_audit_report.json`](file:///{json_path.resolve()})\n")
-        f.write(f"- Stratified annotation sheet: [`facet_annotation_sample.json`](file:///{annot_path.resolve()})\n")
+        f.write("- Machine-readable audit: [`facet_audit_report.json`](facet_audit_report.json)\n")
+        f.write("- Stratified annotation sheet: [`facet_annotation_sample.json`](facet_annotation_sample.json)\n")
 
     logger.info("Audit complete! Report written to %s and %s", md_path, json_path)
     print("\n" + "=" * 60)
