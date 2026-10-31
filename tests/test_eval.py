@@ -183,3 +183,165 @@ def test_run_baseline_dispatch():
 
     with pytest.raises(ValueError, match="Unknown baseline name"):
         run_baseline("unknown_model", resources, profile)
+
+
+from paperfeed.eval.tuning import (
+    CachedUserCandidateData,
+    TuningResult,
+    evaluate_parameter_grid,
+)
+from paperfeed.rec.features import CandidateFeatures
+
+
+def test_evaluate_parameter_grid():
+    store = MagicMock()
+    store.get.side_effect = lambda pid: np.array([1.0, 0.0] if pid == "p1" else [0.0, 1.0], dtype=np.float32)
+    store.select.side_effect = lambda pids: np.stack([store.get(p) for p in pids])
+    resources = MagicMock()
+    resources.store = store
+
+    from paperfeed.rec.features import CitationSignal, FacetMatch, NewMethod
+    f1 = CandidateFeatures(
+        paper_id="p1",
+        persona_cos=0.8,
+        session_cos=None,
+        citation=CitationSignal(bc=2, cc=1),
+        facet=FacetMatch(s_task=0.3, s_dataset=0.2),
+        new_method=NewMethod(flag=True),
+        penalty=0.0,
+    )
+    f2 = CandidateFeatures(
+        paper_id="p2",
+        persona_cos=0.4,
+        session_cos=None,
+        citation=CitationSignal(bc=0, cc=0),
+        facet=FacetMatch(s_task=0.1, s_dataset=0.0),
+        new_method=NewMethod(flag=False),
+        penalty=0.0,
+    )
+
+    user = CachedUserCandidateData(
+        author_id="A1",
+        profile=MagicMock(),
+        candidate_ids=["p1", "p2"],
+        features=[f1, f2],
+        targets=["p1"],
+    )
+
+    grid = {
+        "w_cite": [0.0, 1.0],
+        "w_facet": [0.0],
+        "w_nov": [0.0],
+        "lambda_div": [0.0, 0.2],
+    }
+
+    res = evaluate_parameter_grid([user], resources, grid=grid, k=2)
+    assert isinstance(res, TuningResult)
+    assert res.grid_size == 4
+    assert res.n_users == 1
+    assert res.best_mean_ndcg > 0.0
+    assert len(res.top_configurations) <= 4
+
+    d = res.to_dict()
+    assert "best_weights" in d
+    assert "best_lambda_div" in d
+
+
+from paperfeed.eval.lfo import UserEvaluationRow
+from paperfeed.eval.report import (
+    format_ablation_table_markdown,
+    format_main_table_markdown,
+    generate_full_evaluation_report,
+)
+from paperfeed.eval.slices import slice_by_history_volume
+from paperfeed.eval.stats import (
+    HypothesisTestReport,
+    benjamini_hochberg_correction,
+    paired_bootstrap_test,
+    paired_cohens_d,
+    run_track1_hypothesis_tests,
+)
+
+
+def test_paired_bootstrap_and_cohens_d():
+    sys_scores = [0.5, 0.65, 0.7, 0.85, 0.9]
+    base_scores = [0.2, 0.3, 0.4, 0.5, 0.6]
+
+    d = paired_cohens_d(sys_scores, base_scores)
+    assert d > 0.0
+
+    mean_diff, lo, hi, p, effect_d = paired_bootstrap_test(
+        sys_scores, base_scores, n_resamples=500, seed=42
+    )
+    assert pytest.approx(mean_diff, 1e-6) == 0.32
+    assert lo > 0.0  # complete separation
+    assert p < 0.05
+
+
+def test_benjamini_hochberg_correction():
+    p_vals = [0.01, 0.04, 0.03, 0.20]
+    bh = benjamini_hochberg_correction(p_vals, fdr=0.05)
+    assert len(bh) == 4
+    # All adjusted values should be <= 1.0 and non-negative
+    for adj_p, is_sig in bh:
+        assert 0.0 <= adj_p <= 1.0
+
+
+def test_run_track1_hypothesis_tests():
+    data = {
+        "Paper Feed (Full)": {
+            "ndcg_at_10": [0.5, 0.6, 0.7, 0.8],
+            "topic_entropy": [1.5, 1.6, 1.7, 1.8],
+        },
+        "Ablation: No-MMR": {
+            "ndcg_at_10": [0.51, 0.61, 0.71, 0.81],
+            "topic_entropy": [1.0, 1.1, 1.2, 1.3],
+        },
+        "Baseline: random": {"ndcg_at_10": [0.1, 0.1, 0.1, 0.1]},
+        "Baseline: popularity": {"ndcg_at_10": [0.2, 0.2, 0.2, 0.2]},
+        "Baseline: bm25_author": {"ndcg_at_10": [0.25, 0.25, 0.25, 0.25]},
+        "Baseline: dense_centroid": {"ndcg_at_10": [0.3, 0.3, 0.3, 0.3]},
+        "Baseline: hybrid_persona": {"ndcg_at_10": [0.35, 0.35, 0.35, 0.35]},
+    }
+    rep = run_track1_hypothesis_tests(data, n_resamples=500)
+    assert isinstance(rep, HypothesisTestReport)
+    assert len(rep.h1_comparisons) == 5
+    assert rep.h1_supported is True
+    assert rep.h2_supported is True
+
+
+def test_slice_by_history_volume():
+    r1 = UserEvaluationRow(
+        author_id="A1",
+        split="test",
+        history_slice="warm",
+        n_authored=10,
+        n_targets=5,
+        system_metrics={"PF": {"ndcg_at_10": 0.5}},
+    )
+    r2 = UserEvaluationRow(
+        author_id="A2",
+        split="test",
+        history_slice="sparse",
+        n_authored=1,
+        n_targets=2,
+        system_metrics={"PF": {"ndcg_at_10": 0.3}},
+    )
+    slices = slice_by_history_volume([r1, r2])
+    assert "warm" in slices
+    assert "sparse" in slices
+    assert slices["warm"]["PF"]["ndcg_at_10"] == 0.5
+    assert slices["sparse"]["PF"]["ndcg_at_10"] == 0.3
+
+
+def test_reporting_formatting():
+    aggs = {
+        "Paper Feed (Full)": {"ndcg_at_10": 0.45, "recall_at_10": 0.25, "topic_entropy": 1.5, "ild": 0.3},
+        "Ablation: No-MMR": {"ndcg_at_10": 0.46, "recall_at_10": 0.25, "topic_entropy": 1.2},
+    }
+    main_tbl = format_main_table_markdown(aggs)
+    assert "| **Paper Feed (Full)** |" in main_tbl
+    assert "0.4500" in main_tbl
+
+    abl_tbl = format_ablation_table_markdown(aggs)
+    assert "No-MMR" in abl_tbl

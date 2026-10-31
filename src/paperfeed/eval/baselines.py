@@ -117,26 +117,33 @@ def popularity_baseline(
     """Top-k papers by citation_count_T in user's primary subfield (year >= 2012)."""
     excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)
     subfield = _primary_subfield(profile, resources.db)
-    pool = _get_eligible_in_subfield(resources.db, resources.eligible, excluded, subfield)
-    if not pool:
-        return []
+    query = """
+        SELECT paper_id
+        FROM papers
+        WHERE in_candidates = 1
+          AND (year IS NULL OR year <= ?)
+          AND (year IS NULL OR year >= 2012)
+    """
+    params = [resources.cutoff_year]
+    if subfield:
+        query += " AND primary_topic_id = ?"
+        params.append(subfield)
+    query += " ORDER BY citation_count_T DESC LIMIT 300"
+
     try:
         with resources.db.get_connection() as conn:
-            placeholders = ",".join("?" * len(pool))
-            rows = conn.execute(
-                f"""
-                SELECT paper_id, COALESCE(citation_count_T, 0) AS cnt
-                FROM papers
-                WHERE paper_id IN ({placeholders})
-                  AND (year IS NULL OR year >= 2012)
-                ORDER BY cnt DESC
-                """,
-                pool,
-            ).fetchall()
-        return [clean_id(r[0]) for r in rows[:k]]
+            rows = conn.execute(query, params).fetchall()
+        out = []
+        for r in rows:
+            pid = clean_id(r[0])
+            if pid not in excluded and pid in resources.eligible:
+                out.append(pid)
+            if len(out) >= k:
+                break
+        return out if out else random_baseline(resources, profile, k)
     except Exception as exc:
         logger.warning("popularity_baseline DB error: %s", exc)
-        return pool[:k]
+        return random_baseline(resources, profile, k)
 
 
 # ---------------------------------------------------------------------------
@@ -165,10 +172,10 @@ def bm25_author_baseline(
         return random_baseline(resources, profile, k)
 
     try:
-        results = resources.retriever.retrieve_lexical(query_text, top_k=k + len(excluded) + 10)
+        results = resources.retriever.lexical_index.search(query_text, k=k + len(excluded) + 10)
         out = []
-        for r in results:
-            pid = clean_id(r.paper_id)
+        for item in results:
+            pid = clean_id(item[0] if isinstance(item, (tuple, list)) else getattr(item, "paper_id", item))
             if pid not in excluded and pid in resources.eligible:
                 out.append(pid)
             if len(out) >= k:
@@ -192,11 +199,11 @@ def dense_centroid_baseline(
     excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)
     store = resources.store
     paper_ids = [p["paper_id"] for p in profile.authored_papers]
-    present = [pid for pid in paper_ids if store.has(pid)]
+    present = [pid for pid in paper_ids if pid in store._row]
     if not present:
         return random_baseline(resources, profile, k)
 
-    vecs = np.stack([store.get(pid) for pid in present])  # (n, D)
+    vecs = store.select(present)  # (n, D)
     centroid = vecs.mean(axis=0)
     norm = np.linalg.norm(centroid)
     if norm > 0:
@@ -204,10 +211,10 @@ def dense_centroid_baseline(
 
     try:
         depth = k + len(excluded) + 50
-        hits = resources.retriever.dense_index.search(centroid, top_k=depth)
+        hits = resources.retriever.dense_index.search(centroid, k=depth)
         out = []
-        for h in hits:
-            pid = clean_id(h.paper_id)
+        for item in hits:
+            pid = clean_id(item[0] if isinstance(item, (tuple, list)) else getattr(item, "paper_id", item))
             if pid not in excluded and pid in resources.eligible:
                 out.append(pid)
             if len(out) >= k:
@@ -255,8 +262,8 @@ def hybrid_persona_baseline(
             profile.persona.vector,
             pseudo_query,
             session_vec=None,
-            excluded=excluded,
-            eligible=resources.eligible,
+            exclusion_set=excluded,
+            candidate_filter=resources.eligible,
             rho=0.0,
             normalize_session=False,
         )
