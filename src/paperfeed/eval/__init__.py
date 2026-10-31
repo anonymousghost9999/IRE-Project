@@ -1,1 +1,102 @@
-"""Paper Feed eval subpackage."""
+"""Paper Feed evaluation subpackage (Phase 6 / docs/plan.md §6 / docs/design.md §13.1)."""
+
+from paperfeed.eval.baselines import (
+    BASELINE_NAMES,
+    bm25_author_baseline,
+    dense_centroid_baseline,
+    hybrid_persona_baseline,
+    popularity_baseline,
+    random_anchor_ids,
+    random_baseline,
+    run_baseline,
+)
+from paperfeed.eval.lfo import (
+    LFOEvaluationResult,
+    UserEvaluationRow,
+    evaluate_author,
+    run_lfo_evaluation,
+)
+from paperfeed.eval.metrics import (
+    aggregate_metrics,
+    facet_novelty,
+    hit_rate_at_k,
+    intra_list_distance,
+    mrr,
+    ndcg_at_k,
+    oracle_at_k,
+    per_user_metrics,
+    recall_at_100,
+    recall_at_k,
+    topic_entropy,
+    topic_entropy_normalised,
+)
+from paperfeed.eval.report import (
+    format_ablation_table_markdown,
+    format_hypothesis_markdown,
+    format_main_table_markdown,
+    generate_full_evaluation_report,
+)
+from paperfeed.eval.slices import item_cold_start_breakdown, slice_by_history_volume
+from paperfeed.eval.stats import (
+    BootstrapComparison,
+    HypothesisTestReport,
+    benjamini_hochberg_correction,
+    paired_bootstrap_test,
+    paired_cohens_d,
+    run_track1_hypothesis_tests,
+)
+from paperfeed.eval.tuning import (
+    CachedUserCandidateData,
+    TuningResult,
+    evaluate_parameter_grid,
+    precompute_tuning_cache,
+)
+
+__all__ = [
+    # Metrics
+    "ndcg_at_k",
+    "recall_at_k",
+    "hit_rate_at_k",
+    "mrr",
+    "oracle_at_k",
+    "recall_at_100",
+    "topic_entropy",
+    "topic_entropy_normalised",
+    "intra_list_distance",
+    "facet_novelty",
+    "aggregate_metrics",
+    "per_user_metrics",
+    # Baselines
+    "BASELINE_NAMES",
+    "random_baseline",
+    "popularity_baseline",
+    "bm25_author_baseline",
+    "dense_centroid_baseline",
+    "hybrid_persona_baseline",
+    "random_anchor_ids",
+    "run_baseline",
+    # Tuning
+    "CachedUserCandidateData",
+    "TuningResult",
+    "precompute_tuning_cache",
+    "evaluate_parameter_grid",
+    # LFO
+    "UserEvaluationRow",
+    "LFOEvaluationResult",
+    "evaluate_author",
+    "run_lfo_evaluation",
+    # Stats
+    "BootstrapComparison",
+    "HypothesisTestReport",
+    "paired_cohens_d",
+    "paired_bootstrap_test",
+    "benjamini_hochberg_correction",
+    "run_track1_hypothesis_tests",
+    # Slices & Report
+    "slice_by_history_volume",
+    "item_cold_start_breakdown",
+    "format_main_table_markdown",
+    "format_ablation_table_markdown",
+    "format_hypothesis_markdown",
+    "generate_full_evaluation_report",
+]
