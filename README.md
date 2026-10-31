@@ -1,7 +1,7 @@
 # PaperFeed: Grounded, Explainable Scientific Paper Recommendation Engine
 
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](#environment-setup)
-[![Tests](https://img.shields.io/badge/pytest-258%20passed-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/pytest-257%20passed%2C%201%20skipped-brightgreen.svg)](#running-tests)
 [![Temporal Leakage](https://img.shields.io/badge/leakage%20check-clean%20(0%20violations)-success.svg)](#2-cohort-selection-ground-truth--leakage-check)
 [![SciERC Core F1](https://img.shields.io/badge/SciERC%20Core%20Relaxed%20F1-41.15%25-orange.svg)](#7-scierc-extraction-benchmark-phase-34)
 
@@ -85,18 +85,21 @@ Dynamic Session State ─────────────────┼─�
 ### 2. Virtual Environment & Dependencies
 ```bash
 # Clone the repository
-git clone https://github.com/viswajm/IRE-Project.git
+git clone https://github.com/anonymousghost9999/IRE-Project.git
 cd IRE-Project
 
 # Create and activate virtual environment
-python3 -m venv .venv
+python -m venv .venv
+# On Linux / macOS:
 source .venv/bin/activate
+# On Windows (PowerShell):
+.venv\Scripts\Activate.ps1
 
 # Upgrade pip and install dependencies
 pip install --upgrade pip
 pip install -r requirements.txt
 
-# Install editable package
+# Install editable package (or pip install -e ".[ml]" for full ML stack)
 pip install -e .
 ```
 
@@ -215,7 +218,7 @@ Run the entire offline test suite covering all phases (fixtures require zero net
 ```bash
 pytest
 ```
-*Current test suite: **258 passed** in ~2.8 seconds.*
+*Current test suite: **257 passed, 1 skipped** (total 258 tests across all modules).*
 
 To run specific test modules:
 ```bash

@@ -68,13 +68,14 @@ def main():
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
-    # 1. Fetch all candidate papers that have extracted facets
+    # 1. Fetch all candidate papers that have extracted facets (deterministic ordering)
     cur.execute("""
         SELECT DISTINCT p.paper_id, p.title, p.abstract, p.year, p.primary_topic_id
         FROM papers p
         JOIN paper_facets f ON p.paper_id = f.paper_id
         WHERE p.in_candidates = 1
           AND p.abstract IS NOT NULL
+        ORDER BY p.paper_id ASC
     """)
     available_papers = [dict(r) for r in cur.fetchall()]
 
@@ -84,18 +85,22 @@ def main():
 
     logger.info("Found %d candidate papers with extracted facets.", len(available_papers))
 
-    # Stratified sampling across primary_topic_id
+    # Stratified sampling across primary_topic_id (deterministic sort)
     topic_groups = defaultdict(list)
     for p in available_papers:
-        topic = p.get("primary_topic_id") or "UNKNOWN"
+        topic = str(p.get("primary_topic_id") or "UNKNOWN")
         topic_groups[topic].append(p)
+
+    # Sort each topic bucket deterministically by paper_id
+    for topic in topic_groups:
+        topic_groups[topic].sort(key=lambda x: x["paper_id"])
 
     rng = random.Random(args.seed)
     sample_size = min(args.sample_size, len(available_papers))
     sampled_papers = []
 
-    # Round-robin sampling from topics
-    topics = list(topic_groups.keys())
+    # Round-robin sampling from topics sorted deterministically before shuffling
+    topics = sorted(topic_groups.keys())
     rng.shuffle(topics)
     while len(sampled_papers) < sample_size and any(topic_groups.values()):
         for t in topics:
