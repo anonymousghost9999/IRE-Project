@@ -164,16 +164,17 @@ def evaluate_parameter_grid(
     w_cites = list(g.get("w_cite", [0.5]))
     w_facets = list(g.get("w_facet", [0.5]))
     w_novs = list(g.get("w_nov", [0.5]))
+    w_pops = list(g.get("w_pop", [0.0]))
     lambdas = list(g.get("lambda_div", [0.2]))
 
-    combinations = list(itertools.product(w_cites, w_facets, w_novs, lambdas))
+    combinations = list(itertools.product(w_cites, w_facets, w_novs, w_pops, lambdas))
     results: List[Dict[str, Any]] = []
 
     best_mean_ndcg = -1.0
     best_combo = None
 
-    for w_cite, w_facet, w_nov, lam in combinations:
-        weights = ScoringWeights(w_pers=1.0, w_sess=1.0, w_cite=w_cite, w_facet=w_facet, w_nov=w_nov)
+    for w_cite, w_facet, w_nov, w_pop, lam in combinations:
+        weights = ScoringWeights(w_pers=1.0, w_sess=1.0, w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
         ndcgs: List[float] = []
 
         for user_data in cached_data:
@@ -192,6 +193,7 @@ def evaluate_parameter_grid(
             "w_cite": w_cite,
             "w_facet": w_facet,
             "w_nov": w_nov,
+            "w_pop": w_pop,
             "lambda_div": lam,
             "mean_ndcg": mean_ndcg,
         }

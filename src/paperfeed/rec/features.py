@@ -14,7 +14,7 @@ paper behind the largest BC / CC contribution, the matched facets and the new me
 import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -224,10 +224,33 @@ class CandidateFeatures:
     facet: FacetMatch
     new_method: NewMethod
     penalty: float
+    citation_count: int = 0
 
     @property
     def log_cite(self) -> float:
         return self.citation.log_cite
+
+
+def load_citation_counts(db: Any, paper_ids: Sequence[str]) -> Dict[str, int]:
+    """Batch-fetch COALESCE(citation_count_T, 0) for candidate IDs (clean ID -> count)."""
+    if not paper_ids:
+        return {}
+    bare = [clean_id(p) for p in paper_ids]
+    counts: Dict[str, int] = {p: 0 for p in bare}
+    uris = [to_uri(p) for p in bare]
+    try:
+        with db.get_connection() as conn:
+            for i in range(0, len(uris), _CHUNK):
+                chunk = uris[i : i + _CHUNK]
+                marks = ",".join("?" for _ in chunk)
+                for pid, cnt in conn.execute(
+                    f"SELECT paper_id, COALESCE(citation_count_T, 0) FROM papers WHERE paper_id IN ({marks})",
+                    chunk,
+                ):
+                    counts[clean_id(pid)] = int(cnt or 0)
+    except Exception as exc:
+        logger.debug("Could not batch-load citation counts: %s", exc)
+    return counts
 
 
 def compute_features(
@@ -260,6 +283,7 @@ def compute_features(
 
     citations = citation_signals(db, citation_ctx, ids, cutoff_year)
     cand_facets = load_candidate_facets(facet_store, ids)
+    counts = load_citation_counts(db, ids)
 
     return [
         CandidateFeatures(
@@ -270,6 +294,7 @@ def compute_features(
             facet=facet_coverage(cand_facets[pid], user_facets),
             new_method=new_method_signal(cand_facets[pid], user_facets),
             penalty=float(penalties[i]),
+            citation_count=counts.get(pid, 0),
         )
         for i, pid in enumerate(ids)
     ]

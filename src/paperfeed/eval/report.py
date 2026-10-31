@@ -113,17 +113,22 @@ def generate_full_evaluation_report(
     system_aggregates: Mapping[str, Mapping[str, float]],
     hypothesis_report: HypothesisTestReport,
     slice_results: Optional[Mapping[str, Mapping[str, Mapping[str, float]]]] = None,
+    run_notes: Optional[str] = None,
 ) -> str:
     """Generate complete markdown report containing all tables and hypothesis results."""
     parts = [
         "# Paper Feed — Track 1: Leave-Future-Out Empirical Evaluation Report\n",
+    ]
+    if run_notes:
+        parts.append(run_notes.strip() + "\n\n")
+    parts.extend([
         "## 1. Main Benchmark Results\n",
         format_main_table_markdown(system_aggregates),
         "\n## 2. Component Ablations\n",
         format_ablation_table_markdown(system_aggregates),
         "\n## 3. Statistical Hypothesis Testing\n",
         format_hypothesis_markdown(hypothesis_report),
-    ]
+    ])
 
     if slice_results:
         parts.append("\n## 4. History Slice Stratification\n")

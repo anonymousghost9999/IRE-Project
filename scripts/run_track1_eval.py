@@ -44,6 +44,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--skip-tuning", action="store_true", help="Skip tuning and use default scoring weights")
     parser.add_argument("--n-bootstrap", type=int, default=10000, help="Number of bootstrap resamples (default: 10000)")
     parser.add_argument("--out-dir", default="results", help="Directory to save report and artifacts")
+    parser.add_argument("--w-pop", type=float, default=None, help="Popularity prior weight w_pop (default: 0.0 or from config)")
+    parser.add_argument("--pool-size", type=int, default=None, help="Candidate pool size M (default: 100 or from config)")
+    parser.add_argument("--channel-depth", type=int, default=None, help="Retrieval channel depth M_channel (default: 200 or from config)")
+    parser.add_argument("--report-name", default="track1_lfo_report.md", help="Filename for generated markdown report")
+    parser.add_argument("--results-name", default="track1_lfo_results.json", help="Filename for saved JSON results")
+    parser.add_argument("--enhanced", action="store_true", help="Run with Option 2 & 3 enhancements (M=250, M_chan=500, w_pop=0.20, saved to enhanced files)")
     return parser.parse_args()
 
 
@@ -125,7 +131,30 @@ def main():
 
     logger.info("Cohort partition: %d tuning authors, %d test authors.", len(tuning_authors), len(test_authors))
 
+    if args.enhanced:
+        if args.w_pop is None:
+            args.w_pop = 0.20
+        if args.pool_size is None:
+            args.pool_size = 250
+        if args.channel_depth is None:
+            args.channel_depth = 500
+        if args.report_name == "track1_lfo_report.md":
+            args.report_name = "track1_lfo_enhanced_report.md"
+        if args.results_name == "track1_lfo_results.json":
+            args.results_name = "track1_lfo_enhanced_results.json"
+
     tuned_config = RecommendConfig.from_config(cfg)
+    overrides = {}
+    if args.pool_size is not None:
+        overrides["pool_size"] = args.pool_size
+    if args.channel_depth is not None:
+        overrides["channel_depth"] = args.channel_depth
+    if overrides:
+        tuned_config = tuned_config.with_overrides(**overrides)
+    if args.w_pop is not None:
+        tuned_config = tuned_config.with_overrides(
+            weights=tuned_config.weights.with_overrides(w_pop=args.w_pop)
+        )
 
     # 1. Tuning stage
     tuning_artifact = root / "data" / "artifacts" / "tuning_results.json"
@@ -136,6 +165,8 @@ def main():
                 saved = json.load(f)
             bw = saved.get("best_weights", {})
             tuned_weights = ScoringWeights(**{k: v for k, v in bw.items() if k in ScoringWeights.__dataclass_fields__})
+            if args.w_pop is not None:
+                tuned_weights = tuned_weights.with_overrides(w_pop=args.w_pop)
             tuned_config = tuned_config.with_overrides(
                 weights=tuned_weights, lambda_div=saved.get("best_lambda_div", 0.2)
             )
@@ -154,8 +185,11 @@ def main():
                 t_res.best_weights.w_nov,
                 t_res.best_lambda_div,
             )
+            tuned_weights = t_res.best_weights
+            if args.w_pop is not None:
+                tuned_weights = tuned_weights.with_overrides(w_pop=args.w_pop)
             tuned_config = tuned_config.with_overrides(
-                weights=t_res.best_weights, lambda_div=t_res.best_lambda_div
+                weights=tuned_weights, lambda_div=t_res.best_lambda_div
             )
 
     # 2. Main LFO evaluation run on test split
@@ -194,19 +228,33 @@ def main():
     slice_breakdown = slice_by_history_volume(lfo_results.per_user_results)
 
     # 5. Generate and save report
+    run_notes = (
+        f"> [!NOTE]\n"
+        f"> **Evaluation Run Configuration:**\n"
+        f"> - Mode: {'Enhanced (Option 2 & Option 3)' if (tuned_config.weights.w_pop > 0 or (tuned_config.pool_size and tuned_config.pool_size > 100)) else 'Baseline'}\n"
+        f"> - Candidate Pool Size (M): {tuned_config.pool_size or 100}\n"
+        f"> - Channel Depth (M_channel): {tuned_config.channel_depth or 200}\n"
+        f"> - Popularity Prior Weight (w_pop): {tuned_config.weights.w_pop:.2f}\n"
+        f"> - Scoring Weights: w_pers={tuned_config.weights.w_pers:.2f}, w_cite={tuned_config.weights.w_cite:.2f}, "
+        f"w_facet={tuned_config.weights.w_facet:.2f}, w_nov={tuned_config.weights.w_nov:.2f}, "
+        f"lambda_div={tuned_config.lambda_div:.2f}\n"
+        f"> - Report: `{args.report_name}` | Raw JSON: `{args.results_name}`"
+    )
+
     report_text = generate_full_evaluation_report(
         system_aggregates=lfo_results.system_aggregates,
         hypothesis_report=hypo_report,
         slice_results=slice_breakdown,
+        run_notes=run_notes,
     )
 
     out_dir = root / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    report_file = out_dir / "track1_lfo_report.md"
+    report_file = out_dir / args.report_name
     with open(report_file, "w", encoding="utf-8") as f:
         f.write(report_text)
 
-    json_file = out_dir / "track1_lfo_results.json"
+    json_file = out_dir / args.results_name
     lfo_results.save(json_file)
 
     logger.info("[+] Evaluation complete! Report written to %s", report_file)

@@ -1211,3 +1211,55 @@ def test_recommend_does_not_mutate_profile_or_session(world):
     again = recommend(world, prof, session=session, config=CFG).to_dict()
     assert first == again and session.to_dict() == before_session
     np.testing.assert_array_equal(prof.persona.vector, before_persona)
+
+
+def test_popularity_feature_scaling_and_weights():
+    from paperfeed.rec.features import CandidateFeatures, CitationSignal, FacetMatch, NewMethod
+    from paperfeed.rec.scoring import ScoringWeights, score_candidates
+
+    pool = [
+        CandidateFeatures(
+            paper_id="A", persona_cos=0.5, session_cos=None,
+            citation=CitationSignal(), facet=FacetMatch(), new_method=NewMethod(),
+            penalty=0.0, citation_count=0,
+        ),
+        CandidateFeatures(
+            paper_id="B", persona_cos=0.5, session_cos=None,
+            citation=CitationSignal(), facet=FacetMatch(), new_method=NewMethod(),
+            penalty=0.0, citation_count=99,
+        ),
+    ]
+
+    # With w_pop = 0.0 (default), scores are identical
+    scored_default = score_candidates(pool, ScoringWeights(w_pop=0.0))
+    assert scored_default[0].score == scored_default[1].score
+    assert scored_default[0].contributions["popularity"] == 0.0
+    assert scored_default[1].contributions["popularity"] == 0.0
+
+    # With w_pop = 0.5, paper B gets higher score from popularity
+    scored_pop = score_candidates(pool, ScoringWeights(w_pop=0.5))
+    assert scored_pop[0].scaled["popularity"] == 0.0
+    assert scored_pop[1].scaled["popularity"] == 1.0
+    assert scored_pop[1].contributions["popularity"] == 0.5
+    assert scored_pop[1].score > scored_pop[0].score
+
+
+def test_load_citation_counts_from_db(cite_db):
+    from paperfeed.rec.features import load_citation_counts
+    with cite_db.get_connection() as conn:
+        conn.execute("UPDATE papers SET citation_count_T = 42 WHERE paper_id = ?", ("https://openalex.org/P",))
+    counts = load_citation_counts(cite_db, ["P", "Q", "UNKNOWN"])
+    assert counts["P"] == 42
+    assert counts["Q"] == 0
+    assert counts["UNKNOWN"] == 0
+
+
+def test_popularity_never_pollutes_explanations():
+    from paperfeed.rec.explain import EXPLAINABLE_FEATURES, dominant_feature
+    assert "popularity" not in EXPLAINABLE_FEATURES
+    contributions = {
+        "persona": 0.2,
+        "facet": 0.4,
+        "popularity": 0.9,
+    }
+    assert dominant_feature(contributions) == "facet"

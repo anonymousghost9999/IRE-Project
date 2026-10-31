@@ -1,3 +1,4 @@
+import math
 """Feature scaling and the linear score (Phase 5.3 / docs/plan.md §5.3 / docs/design.md §9).
 
     Score(p) = w_pers mm[cos_pers] + w_sess mm[cos_sess] + w_cite mm[log(1+BC+CC)] + w_facet mm[S_facet]
@@ -17,7 +18,7 @@ import numpy as np
 from paperfeed.rec.features import CandidateFeatures
 
 # Names of the score terms, in the order of the formula.
-FEATURE_NAMES = ("persona", "session", "citation", "facet", "new_method", "penalty")
+FEATURE_NAMES = ("persona", "session", "citation", "facet", "new_method", "penalty", "popularity")
 
 
 @dataclass(frozen=True)
@@ -30,6 +31,7 @@ class ScoringWeights:
     w_facet: float = 0.5
     w_nov: float = 0.5
     lambda_neg: float = 0.5
+    w_pop: float = 0.0
 
     def __post_init__(self) -> None:
         for name, value in self.__dict__.items():
@@ -83,6 +85,7 @@ def score_candidates(
     mm_sess = min_max([f.session_cos for f in features]) if session_active else np.zeros(len(features))
     mm_cite = min_max([f.log_cite for f in features])
     mm_facet = min_max([f.facet.s_facet for f in features])
+    mm_pop = min_max([math.log1p(max(0, f.citation_count)) for f in features])
 
     scored: List[ScoredCandidate] = []
     for i, f in enumerate(features):
@@ -93,6 +96,7 @@ def score_candidates(
             "facet": float(mm_facet[i]),
             "new_method": 1.0 if f.new_method.flag else 0.0,
             "penalty": float(f.penalty),
+            "popularity": float(mm_pop[i]),
         }
         contributions = {
             "persona": w.w_pers * scaled["persona"],
@@ -101,6 +105,7 @@ def score_candidates(
             "facet": w.w_facet * scaled["facet"],
             "new_method": w.w_nov * scaled["new_method"],
             "penalty": 0.0 - w.lambda_neg * scaled["penalty"],  # "0.0 -" keeps an unpenalised paper at 0.0, not -0.0
+            "popularity": w.w_pop * scaled["popularity"],
         }
         scored.append(
             ScoredCandidate(
