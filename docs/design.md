@@ -77,6 +77,7 @@ One symbol, one meaning (C4, D4). Values marked *tuned* are chosen on the tuning
 3. Streamlit demo UI.
 4. Small user pilot (n ≈ 10–15), §14.
 5. SOTA variant experiments (§13.8): alternative dense encoders, cross-encoder reranking in feed mode, and a learned ranker (§9.1). The Core linear scorer remains the system of record; a variant replaces it only if it wins on tuning data.
+6. Best configuration and comparison with state-of-the-art paper recommenders (§13.9): the best option for each part of the architecture, chosen from the §13.8 tuning evidence, is assembled into one system, evaluated once on the test split, and compared with current SOTA research-paper recommenders under the same protocol.
 
 If the schedule slips, the minimum deliverable is: corpus + LFO harness + BM25 / SPECTER2 baselines + the recommender with ablations and confidence intervals (R5).
 
@@ -392,7 +393,42 @@ The aim (§1) is a state-of-the-art system, so three upgrades are tested against
 - *Encoder leakage:* SciNCL and SPECTER-family models were trained on citation data and may encode held-out links (§13.7, L2). General embedding models are trained on web data that may postdate $T$. Treat BM25 as the clean reference and discuss each encoder's training-data cutoff.
 - *Reranker domain mismatch:* these cross-encoders are trained on web search relevance, not on paper-to-profile matching; V2 may not help, and a negative result is a valid finding.
 - *Compute:* each encoder requires a full re-embedding of the corpus, so run V1 on a fixed 20k-paper subset (same author-first construction, containing the tuning authors' neighbourhoods) first, decide on the tuning authors only, and scale only the best candidate.
-- Combined variants (for example V1 + V2 + V3) are reported only for the best individual choices.
+- Combined variants (for example V1 + V2 + V3) are reported only for the best individual choices; assembling them into one system is §13.9.
+
+### 13.9 Best configuration and comparison with SOTA paper recommenders (Extended)
+After the variant experiments (§13.8), each part of the architecture has a measured winner. This step assembles those winners into one system and asks the question the project aim (§1) raises: how does the best version of Paper Feed compare with current state-of-the-art research-paper recommenders?
+
+**1. Per-component selection (tuning evidence only).** One decision per part, each from the evidence named here and never from the test-split variant table:
+
+| Part | Options | Evidence |
+|---|---|---|
+| Dense encoder | SPECTER2 vs V1 alternatives | Retrieval benchmarks (§13.3) + LFO tuning split |
+| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$ | Retrieval benchmarks + tuning-split Discovery Recall@100 |
+| Feed reranking | none vs V2 cross-encoders | LFO tuning split |
+| Scorer | linear vs V3 LambdaMART | 5-fold CV inside the tuning split |
+| Diversification | $\lambda_{\text{div}}$ | LFO tuning split |
+| Session model | EMA vs EMA + pivot gate; $\alpha_{\text{sess}}, \rho, w_{\text{sess}}, \lambda_{\text{neg}}$ | Track 2 pilot personas (§13.2) |
+
+An option replaces the Core component only if its tuning-split gain has a 95% bootstrap CI above zero; otherwise the simpler Core component stays.
+
+**2. Assembled-system check.** Components chosen one at a time can interact, so the assembled system is compared with Core on the tuning split. Replaced components that do not help are removed one at a time (backward elimination, tuning split only). If nothing beats Core, the best configuration is Core, and that is a valid finding. The result is frozen in `configs/best.yaml` with its evidence before the test split is used.
+
+**3. SOTA comparison systems.**
+- A literature review at the start of this step fixes the comparison set; its date and sources are reported, because the field moves faster than this document.
+- **Inclusion criteria:** public code or an exact specification; runnable on our corpus with year $\le T$ and no post-$T$ training data or API calls (§4.4); fits the compute budget (§15.1). Each system gets the same tuning budget on the tuning split.
+- **Starting shortlist, to be confirmed:** scientific-document embeddings as user-centroid kNN (SPECTER2, SciNCL); random-walk item recommenders on the time-bounded citation graph (P3α, RP3β); a collaborative graph neural recommender such as LightGCN trained on $\le T$ author–paper interactions, if compute allows; zero-shot LLM listwise reranking (RankGPT-style) of the same 100 candidates with a $\le$ 4B model in 4-bit.
+- Hosted production recommenders (for example Semantic Scholar or Google Scholar feeds) cannot be restricted to $\le T$, would leak, and are discussed qualitatively only.
+- Published numbers from other datasets are context only. Numeric comparison happens only under our LFO protocol and on the public retrieval benchmarks of §13.3, where published results share data and metrics.
+
+**4. Evaluation.** Core, the best configuration and every included comparison system run once on the test split under the §13.1 protocol: same eligible pool, $\mathcal{E}_u$, metrics, anchors and slices. Statistics as in §13.1: paired bootstrap with BH correction over the family (best vs Core, best vs each comparison system), 95% CIs, Cohen's $d$, minimum detectable effect; comparisons are exploratory. The best configuration also gets its retrieval-benchmark rows (§13.3), Explanation Coverage and the faithfulness audit (§13.6, re-run if the scorer or features changed; SHAP-based if V3 is chosen) and latency per feed. Because the test split was already used once for the §13.8 variant table, this run is reported as confirmatory.
+
+**Notes and risks to report.**
+- *Fairness:* comparison systems get the same corpus, candidate eligibility, exclusion set and tuning budget. A comparator that loses only because it was under-tuned is not evidence for Paper Feed.
+- *Leakage:* pretrained comparators carry the same model-level risk as §13.7 (L2); each one's training-data cutoff is stated.
+- *Explanations:* most comparison systems produce no explanations, so Explanation Coverage is reported as a capability difference, not ranked against accuracy.
+- *Scope:* comparison systems are run as reference points only. They are never adopted into the pipeline, so the out-of-scope list in §16 still describes Paper Feed itself.
+
+**Final report.** The report has a dedicated section on this step: the chosen option for each part and its tuning evidence, the assembled system against Core on the test split, and the SOTA comparison with the review date, inclusion criteria, the excluded systems and why, and the context-only status of published numbers.
 
 ---
 
@@ -414,6 +450,7 @@ Target hardware: RTX 3050 (≈ 4 GB VRAM), so only pretrained models of modest s
 3. Recommender with its few tuned weights; tuning on the tuning split.
 4. Ablations, statistics, faithfulness audit, retrieval benchmark.
 5. Extended: Track 2, UI, user pilot, SOTA variant experiments (§13.8: V1 encoders first, then V2, then V3).
+6. Extended, after §13.8: best-configuration assembly and comparison with SOTA paper recommenders (§13.9); the UI then serves the frozen best configuration.
 
 Owners per component are to be assigned by the team.
 
@@ -425,7 +462,7 @@ Owners per component are to be assigned by the team.
 ---
 
 ## 16. Out of Scope
-Deep model training (a small gradient-boosted ranker is allowed as the Extended experiment V3, §9.1), custom supervised IE, paid or external APIs inside the recommendation pipeline (the free-tier simulator in Track 2 is the single exception, §13.2), full-paper LLM processing, neural sequential recommenders (SASRec, GRU4Rec), GNN / RL / knowledge-graph recommenders, real-time ingestion, large user studies, unconstrained LLM explanations, summarization / agents, large-scale collaborative filtering, social recommendation, custom embedding / ANN / NLI models, extensive hyperparameter searches, and mitigating the known limitations of §13.7a.
+Deep model training (a small gradient-boosted ranker is allowed as the Extended experiment V3, §9.1), custom supervised IE, paid or external APIs inside the recommendation pipeline (the free-tier simulator in Track 2 is the single exception, §13.2), full-paper LLM processing, neural sequential recommenders (SASRec, GRU4Rec), GNN / RL / knowledge-graph recommenders, real-time ingestion, large user studies, unconstrained LLM explanations, summarization / agents, large-scale collaborative filtering, social recommendation, custom embedding / ANN / NLI models, extensive hyperparameter searches, and mitigating the known limitations of §13.7a. This list describes Paper Feed itself: the SOTA comparison of §13.9 may run some of these methods (for example a graph neural recommender) as external reference systems, without adopting them into the pipeline.
 
 **Citation prediction is not the system's task (E3).** LFO uses the reference list of the author's next paper as a **proxy oracle** for reading need, and the headline is on discoveries with the citation signal ablated (No-Graph) next to the full system.
 
@@ -479,6 +516,7 @@ Clean + abstract reconstruction ──► time-bounded citation graph (citing ye
 | Track 2 simulator | **Free-tier hosted LLM**, fixed checkpoint, cached responses, used only for personas | Local 4-bit LLM; rule-based simulator (circular) |
 | User study | **Small pilot, n ≈ 10–15**, Extended | Drop; n = 50 |
 | SOTA upgrades | Add as **Extended** variants V1 (encoders), V2 (feed cross-encoder), V3 (LightGBM LTR); linear scorer stays the Core system | Leaving the design classic-only; making any upgrade Core |
+| Final system and SOTA comparison | **Extended** step §13.9: per-component winners chosen on tuning evidence, assembled, checked against Core on the tuning split, evaluated once on test, compared with literature-reviewed SOTA paper recommenders re-run under the LFO protocol | Choosing components from the test-split variant table; comparing against published numbers from other datasets |
 
 ### Fixed
 - Recommendation target: papers. Corpus: OpenAlex only, author-first, ≤ T, ~100k.

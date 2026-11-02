@@ -9,7 +9,7 @@
 ## How to read this plan
 
 - The work is split into **phases**. Each phase lists its **tasks** with an ID (for example `1.4`), what to build, the **outputs** it produces, and a **done when** check.
-- Phases 0–8 are **Core** (P§6A). Phases 9–11 are **Extended**. Phase 12 closes the project.
+- Phases 0–8 are **Core** (P§6A). Phases 9–12 are **Extended**. Phase 13 closes the project.
 - Order matters mainly for data dependencies: data (1) → indexes (2) → facets (3) → user model (4) → recommender (5) → evaluation (6–8). Phases 7 and 3.4 can run in parallel with others once Phase 2 exists.
 - Every number that has a default in D§2 (for example $T=2023$, $K=10$, $M=100$, $k_{\text{rrf}}=60$) lives in **one config file**, never hard-coded.
 
@@ -22,8 +22,9 @@
                                    ├─► 7 Retrieval benchmark                   ├─► 6 Track 1 evaluation ──► 8 Faithfulness audit
                                    └─► (3.4 SciERC, any time after 3.1)        ├─► 9 Track 2 simulation (Extended)
                                                                               ├─► 10 SOTA variants V1–V3 (Extended)
-                                                                              └─► 11 UI + user pilot (Extended)
-                                                                                         └─► 12 Reproducibility & report
+                                                                              │       └─► 11 Best configuration + SOTA comparison (Extended)
+                                                                              └─► 12 UI + user pilot (Extended)
+                                                                                         └─► 13 Reproducibility & report
 ```
 
 ---
@@ -35,7 +36,7 @@
 ### 0.1 Repository layout
 Create this structure inside the repository root:
 ```text
-configs/                 default.yaml (+ one file per experiment that overrides it)
+configs/                 default.yaml (+ one file per experiment that overrides it; best.yaml frozen in Phase 11)
 src/paperfeed/
   openalex/              client.py, crawl.py, abstracts.py
   data/                  schema.sql, db.py, graph.py, cohort.py, ground_truth.py, leakage.py
@@ -46,7 +47,7 @@ src/paperfeed/
   eval/                  metrics.py, baselines.py, lfo.py, tuning.py, stats.py, slices.py, faithfulness.py, report.py
   bench/                 retrieval_bench.py, scierc.py
   sim/                   personas.py, llm_client.py, simulator.py, episodes.py, sim_metrics.py
-  variants/              encoders.py, cross_encoder.py, ltr.py
+  variants/              encoders.py, cross_encoder.py, ltr.py, best_config.py, comparators.py
   ui/                    app.py
 scripts/                 numbered entry points: 01_crawl.py, 02_build_db.py, ... (one per pipeline step)
 tests/                   unit and integration tests (pytest)
@@ -414,33 +415,89 @@ Profile query text (recent authored titles + top canonical facet terms); rerank 
 LightGBM LambdaMART over the min-max-scaled features plus channel ranks; labels = in-corpus Discovery references; 5-fold cross-validation inside the tuning split; shallow trees and strong regularization; compare with the linear scorer on the same folds. SHAP contributions for the explainer; if they are unreliable, report V3 as accuracy-only.
 
 ### 10.4 Final variant table
-Freeze all choices, then run every variant once on the test split and report all of them (including losers) with BH-corrected comparisons.
+Freeze all choices, then run every variant once on the test split and report all of them (including losers) with BH-corrected comparisons. Which variant goes into the final system is decided in Phase 11 from tuning evidence only, never from this table.
 
 **Done when:** the variant table exists and the frozen choice is documented.
 
 ---
 
-## Phase 11 — Demo UI and User Pilot (Extended)
+## Phase 11 — Best Configuration and Comparison with SOTA Paper Recommenders (Extended)
 
-### 11.1 Streamlit UI
-Onboarding (seed topics or an OpenAlex author ID), feed with paper cards (title, year, venue, abstract snippet, facet pills, explanation), `click` / `save` / `skip` buttons, search bar, library page, interest inspector (top canonical facets), reset-session button. It calls the same recommender interface as the evaluation.
+**Goal:** use the Phase 10 evidence to choose the best-performing option for each part of the architecture, assemble those choices into one system, evaluate it once, and compare it with current state-of-the-art research-paper recommendation systems under the same protocol (D§13.9).
 
-### 11.2 User pilot (D§14)
+### 11.1 Per-component selection (tuning evidence only)
+One decision per part of the architecture, each taken from the evidence listed. The test-split variant table of 10.4 is **never** used for a choice; it only reports what each variant did.
+
+| Part | Options | Decided on |
+|---|---|---|
+| Dense encoder | SPECTER2 (Core) vs the V1 alternatives | Phase 7 retrieval benchmarks + Track 1 tuning split (10.1) |
+| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$ | Phase 7 benchmarks + tuning-split Discovery Recall@100 |
+| Feed reranking | none (Core) vs the V2 cross-encoders | tuning split (10.2) |
+| Scorer | linear (Core) vs V3 LambdaMART | 5-fold CV inside the tuning split (10.3) |
+| Diversification | $\lambda_{\text{div}}$ grid | tuning split (6.3) |
+| Session model | EMA vs EMA + pivot gate; $\alpha_{\text{sess}}, \rho, w_{\text{sess}}, \lambda_{\text{neg}}$ | Track 2 pilot personas (9.5) |
+
+- **Replacement rule:** an option replaces the Core component only if its tuning-split gain over Core has a 95% bootstrap CI above zero. Otherwise the Core component is kept, because it is simpler and already explained.
+- Record every decision with its evidence (metric, CI, number of users) and a one-line rationale in `configs/best.yaml`.
+
+### 11.2 Assembled-system check (tuning split)
+Parts chosen one at a time can interact (for example, a new encoder changes which features the scorer needs).
+- Run the assembled configuration on the tuning split against Core.
+- If it does not beat Core there, remove replaced components one at a time (backward elimination on the tuning split only) until it does. If nothing beats Core, the best configuration **is** Core, and that is reported as the finding.
+- Freeze `configs/best.yaml` before 11.4.
+
+### 11.3 SOTA comparison systems
+- **Literature review first.** At the start of the phase, survey current state-of-the-art research-paper recommenders and scientific-document representation methods, and record the review date and sources in the report. The field moves quickly, so the shortlist below is a starting point to be confirmed, not a fixed list.
+- **Inclusion criteria.** A system enters the quantitative comparison only if it:
+  1. has public code or a specification precise enough to re-implement;
+  2. can run on our corpus restricted to year $\le T$, with no training data and no API calls that carry post-$T$ information (D§4.4);
+  3. fits the compute budget (D§15.1).
+  Each included system gets the same tuning budget on the tuning split as Paper Feed.
+- **Starting shortlist (to be confirmed by the review):**
+  - scientific-document embedding recommenders used as user-centroid kNN: SPECTER2 and SciNCL (partly covered by the Dense Centroid baseline and V1);
+  - graph-based item recommenders on the time-bounded citation graph: P3α / RP3β random walks;
+  - a collaborative graph neural recommender (for example LightGCN) trained on $\le T$ author–paper interactions, only if it fits the compute budget;
+  - zero-shot LLM listwise reranking (RankGPT-style) of the same 100 candidates with a $\le$ 4B model in 4-bit.
+- **Not in the results table:** hosted production recommenders (for example Semantic Scholar or Google Scholar feeds) cannot be restricted to year $\le T$. They are discussed qualitatively only.
+- **Published numbers** from other datasets are cited for context only. Numeric comparison happens only (i) under our LFO protocol and (ii) on the public retrieval benchmarks of Phase 7, where published results use the same data and metrics.
+
+### 11.4 Final evaluation (test split, once)
+- Run Core, the best configuration and every included comparison system once on the test split under the Track 1 protocol: same eligible pool, same $\mathcal{E}_u$, same metrics, anchors and slices (6.1–6.4).
+- Statistics as in 6.5: paired bootstrap with BH correction across the family (best vs Core, best vs each comparison system), 95% CIs, Cohen's $d$ and the minimum detectable effect. These comparisons are exploratory.
+- Also report for the best configuration: Phase 7 retrieval rows for its encoder and retriever; the Phase 8 faithfulness audit and Explanation Coverage, re-run if the scorer or features changed (SHAP-based explanations if V3 is chosen); latency per feed.
+- State in the report that the test split was already used once by 10.4, so this run is confirmatory.
+
+### 11.5 Tables
+- **Best-configuration table:** part, options, chosen option, tuning evidence (metric, CI, $n$).
+- **SOTA comparison table:** Core, best configuration, comparison systems, the Track 1 baselines and anchors, with NDCG@10, Recall@10, HitRate@10, MRR, % of Oracle@10, Topic Entropy, Explanation Coverage and latency.
+Generated by `eval/report.py` from saved run outputs, never by hand.
+
+**Done when:** `configs/best.yaml` is frozen with its evidence, both tables are generated from one test run with a manifest, and the final report contains the "Best configuration and comparison with SOTA" section (13.2).
+
+---
+
+## Phase 12 — Demo UI and User Pilot (Extended)
+
+### 12.1 Streamlit UI
+Onboarding (seed topics or an OpenAlex author ID), feed with paper cards (title, year, venue, abstract snippet, facet pills, explanation), `click` / `save` / `skip` buttons, search bar, library page, interest inspector (top canonical facets), reset-session button. It calls the same recommender interface as the evaluation, with the frozen best configuration of Phase 11 (Core if Phase 11 was not run).
+
+### 12.2 User pilot (D§14)
 n ≈ 10–15 participants; consent form; scripted task (view a Top-10 feed from their OpenAlex profile or seed topics; rate relevance and explanation clarity 1–5); store only ratings; report as qualitative support.
 
 ---
 
-## Phase 12 — Reproducibility Package and Final Report
+## Phase 13 — Reproducibility Package and Final Report
 
-### 12.1 Reproducibility package
-Locked environment, configs, run manifests, frozen cohort/ground-truth/split files, leakage checker, scripts that regenerate every table from saved outputs, Track 2 response cache.
+### 13.1 Reproducibility package
+Locked environment, configs (including the frozen `best.yaml`), run manifests, frozen cohort/ground-truth/split files, leakage checker, scripts that regenerate every table from saved outputs, Track 2 response cache.
 
-### 12.2 Final report contents
+### 13.2 Final report contents
 1. Problem and formal definition (from `prob.md`).
 2. System design (from `design.md`), with the notation table.
 3. Data: corpus construction, coverage ceiling, cohort and slices.
 4. Results: retrieval benchmark, Track 1 (main table with anchors, ablations, slices, diagnostic, $H_1$, $H_2$), extraction audit (and SciERC), faithfulness audit, Track 2 and $H_3$, SOTA variants, pilot.
-5. Threats to validity (D§13.7) and **known limitations** (P§7, D§13.7a).
+5. **Best configuration and comparison with SOTA** (Phase 11): which option won for each part of the architecture and on what tuning evidence; how the assembled system did against Core on the test split; how it compares with current state-of-the-art research-paper recommenders under the same protocol, with the literature-review date, the inclusion criteria, the systems that were excluded and why, and a clear statement that published numbers from other datasets are context only.
+6. Threats to validity (D§13.7) and **known limitations** (P§7, D§13.7a).
 
 **Done when:** every number in the report can be regenerated from the package.
 

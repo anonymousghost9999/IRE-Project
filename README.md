@@ -71,7 +71,7 @@ Dynamic Session State ─────────────────┼─�
 | **Phase 6** | **Track 1: Full LFO Benchmark Runs** | Ready to Run | Code and harness complete in `src/paperfeed/rec/`; ready to execute test split evaluation across all 5 baselines with bootstrap significance testing ($H_1, H_2$). |
 | **Phase 7** | **Retrieval Benchmark (CSFCube, LitSearch)** | Planned | Code infrastructure ready in `src/paperfeed/bench/`. |
 | **Phase 8** | **Explanation Faithfulness Audit** | Ready to Run | Counterfactual drop-out testing infrastructure ready in `src/paperfeed/rec/explain.py`. |
-| **Phases 9–11** | **Extended Track 2 Simulation, SOTA Variants & UI** | In Progress | Module skeletons ready in `src/paperfeed/sim/`, `src/paperfeed/variants/`, and `src/paperfeed/ui/`. |
+| **Phases 9–12** | **Extended Track 2 Simulation, SOTA Variants, Best Configuration & SOTA Comparison, UI** | Planned | Empty module skeletons in `src/paperfeed/sim/`, `src/paperfeed/variants/`, and `src/paperfeed/ui/`. Phase 11 assembles the best option for each part from the Phase 10 tuning evidence and compares it with current SOTA paper recommenders (`docs/plan.md` Phase 11). |
 
 ---
 
@@ -299,8 +299,8 @@ Tested across all cohort strata (Warm, Moderate, Sparse, Zero-Publication):
 │   ├── common/                     # Config loader, manifest generator, disk cache, logger
 │   ├── eval/                       # Metrics, baselines, statistical significance (Phase 6)
 │   ├── sim/                        # Track 2 LLM session simulation (Phase 9)
-│   ├── variants/                   # SOTA models & cross-encoders (Phase 10)
-│   └── ui/                         # Streamlit interactive interface (Phase 11)
+│   ├── variants/                   # SOTA variants (Phase 10), best configuration & SOTA comparison (Phase 11)
+│   └── ui/                         # Streamlit interactive interface (Phase 12)
 ├── tests/                          # Automated test suite (258 unit & integration tests)
 ├── pyproject.toml                  # Packaging & dependencies
 └── requirements.txt                # Pinned dependency manifest
