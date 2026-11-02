@@ -9,7 +9,7 @@ from typing import Any, Dict, List
 def sample_config() -> Dict[str, Any]:
     """Return minimal mock configuration for unit testing."""
     return {
-        "project": {"name": "paperfeed_test", "cutoff_year": 2023, "target_year": 2024},
+        "project": {"name": "paperfeed_test", "cutoff_year": 2024, "target_year": 2025},
         "retrieval": {"candidate_pool_size": 100, "feed_size": 10, "rrf_k": 60},
         "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5},
     }

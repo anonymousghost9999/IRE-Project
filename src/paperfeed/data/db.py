@@ -1,9 +1,10 @@
+from contextlib import contextmanager
 """SQLite database manager and ingestion engine for Paper Feed (Phase 1.2)."""
 
 import json
 from pathlib import Path
 import sqlite3
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Generator, Dict, List, Optional, Tuple
 from paperfeed.common.config import find_project_root, load_config
 from paperfeed.common.logger import get_logger
 from paperfeed.openalex.abstracts import reconstruct_abstract
@@ -27,13 +28,21 @@ class DatabaseManager:
         self.cutoff_year = cutoff_year if cutoff_year is not None else cfg.get("project", {}).get("cutoff_year", 2024)
         self.init_db()
 
-    def get_connection(self) -> sqlite3.Connection:
-        """Create a connection with foreign keys and row factory enabled."""
+    @contextmanager
+    def get_connection(self) -> Generator[sqlite3.Connection, None, None]:
+        """Create a connection with foreign keys and row factory enabled, automatically closed on exit."""
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = WAL")
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def init_db(self) -> None:
         """Initialize database schema from schema.sql."""
@@ -48,7 +57,7 @@ class DatabaseManager:
             conn.executescript(schema_sql)
 
     @staticmethod
-    def parse_openalex_work(work: Dict[str, Any], cutoff_year: int = 2023) -> Tuple[Dict[str, Any], List[Tuple[str, str, int]]]:
+    def parse_openalex_work(work: Dict[str, Any], cutoff_year: int = 2024, min_abstract_chars: int = 1) -> Tuple[Dict[str, Any], List[Tuple[str, str, int]]]:
         """
         Extract clean paper row and citation edges from OpenAlex JSON record.
         Enforces time-bounded citation counts (counts_by_year <= cutoff_year).
@@ -100,7 +109,7 @@ class DatabaseManager:
             else:
                 topic_id = "UNKNOWN"
 
-        in_candidates = 1 if len(abstract.strip()) > 0 else 0
+        in_candidates = 1 if len(abstract.strip()) >= min_abstract_chars else 0
 
         paper_row = {
             "paper_id": paper_id,
@@ -183,14 +192,17 @@ class DatabaseManager:
             return dict(row) if row else None
 
     def get_papers_batch(self, paper_ids: List[str]) -> List[Dict[str, Any]]:
-        """Fetch multiple papers by ID preserving requested list."""
+        """Fetch multiple papers by ID preserving requested list (matching URIs and bare IDs)."""
         if not paper_ids:
             return []
-        placeholders = ",".join("?" for _ in paper_ids)
+        uris = [f"https://openalex.org/{p.replace('https://openalex.org/', '')}" for p in paper_ids]
+        bare = [p.replace('https://openalex.org/', '') for p in paper_ids]
+        all_ids = list(dict.fromkeys(uris + bare))
+        placeholders = ",".join("?" for _ in all_ids)
         sql = f"SELECT * FROM papers WHERE paper_id IN ({placeholders})"
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute(sql, paper_ids)
+            cursor.execute(sql, all_ids)
             return [dict(r) for r in cursor.fetchall()]
 
     def count_papers(self, in_candidates_only: bool = False) -> int:

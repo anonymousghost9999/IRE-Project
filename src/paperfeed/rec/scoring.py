@@ -1,4 +1,3 @@
-import math
 """Feature scaling and the linear score (Phase 5.3 / docs/plan.md §5.3 / docs/design.md §9).
 
     Score(p) = w_pers mm[cos_pers] + w_sess mm[cos_sess] + w_cite mm[log(1+BC+CC)] + w_facet mm[S_facet]
@@ -9,6 +8,8 @@ one-paper pool scores 0 on all of them). The new-method indicator stays 0/1 and 
 session is empty the session term is dropped (contribution 0). The per-feature contributions w_k * mm_k are kept so
 the explainer (5.5) and the faithfulness audit read the same numbers the score was built from.
 """
+
+import math
 
 from dataclasses import dataclass, field, replace
 from typing import Any, Dict, List, Mapping, Optional, Sequence

@@ -26,6 +26,10 @@ def find_project_root() -> Path:
     if (pkg_root / "configs" / "default.yaml").exists():
         return pkg_root
 
+    import logging
+    logging.getLogger("common.config").warning(
+        "Could not locate project root (configs/default.yaml not found). Falling back to cwd=%s", current
+    )
     return current
 
 

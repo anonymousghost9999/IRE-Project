@@ -118,9 +118,8 @@ class SessionState:
 
     def save(self, paper_id: str, embedding: np.ndarray) -> None:
         """Positive action like ``click``; the paper also joins SessionConsumed."""
-        clean = clean_id(paper_id)
-        self._positive(clean, embedding)
-        self._consumed.add(clean)
+        self._positive(paper_id, embedding)
+        self._consumed.add(clean_id(paper_id))
 
     def skip(self, paper_id: str) -> None:
         """Negative action: the paper joins S^-_u. The session vector does not change."""

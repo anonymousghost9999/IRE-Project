@@ -223,7 +223,7 @@ def run_lfo_evaluation(
             logger.warning("Error evaluating author %s in LFO: %s", aid, exc)
 
     # Aggregate by system
-    system_names = list(rows[0].system_metrics.keys()) if rows else []
+    system_names = list(dict.fromkeys(k for r in rows for k in r.system_metrics)) if rows else []
     system_aggregates: Dict[str, Dict[str, float]] = {}
 
     for sys_name in system_names:

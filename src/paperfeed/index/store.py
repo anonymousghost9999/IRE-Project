@@ -41,6 +41,11 @@ class EmbeddingStore:
             raise ValueError(f"Store mismatch: {len(self.ids)} IDs vs {len(self.vectors)} vectors.")
         self._row: Dict[str, int] = {pid: i for i, pid in enumerate(self.ids)}
 
+    @property
+    def paper_id_index(self) -> Dict[str, int]:
+        """Public mapping from paper_id to row index in the embedding matrix."""
+        return self._row
+
     def __len__(self) -> int:
         return len(self.ids)
 
@@ -83,7 +88,10 @@ class EmbeddingStore:
         if ids_path.exists():
             ids = json.loads(ids_path.read_text(encoding="utf-8"))["ids"]
         elif legacy_ids_path is not None and Path(legacy_ids_path).exists():
-            ids = json.loads(Path(legacy_ids_path).read_text(encoding="utf-8"))["id_to_paper"]
+            data = json.loads(Path(legacy_ids_path).read_text(encoding="utf-8"))
+            ids = data.get("id_to_paper") or data.get("ids")
+            if ids is None:
+                raise KeyError(f"Legacy IDs file {legacy_ids_path} has neither 'id_to_paper' nor 'ids' key.")
             logger.warning("No embedding_ids.json; adopting paper_ids.json as the row order of embeddings.npy.")
         else:
             raise FileNotFoundError(f"{vectors_path} exists but its row IDs ({ids_path}) do not; cannot align safely.")

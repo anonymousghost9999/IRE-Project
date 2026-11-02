@@ -22,7 +22,7 @@ from paperfeed.data.cohort import clean_id
 from paperfeed.data.ground_truth import to_uri
 from paperfeed.facets.store import FacetStore
 from paperfeed.index.store import EmbeddingStore
-from paperfeed.rec.features import UserCitationContext, _edges
+from paperfeed.rec.features import UserCitationContext, edges
 from paperfeed.rec.scoring import ScoredCandidate
 from paperfeed.user.facets import UserFacets
 from paperfeed.user.session import SessionState
@@ -201,7 +201,7 @@ class Explainer:
         cand = clean_id(scored.paper_id)
         if use_bc:
             refs: Dict[str, set] = {cand: set(), paper_id: set()}
-            for src, tgt in _edges(self.db, "source_paper_id", [cand, paper_id], self.cutoff_year):
+            for src, tgt in edges(self.db, "source_paper_id", [cand, paper_id], self.cutoff_year):
                 refs[src].add(tgt)
             verified = len(refs[cand] & refs[paper_id])
             if verified != claimed:
@@ -210,7 +210,7 @@ class Explainer:
             evidence = {"kind": "bibliographic_coupling", "authored_paper_id": paper_id, "title": title, "shared_references": verified}
         else:
             citers: Dict[str, set] = {cand: set(), paper_id: set()}
-            for src, tgt in _edges(self.db, "target_paper_id", [cand, paper_id], self.cutoff_year):
+            for src, tgt in edges(self.db, "target_paper_id", [cand, paper_id], self.cutoff_year):
                 citers[tgt].add(src)
             verified = len(((citers[cand] & citers[paper_id]) - self.citation_ctx.authored) - {cand})
             if verified != claimed:

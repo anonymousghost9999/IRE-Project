@@ -225,12 +225,13 @@ def run_track1_hypothesis_tests(
         significant_at_05=(p_ent < 0.05 and diff_ent > 0),
     )
 
-    # Check 2: Relative NDCG loss of MMR is <= 3%
+    # Check 2: Relative NDCG loss of MMR is <= 3% (non-inferiority)
     diff_ndcg, lo_ndcg, hi_ndcg, p_ndcg, d_ndcg = paired_bootstrap_test(
-        pf_ndcg, no_mmr_ndcg, n_resamples=n_resamples, seed=seed, alternative="two-sided"
+        pf_ndcg, no_mmr_ndcg, n_resamples=n_resamples, seed=seed, alternative="greater"
     )
     mean_no_mmr_ndcg = float(np.mean(no_mmr_ndcg))
     loss_percent = ((mean_no_mmr_ndcg - float(np.mean(pf_ndcg))) / mean_no_mmr_ndcg * 100.0) if mean_no_mmr_ndcg > 1e-9 else 0.0
+    is_non_inferior = bool(loss_percent <= 3.0 and lo_ndcg >= -0.03 * mean_no_mmr_ndcg)
 
     h2_retention = BootstrapComparison(
         system_name="Paper Feed (Full)",
@@ -244,7 +245,7 @@ def run_track1_hypothesis_tests(
         ci_upper=hi_ndcg,
         p_value=p_ndcg,
         cohens_d=d_ndcg,
-        significant_at_05=(loss_percent <= 3.0),
+        significant_at_05=is_non_inferior,
     )
 
     h2_supported = bool(h2_entropy.significant_at_05 and h2_retention.significant_at_05)

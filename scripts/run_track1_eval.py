@@ -201,7 +201,7 @@ def main():
         ground_truth_map=discovery_map,
         recitation_map=recitation_map,
         topic_map=topic_map,
-        paper_id_index=resources.store._row,
+        paper_id_index=resources.store.paper_id_index,
         embedding_matrix=resources.store.vectors,
         paper_facet_map=paper_facet_map,
         config=tuned_config,

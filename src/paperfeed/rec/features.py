@@ -83,7 +83,7 @@ class UserCitationContext:
     citer_to_authored: Dict[str, Set[str]] = field(default_factory=dict)  # third-party citing paper -> authored papers it cites
 
 
-def _edges(db, column: str, ids: Sequence[str], cutoff_year: int) -> List[Tuple[str, str]]:
+def edges(db, column: str, ids: Sequence[str], cutoff_year: int) -> List[Tuple[str, str]]:
     """(source, target) bare-ID pairs of citation edges whose ``column`` (source or target) is in ``ids``, source year <= T."""
     out: List[Tuple[str, str]] = []
     uris = [to_uri(i) for i in ids]
@@ -97,6 +97,8 @@ def _edges(db, column: str, ids: Sequence[str], cutoff_year: int) -> List[Tuple[
             ):
                 out.append((clean_id(src), clean_id(tgt)))
     return out
+
+_edges = edges
 
 
 def build_citation_context(db, authored_ids: Sequence[str], cutoff_year: int) -> UserCitationContext:

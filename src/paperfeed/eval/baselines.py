@@ -199,7 +199,7 @@ def dense_centroid_baseline(
     excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)
     store = resources.store
     paper_ids = [p["paper_id"] for p in profile.authored_papers]
-    present = [pid for pid in paper_ids if pid in store._row]
+    present = [pid for pid in paper_ids if not store.missing([pid])]
     if not present:
         return random_baseline(resources, profile, k)
 
