@@ -201,13 +201,16 @@ def dense_centroid_baseline(
     paper_ids = [p["paper_id"] for p in profile.authored_papers]
     present = [pid for pid in paper_ids if not store.missing([pid])]
     if not present:
-        return random_baseline(resources, profile, k)
-
-    vecs = store.select(present)  # (n, D)
-    centroid = vecs.mean(axis=0)
-    norm = np.linalg.norm(centroid)
-    if norm > 0:
-        centroid = centroid / norm
+        if profile.persona is not None and getattr(profile.persona, "vector", None) is not None:
+            centroid = profile.persona.vector
+        else:
+            return random_baseline(resources, profile, k)
+    else:
+        vecs = store.select(present)  # (n, D)
+        centroid = vecs.mean(axis=0)
+        norm = np.linalg.norm(centroid)
+        if norm > 0:
+            centroid = centroid / norm
 
     try:
         depth = k + len(excluded) + 50

@@ -50,6 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-name", default="track1_lfo_report.md", help="Filename for generated markdown report")
     parser.add_argument("--results-name", default="track1_lfo_results.json", help="Filename for saved JSON results")
     parser.add_argument("--enhanced", action="store_true", help="Run with Option 2 & 3 enhancements (M=250, M_chan=500, w_pop=0.20, saved to enhanced files)")
+    parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Exclude papers with citation_count_T >= THRESHOLD from ground truth targets (popularity-filtered evaluation)")
     return parser.parse_args()
 
 
@@ -107,6 +108,87 @@ def build_metadata_maps(db, facet_store):
     return topic_map, paper_facet_map
 
 
+
+def _load_citation_counts(db, paper_ids):
+    """Load citation_count_T for a set of paper IDs (bare OpenAlex IDs) from the database."""
+    from paperfeed.data.ground_truth import to_uri
+    counts = {}
+    uris = {to_uri(pid): pid for pid in paper_ids}
+    uri_list = list(uris.keys())
+    with db.get_connection() as conn:
+        for i in range(0, len(uri_list), 500):
+            chunk = uri_list[i : i + 500]
+            marks = ",".join("?" for _ in chunk)
+            for row in conn.execute(
+                f"SELECT paper_id, citation_count_T FROM papers WHERE paper_id IN ({marks})",
+                chunk,
+            ):
+                bare = uris.get(row[0])
+                if bare is not None:
+                    counts[bare] = row[1] or 0
+    return counts
+
+
+def filter_popular_from_discovery(discovery_map, db, threshold):
+    """Remove papers with citation_count_T >= threshold from discovery ground truth.
+
+    The system can still recommend these papers in the feed — they just receive
+    no evaluation credit, so the metrics measure genuine research discovery only.
+
+    Returns:
+        filtered_map: dict mapping author_id -> filtered discovery list
+        stats: dict with filtering statistics for the report
+    """
+    # Collect all unique target paper IDs
+    all_target_ids = set()
+    for targets in discovery_map.values():
+        all_target_ids.update(targets)
+
+    # Load citation counts from DB
+    cite_counts = _load_citation_counts(db, all_target_ids)
+
+    # Filter
+    filtered_map = {}
+    total_before = 0
+    total_after = 0
+    n_removed = 0
+    removed_examples = []
+
+    for aid, targets in discovery_map.items():
+        total_before += len(targets)
+        filtered = []
+        for pid in targets:
+            cc = cite_counts.get(pid, 0)
+            if cc < threshold:
+                filtered.append(pid)
+            else:
+                n_removed += 1
+                if len(removed_examples) < 10:
+                    removed_examples.append((pid, cc))
+        filtered_map[aid] = filtered
+        total_after += len(filtered)
+
+    stats = {
+        "threshold": threshold,
+        "total_targets_before": total_before,
+        "total_targets_after": total_after,
+        "n_removed": n_removed,
+        "pct_removed": round(100.0 * n_removed / max(total_before, 1), 2),
+        "n_authors_with_targets_before": sum(1 for t in discovery_map.values() if t),
+        "n_authors_with_targets_after": sum(1 for t in filtered_map.values() if t),
+        "removed_examples": removed_examples,
+    }
+
+    logger.info(
+        "Popularity filter (threshold=%d): %d/%d targets removed (%.1f%%). "
+        "%d authors still have targets.",
+        threshold, n_removed, total_before, stats["pct_removed"],
+        stats["n_authors_with_targets_after"],
+    )
+
+    return filtered_map, stats
+
+
 def main():
     args = parse_args()
     root = Path(__file__).resolve().parent.parent
@@ -120,6 +202,23 @@ def main():
 
     cohort, discovery_map, recitation_map = load_cohort_and_ground_truth(processed_dir)
     topic_map, paper_facet_map = build_metadata_maps(resources.db, resources.facet_store)
+
+    # Popularity-filtered evaluation: exclude foundational/popular papers from ground truth
+    pop_filter_stats = None
+    if args.filter_popular is not None:
+        discovery_map, pop_filter_stats = filter_popular_from_discovery(
+            discovery_map, resources.db, threshold=args.filter_popular
+        )
+        # Default output filenames for filtered runs
+        if args.report_name == "track1_lfo_report.md" and not args.enhanced:
+            args.report_name = "track1_lfo_filtered_report.md"
+        if args.results_name == "track1_lfo_results.json" and not args.enhanced:
+            args.results_name = "track1_lfo_filtered_results.json"
+        if args.enhanced:
+            if args.report_name == "track1_lfo_enhanced_report.md":
+                args.report_name = "track1_lfo_enhanced_filtered_report.md"
+            if args.results_name == "track1_lfo_enhanced_results.json":
+                args.results_name = "track1_lfo_enhanced_filtered_results.json"
 
     tuning_authors = [a for a in cohort if a.get("split") == "tuning"]
     test_authors = [a for a in cohort if a.get("split") == "test"]
@@ -207,6 +306,7 @@ def main():
         config=tuned_config,
         k=10,
         include_anchors=True,
+        filter_empty_targets=(args.filter_popular is not None),
     )
     logger.info("Evaluation loop finished in %.1fs.", time.time() - t0)
 
@@ -240,6 +340,17 @@ def main():
         f"lambda_div={tuned_config.lambda_div:.2f}\n"
         f"> - Report: `{args.report_name}` | Raw JSON: `{args.results_name}`"
     )
+    if pop_filter_stats is not None:
+        n_eval = lfo_results.n_authors
+        run_notes += (
+            f"\n> \n"
+            f"> **Popularity Filter Active:**\n"
+            f"> - Threshold: citation_count_T >= {pop_filter_stats['threshold']}\n"
+            f"> - Targets removed: {pop_filter_stats['n_removed']}/{pop_filter_stats['total_targets_before']} "
+            f"({pop_filter_stats['pct_removed']}%)\n"
+            f"> - Authors with remaining targets: {pop_filter_stats['n_authors_with_targets_after']}\n"
+            f"> - Evaluated cohort: Macro averages and hypothesis testing over {n_eval} active authors with targets"
+        )
 
     report_text = generate_full_evaluation_report(
         system_aggregates=lfo_results.system_aggregates,

@@ -195,12 +195,26 @@ def run_lfo_evaluation(
     config: Optional[RecommendConfig] = None,
     k: int = 10,
     include_anchors: bool = True,
+    filter_empty_targets: bool = False,
 ) -> LFOEvaluationResult:
     """Run Track 1 LFO evaluation over all authors in cohort."""
     cfg = config or RecommendConfig()
     rows: List[UserEvaluationRow] = []
 
-    for entry in cohort:
+    eval_cohort = cohort
+    if filter_empty_targets:
+        eval_cohort = [
+            entry for entry in cohort
+            if len(ground_truth_map.get(clean_id(entry["author_id"]), [])) > 0
+        ]
+        if len(eval_cohort) < len(cohort):
+            logger.info(
+                "filter_empty_targets: evaluating %d active authors with non-empty ground truth targets (%d excluded).",
+                len(eval_cohort),
+                len(cohort) - len(eval_cohort),
+            )
+
+    for entry in eval_cohort:
         aid = clean_id(entry["author_id"])
         targets = ground_truth_map.get(aid, [])
         rec_targets = recitation_map.get(aid, [])

@@ -66,6 +66,7 @@ class RecommendConfig:
     use_gate: bool = False
     gamma_pivot: float = 0.35
     gamma_rec: float = DEFAULT_GAMMA_REC  # persona recency decay, used by ``build_user_profile``
+    adaptive_graph: bool = True  # adaptive scaling of w_cite for sparse authors
     explain: bool = True
 
     @classmethod
@@ -85,6 +86,7 @@ class RecommendConfig:
             use_gate=bool(um.get("use_pivot_gate", False)),
             gamma_pivot=float(um.get("gamma_pivot", 0.35)),
             gamma_rec=float(um.get("gamma_recency", DEFAULT_GAMMA_REC)),
+            adaptive_graph=bool(sw.get("adaptive_graph", True)),
         )
 
     def with_overrides(self, **changes: Any) -> "RecommendConfig":
@@ -169,6 +171,109 @@ class UserProfile:
     zero_pub: bool = False  # True when the persona comes from seed topics
 
 
+def _build_fallback_persona(
+    resources: RecommenderResources,
+    papers: Sequence[Dict[str, Any]],
+    seed_topics: Sequence[str] = (),
+    user_id: str = "",
+) -> Persona:
+    """Fallback persona when authored papers have no stored embeddings and no encoder is loaded.
+
+    Hierarchy:
+    1. Modal primary_topic_id of authored papers -> average embeddings of candidate papers in that topic.
+    2. Modal subfield_id of authored papers -> average embeddings of candidate papers in that subfield.
+    3. Seed topics (if encoder is available).
+    4. Centroid of a sample of candidate vectors in store.
+    """
+    r = resources
+    paper_ids = [p["paper_id"] for p in papers]
+
+    topic_id = None
+    subfield_id = None
+    if paper_ids:
+        try:
+            with r.db.get_connection() as conn:
+                uris = [to_uri(pid) for pid in paper_ids]
+                all_ids = uris + paper_ids
+                marks = ",".join("?" * len(all_ids))
+                rows = conn.execute(
+                    f"SELECT primary_topic_id, subfield_id FROM papers WHERE paper_id IN ({marks})",
+                    all_ids,
+                ).fetchall()
+                topics = [row[0] for row in rows if row[0]]
+                subfields = [row[1] for row in rows if row[1]]
+                if topics:
+                    topic_id = max(set(topics), key=topics.count)
+                if subfields:
+                    subfield_id = max(set(subfields), key=subfields.count)
+        except Exception as exc:
+            logger.warning("Error fetching topic for author %s: %s", user_id, exc)
+
+    if topic_id:
+        try:
+            with r.db.get_connection() as conn:
+                rows = conn.execute(
+                    "SELECT paper_id FROM papers WHERE primary_topic_id = ? AND in_candidates = 1 LIMIT 50",
+                    (topic_id,),
+                ).fetchall()
+            cand_pids = [clean_id(row[0]) for row in rows]
+            present = [p for p in cand_pids if not r.store.missing([p])]
+            if present:
+                vecs = r.store.select(present)
+                centroid = vecs.mean(axis=0)
+                norm = float(np.linalg.norm(centroid))
+                if norm > 1e-12:
+                    return Persona(
+                        vector=(centroid / norm).astype(np.float32),
+                        source="topic_centroid",
+                        paper_ids=paper_ids,
+                        n_embedded_on_the_fly=0,
+                    )
+        except Exception as exc:
+            logger.warning("Error computing topic centroid for author %s: %s", user_id, exc)
+
+    if subfield_id:
+        try:
+            with r.db.get_connection() as conn:
+                rows = conn.execute(
+                    "SELECT paper_id FROM papers WHERE subfield_id = ? AND in_candidates = 1 LIMIT 50",
+                    (subfield_id,),
+                ).fetchall()
+            cand_pids = [clean_id(row[0]) for row in rows]
+            present = [p for p in cand_pids if not r.store.missing([p])]
+            if present:
+                vecs = r.store.select(present)
+                centroid = vecs.mean(axis=0)
+                norm = float(np.linalg.norm(centroid))
+                if norm > 1e-12:
+                    return Persona(
+                        vector=(centroid / norm).astype(np.float32),
+                        source="topic_centroid",
+                        paper_ids=paper_ids,
+                        n_embedded_on_the_fly=0,
+                    )
+        except Exception as exc:
+            logger.warning("Error computing subfield centroid for author %s: %s", user_id, exc)
+
+    if seed_topics and r.encoder is not None:
+        try:
+            return build_seed_persona(seed_topics, r.encoder)
+        except Exception as exc:
+            logger.warning("Error building seed persona for author %s: %s", user_id, exc)
+
+    sample_ids = list(r.store.paper_id_index.keys())[:50]
+    vecs = r.store.select(sample_ids)
+    centroid = vecs.mean(axis=0)
+    norm = float(np.linalg.norm(centroid))
+    norm_vec = (centroid / norm if norm > 1e-12 else np.ones(vecs.shape[1], dtype=np.float32) / np.sqrt(vecs.shape[1])).astype(np.float32)
+    return Persona(
+        vector=norm_vec,
+        source="global_centroid",
+        paper_ids=paper_ids,
+        n_embedded_on_the_fly=0,
+    )
+
+
 def build_user_profile(
     resources: RecommenderResources,
     user_id: str,
@@ -181,7 +286,15 @@ def build_user_profile(
     r = resources
     if authored_ids:
         papers = load_authored_papers(r.db, authored_ids, r.cutoff_year)
-        persona = build_persona(papers, r.store, r.encoder, r.cutoff_year, cfg.gamma_rec, allow_partial=True)
+        try:
+            persona = build_persona(papers, r.store, r.encoder, r.cutoff_year, cfg.gamma_rec, allow_partial=True)
+        except ValueError as err:
+            logger.warning(
+                "Authored papers for author %s cannot be embedded directly (%s); falling back to topic centroid.",
+                user_id,
+                err,
+            )
+            persona = _build_fallback_persona(r, papers, seed_topics, user_id=user_id)
         paper_ids = [p["paper_id"] for p in papers]
         facets = build_user_facets(paper_ids, r.facet_store) if r.facet_store is not None else UserFacets(paper_ids=paper_ids)
         return UserProfile(
@@ -323,7 +436,11 @@ def recommend(
         [c.paper_id for c in cands], r.store, profile.persona.vector, profile.user_facets, profile.citation_ctx, r.db,
         r.cutoff_year, session_vec, session.negatives, r.facet_store,
     )
-    scored = score_candidates(features, cfg.weights)
+    weights = cfg.weights
+    n_auth = len(profile.authored_papers)
+    if cfg.adaptive_graph and not profile.zero_pub and 0 < n_auth < 3:
+        weights = weights.with_overrides(w_cite=weights.w_cite * (n_auth / 3.0))
+    scored = score_candidates(features, weights)
     picks = select_top_k(scored, r.store, cfg.k, cfg.lambda_div)
 
     explanations: Dict[str, ExplanationResult] = {}
