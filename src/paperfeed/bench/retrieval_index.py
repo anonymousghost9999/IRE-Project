@@ -105,6 +105,10 @@ def build_benchmark_index(
         emb_path.unlink()
         ids_path.unlink(missing_ok=True)
     store = EmbeddingStore.load(emb_path, ids_path)
+    if not reusable:
+        # Record what the checkpoints belong to before embedding, so an interrupted build can resume them.
+        old = {"corpus_sha256": fingerprint, "encoder": enc_info, "status": "embedding"}
+        manifest_path.write_text(json.dumps(old, indent=2), encoding="utf-8")
 
     doc_ids = sorted(bench.corpus)
     todo = store.missing(doc_ids)

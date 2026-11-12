@@ -230,3 +230,20 @@ def test_load_refuses_an_index_built_from_another_corpus(tmp_path):
         load_benchmark_index(bench, tmp_path)
     with pytest.raises(FileNotFoundError):
         load_benchmark_index(bench, tmp_path / "nowhere")
+
+
+def test_an_interrupted_build_resumes_from_its_checkpoint(tmp_path):
+    bench = _text_bench()
+
+    class CrashingEncoder(FakeEncoder):
+        def embed_papers(self, papers, batch_size=32, show_progress=False):
+            if self.papers_embedded:  # the second checkpoint chunk never completes
+                raise KeyboardInterrupt
+            return super().embed_papers(papers, batch_size, show_progress)
+
+    with pytest.raises(KeyboardInterrupt):
+        build_benchmark_index(bench, CrashingEncoder(), tmp_path, checkpoint_every=2)
+    resumed = FakeEncoder()
+    manifest = build_benchmark_index(bench, resumed, tmp_path, checkpoint_every=2)
+    assert resumed.papers_embedded == 1  # only the document after the checkpoint
+    assert manifest["n_docs"] == 3 and "status" not in manifest
