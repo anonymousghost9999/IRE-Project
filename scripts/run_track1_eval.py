@@ -198,38 +198,12 @@ def main():
 
     processed_dir = root / cfg["paths"]["processed_dir"]
     logger.info("Loading recommender resources from %s...", processed_dir)
-    resources = RecommenderResources.load(cfg, root, load_encoder=False, use_facets=True)
+    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True)
 
     cohort, discovery_map, recitation_map = load_cohort_and_ground_truth(processed_dir)
     topic_map, paper_facet_map = build_metadata_maps(resources.db, resources.facet_store)
 
-    # Popularity-filtered evaluation: exclude foundational/popular papers from ground truth
-    pop_filter_stats = None
-    if args.filter_popular is not None:
-        discovery_map, pop_filter_stats = filter_popular_from_discovery(
-            discovery_map, resources.db, threshold=args.filter_popular
-        )
-        # Default output filenames for filtered runs
-        if args.report_name == "track1_lfo_report.md" and not args.enhanced:
-            args.report_name = "track1_lfo_filtered_report.md"
-        if args.results_name == "track1_lfo_results.json" and not args.enhanced:
-            args.results_name = "track1_lfo_filtered_results.json"
-        if args.enhanced:
-            if args.report_name == "track1_lfo_enhanced_report.md":
-                args.report_name = "track1_lfo_enhanced_filtered_report.md"
-            if args.results_name == "track1_lfo_enhanced_results.json":
-                args.results_name = "track1_lfo_enhanced_filtered_results.json"
-
-    tuning_authors = [a for a in cohort if a.get("split") == "tuning"]
-    test_authors = [a for a in cohort if a.get("split") == "test"]
-
-    if args.tuning_sample:
-        tuning_authors = tuning_authors[: args.tuning_sample]
-    if args.test_sample:
-        test_authors = test_authors[: args.test_sample]
-
-    logger.info("Cohort partition: %d tuning authors, %d test authors.", len(tuning_authors), len(test_authors))
-
+    # Apply --enhanced defaults before resolving filtered filenames
     if args.enhanced:
         if args.w_pop is None:
             args.w_pop = 0.20
@@ -241,6 +215,32 @@ def main():
             args.report_name = "track1_lfo_enhanced_report.md"
         if args.results_name == "track1_lfo_results.json":
             args.results_name = "track1_lfo_enhanced_results.json"
+
+    # Popularity-filtered evaluation: exclude foundational/popular papers from ground truth
+    pop_filter_stats = None
+    if args.filter_popular is not None:
+        discovery_map, pop_filter_stats = filter_popular_from_discovery(
+            discovery_map, resources.db, threshold=args.filter_popular
+        )
+        # Default output filenames for filtered runs
+        if args.report_name == "track1_lfo_report.md":
+            args.report_name = "track1_lfo_filtered_report.md"
+        elif args.report_name == "track1_lfo_enhanced_report.md":
+            args.report_name = "track1_lfo_enhanced_filtered_report.md"
+        if args.results_name == "track1_lfo_results.json":
+            args.results_name = "track1_lfo_filtered_results.json"
+        elif args.results_name == "track1_lfo_enhanced_results.json":
+            args.results_name = "track1_lfo_enhanced_filtered_results.json"
+
+    tuning_authors = [a for a in cohort if a.get("split") == "tuning"]
+    test_authors = [a for a in cohort if a.get("split") == "test"]
+
+    if args.tuning_sample:
+        tuning_authors = tuning_authors[: args.tuning_sample]
+    if args.test_sample:
+        test_authors = test_authors[: args.test_sample]
+
+    logger.info("Cohort partition: %d tuning authors, %d test authors.", len(tuning_authors), len(test_authors))
 
     tuned_config = RecommendConfig.from_config(cfg)
     overrides = {}
@@ -256,24 +256,48 @@ def main():
         )
 
     # 1. Tuning stage
+    tuning_sig = {
+        "pool_size": tuned_config.pool_size,
+        "channel_depth": tuned_config.channel_depth,
+        "w_pop": tuned_config.weights.w_pop,
+        "adaptive_graph": tuned_config.adaptive_graph,
+        "filter_popular": args.filter_popular,
+    }
     tuning_artifact = root / "data" / "artifacts" / "tuning_results.json"
     if not args.skip_tuning and tuning_authors:
+        loaded_saved = None
         if tuning_artifact.exists():
-            logger.info("Loading existing tuned parameters from %s", tuning_artifact)
             with open(tuning_artifact, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-            bw = saved.get("best_weights", {})
+                candidate_saved = json.load(f)
+            if candidate_saved.get("config_signature") == tuning_sig:
+                loaded_saved = candidate_saved
+            else:
+                logger.info(
+                    "Tuning cache %s signature mismatch (%s != %s); re-tuning for current config.",
+                    tuning_artifact,
+                    candidate_saved.get("config_signature"),
+                    tuning_sig,
+                )
+
+        if loaded_saved is not None:
+            logger.info("Loading matching tuned parameters from %s", tuning_artifact)
+            bw = loaded_saved.get("best_weights", {})
             tuned_weights = ScoringWeights(**{k: v for k, v in bw.items() if k in ScoringWeights.__dataclass_fields__})
             if args.w_pop is not None:
                 tuned_weights = tuned_weights.with_overrides(w_pop=args.w_pop)
             tuned_config = tuned_config.with_overrides(
-                weights=tuned_weights, lambda_div=saved.get("best_lambda_div", 0.2)
+                weights=tuned_weights, lambda_div=loaded_saved.get("best_lambda_div", 0.2)
             )
         else:
             logger.info("Running hyperparameter tuning on %d tuning authors...", len(tuning_authors))
             t0 = time.time()
             cached = precompute_tuning_cache(resources, tuning_authors, discovery_map, tuned_config)
-            t_res = evaluate_parameter_grid(cached, resources)
+            t_res = evaluate_parameter_grid(
+                cached,
+                resources,
+                adaptive_graph=tuned_config.adaptive_graph,
+                config_signature=tuning_sig,
+            )
             t_res.save(tuning_artifact)
             logger.info(
                 "Tuning complete in %.1fs. Best Mean NDCG@10: %.4f (w_cite=%.2f, w_facet=%.2f, w_nov=%.2f, lambda=%.2f)",

@@ -23,6 +23,7 @@ import numpy as np
 
 from paperfeed.common.logger import get_logger
 from paperfeed.data.cohort import clean_id
+from paperfeed.data.ground_truth import to_uri
 from paperfeed.rec.candidates import feed_candidates
 from paperfeed.rec.recommender import RecommenderResources, UserProfile
 
@@ -46,19 +47,21 @@ def _primary_subfield(profile: UserProfile, db: Any) -> Optional[str]:
     if not profile.authored_papers:
         return None
     paper_ids = [p["paper_id"] for p in profile.authored_papers]
+    query_ids = list(dict.fromkeys([to_uri(pid) for pid in paper_ids] + paper_ids))
     subfields: Dict[str, int] = {}
     try:
         with db.get_connection() as conn:
-            placeholders = ",".join("?" * len(paper_ids))
+            placeholders = ",".join("?" * len(query_ids))
             rows = conn.execute(
-                f"SELECT primary_topic_id FROM papers WHERE paper_id IN ({placeholders})",
-                paper_ids,
+                f"SELECT subfield_id FROM papers WHERE paper_id IN ({placeholders})",
+                query_ids,
             ).fetchall()
         for row in rows:
             sf = row[0]
             if sf:
                 subfields[sf] = subfields.get(sf, 0) + 1
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to query primary subfield: %s", exc)
         return None
     return max(subfields, key=subfields.__getitem__) if subfields else None
 
@@ -69,7 +72,7 @@ def _get_eligible_in_subfield(
     excluded: Set[str],
     subfield: Optional[str],
 ) -> List[str]:
-    """Papers that are eligible, not excluded, and share the given primary_topic_id.
+    """Papers that are eligible, not excluded, and share the given subfield_id.
 
     Falls back to all eligible papers when subfield is None or returns nothing.
     """
@@ -79,12 +82,13 @@ def _get_eligible_in_subfield(
     try:
         with db.get_connection() as conn:
             rows = conn.execute(
-                "SELECT paper_id FROM papers WHERE primary_topic_id = ?", (subfield,)
+                "SELECT paper_id FROM papers WHERE subfield_id = ?", (subfield,)
             ).fetchall()
         in_subfield = {clean_id(r[0]) for r in rows}
         filtered = [p for p in pool if p in in_subfield]
         return filtered if filtered else pool
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to filter eligible papers by subfield %s: %s", subfield, exc)
         return pool
 
 
@@ -126,7 +130,7 @@ def popularity_baseline(
     """
     params = [resources.cutoff_year]
     if subfield:
-        query += " AND primary_topic_id = ?"
+        query += " AND subfield_id = ?"
         params.append(subfield)
     query += " ORDER BY citation_count_T DESC LIMIT 300"
 
@@ -154,7 +158,7 @@ def bm25_author_baseline(
     resources: RecommenderResources,
     profile: UserProfile,
     k: int = 10,
-    n_terms: int = 50,
+    n_terms: int = 300,
 ) -> List[str]:
     """BM25s retrieval using the concatenation of past paper titles and abstracts."""
     excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)

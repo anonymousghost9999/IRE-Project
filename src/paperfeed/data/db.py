@@ -1,5 +1,6 @@
-from contextlib import contextmanager
 """SQLite database manager and ingestion engine for Paper Feed (Phase 1.2)."""
+
+from contextlib import contextmanager
 
 import json
 from pathlib import Path

@@ -251,7 +251,7 @@ def load_citation_counts(db: Any, paper_ids: Sequence[str]) -> Dict[str, int]:
                 ):
                     counts[clean_id(pid)] = int(cnt or 0)
     except Exception as exc:
-        logger.debug("Could not batch-load citation counts: %s", exc)
+        logger.warning("Could not batch-load citation counts: %s", exc)
     return counts
 
 

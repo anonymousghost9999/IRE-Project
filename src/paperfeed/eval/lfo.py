@@ -107,7 +107,7 @@ def evaluate_author(
     base_config: Optional[RecommendConfig] = None,
     k: int = 10,
     include_anchors: bool = True,
-    n_random_draws: int = 20,
+    n_random_draws: int = 100,
 ) -> UserEvaluationRow:
     """Evaluate one author across full system, ablations, baselines, and diagnostic runs."""
     cfg = base_config or RecommendConfig()
@@ -171,7 +171,7 @@ def evaluate_author(
     if include_anchors:
         draws = random_anchor_ids(resources, profile, k=k, n_draws=n_random_draws)
         draw_metrics = [_eval_list(d, d, targets) for d in draws]
-        system_metrics["Anchor: Random (100-draw)"] = aggregate_metrics(draw_metrics)
+        system_metrics[f"Anchor: Random ({n_random_draws}-draw)"] = aggregate_metrics(draw_metrics)
 
     return UserEvaluationRow(
         author_id=aid,
@@ -214,6 +214,7 @@ def run_lfo_evaluation(
                 len(cohort) - len(eval_cohort),
             )
 
+    failed_authors: List[str] = []
     for entry in eval_cohort:
         aid = clean_id(entry["author_id"])
         targets = ground_truth_map.get(aid, [])
@@ -234,7 +235,13 @@ def run_lfo_evaluation(
             )
             rows.append(row)
         except Exception as exc:
-            logger.warning("Error evaluating author %s in LFO: %s", aid, exc)
+            logger.error("Error evaluating author %s in LFO: %s", aid, exc)
+            failed_authors.append(aid)
+
+    if failed_authors:
+        raise RuntimeError(
+            f"LFO evaluation failed for {len(failed_authors)} of {len(eval_cohort)} authors: {failed_authors[:5]}"
+        )
 
     # Aggregate by system
     system_names = list(dict.fromkeys(k for r in rows for k in r.system_metrics)) if rows else []

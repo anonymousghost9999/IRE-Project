@@ -6,68 +6,62 @@
 > - Candidate Pool Size (M): 250
 > - Channel Depth (M_channel): 500
 > - Popularity Prior Weight (w_pop): 0.20
-> - Scoring Weights: w_pers=1.00, w_cite=1.00, w_facet=0.50, w_nov=0.25, lambda_div=0.20
+> - Scoring Weights: w_pers=1.00, w_cite=1.00, w_facet=0.00, w_nov=0.25, lambda_div=0.00
 > - Report: `track1_lfo_enhanced_report.md` | Raw JSON: `track1_lfo_enhanced_results.json`
-> 
-> **Popularity Filter Active:**
-> - Threshold: citation_count_T >= 200
-> - Targets removed: 3237/6199 (52.22%)
-> - Authors with remaining targets: 378
-> - Evaluated cohort: Macro averages and hypothesis testing over 304 active authors with targets
 
 
 ## 1. Main Benchmark Results
 
 | System Architecture | NDCG@10 | % of Oracle | Recall@10 | HitRate@10 | MRR | Topic Entropy | ILD |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Paper Feed (Full)** | 0.0250 | 2.5% | 0.0282 | 0.1250 | 0.0453 | 1.4996 | 0.0842 |
-| Ablation: No-MMR | 0.0254 | 2.5% | 0.0287 | 0.1283 | 0.0452 | 1.4889 | 0.0837 |
-| Ablation: No-Graph | 0.0081 | 0.8% | 0.0101 | 0.0625 | 0.0144 | 1.8003 | 0.0866 |
-| Ablation: No-Facets | 0.0290 | 2.9% | 0.0338 | 0.1480 | 0.0532 | 1.4748 | 0.0812 |
-| Diagnostic: Re-Citation | 0.0380 | 3.8% | 0.0454 | 0.1414 | 0.0616 | 1.4807 | 0.0835 |
-| Baseline: random | 0.0000 | 0.0% | 0.0000 | 0.0000 | 0.0000 | 3.2640 | 0.2075 |
-| Baseline: popularity | 0.0000 | 0.0% | 0.0000 | 0.0000 | 0.0000 | 1.9388 | 0.1177 |
-| Baseline: bm25_author | 0.0066 | 0.7% | 0.0084 | 0.0329 | 0.0111 | 1.9952 | 0.1146 |
-| Baseline: dense_centroid | 0.0115 | 1.2% | 0.0142 | 0.0658 | 0.0183 | 1.7458 | 0.0690 |
-| Baseline: hybrid_persona | 0.0149 | 1.5% | 0.0140 | 0.0658 | 0.0284 | 1.6280 | 0.0857 |
-| Anchor: Random (100-draw) | 0.0001 | 0.0% | 0.0001 | 0.0008 | 0.0003 | 3.2563 | 0.2020 |
+| **Paper Feed (Full)** | 0.0290 | 2.9% | 0.0224 | 0.1938 | 0.0693 | 1.5139 | 0.0813 |
+| Ablation: No-MMR | 0.0290 | 2.9% | 0.0224 | 0.1938 | 0.0693 | 1.5139 | 0.0813 |
+| Ablation: No-Graph | 0.0160 | 1.6% | 0.0111 | 0.1156 | 0.0413 | 1.8612 | 0.0766 |
+| Ablation: No-Facets | 0.0300 | 3.0% | 0.0224 | 0.1875 | 0.0734 | 1.5055 | 0.0805 |
+| Diagnostic: Re-Citation | 0.0466 | 4.7% | 0.0481 | 0.1500 | 0.0822 | 1.4830 | 0.0805 |
+| Baseline: random | 0.0000 | 0.0% | 0.0000 | 0.0000 | 0.0000 | 3.2651 | 0.2075 |
+| Baseline: popularity | 0.0000 | 0.0% | 0.0000 | 0.0000 | 0.0000 | 3.2651 | 0.2075 |
+| Baseline: bm25_author | 0.0086 | 0.9% | 0.0059 | 0.0437 | 0.0186 | 1.8144 | 0.1090 |
+| Baseline: dense_centroid | 0.0111 | 1.1% | 0.0085 | 0.0688 | 0.0224 | 1.7728 | 0.0691 |
+| Baseline: hybrid_persona | 0.0149 | 1.5% | 0.0100 | 0.0906 | 0.0354 | 1.7077 | 0.0862 |
+| Anchor: Random (100-draw) | 0.0001 | 0.0% | 0.0001 | 0.0013 | 0.0004 | 3.2613 | 0.2011 |
 
 ## 2. Component Ablations
 
 | Configuration | NDCG@10 | Delta NDCG | Recall@10 | Topic Entropy | Delta Entropy |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| Paper Feed (Full) | 0.0250 | +0.0000 | 0.0282 | 1.4996 | +0.0000 |
-| Ablation: No-MMR | 0.0254 | +0.0004 | 0.0287 | 1.4889 | -0.0107 |
-| Ablation: No-Graph | 0.0081 | -0.0169 | 0.0101 | 1.8003 | +0.3007 |
-| Ablation: No-Facets | 0.0290 | +0.0040 | 0.0338 | 1.4748 | -0.0248 |
+| Paper Feed (Full) | 0.0290 | +0.0000 | 0.0224 | 1.5139 | +0.0000 |
+| Ablation: No-MMR | 0.0290 | +0.0000 | 0.0224 | 1.5139 | +0.0000 |
+| Ablation: No-Graph | 0.0160 | -0.0130 | 0.0111 | 1.8612 | +0.3473 |
+| Ablation: No-Facets | 0.0300 | +0.0009 | 0.0224 | 1.5055 | -0.0085 |
 
 ## 3. Statistical Hypothesis Testing
 
 ### Hypothesis Testing Summary
 
-**Sample Size:** N = 304 test researchers | **Bootstrap Resamples:** B = 10,000
+**Sample Size:** N = 320 test researchers | **Bootstrap Resamples:** B = 10,000
 
 #### Hypothesis H1: Paper Feed Outperforms Baselines (NDCG@10)
-**Verdict:** REJECTED / INCONCLUSIVE
+**Verdict:** ACCEPTED (Supported by empirical data)
 
 | Comparison Baseline | System NDCG | Baseline NDCG | Rel. Gain | 95% CI of Difference | p-value (raw) | p-value (BH FDR) | Cohen's d | Significant? |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| Baseline: random | 0.0250 | 0.0000 | +0.00% | [+0.0160, +0.0353] | 1.0000e-04 | 2.5000e-04 | 0.289 | YES (p < 0.05) |
-| Baseline: popularity | 0.0250 | 0.0000 | +0.00% | [+0.0160, +0.0353] | 1.0000e-04 | 2.5000e-04 | 0.289 | YES (p < 0.05) |
-| Baseline: bm25_author | 0.0250 | 0.0066 | +280.97% | [+0.0093, +0.0284] | 5.0000e-04 | 8.3333e-04 | 0.215 | YES (p < 0.05) |
-| Baseline: dense_centroid | 0.0250 | 0.0115 | +116.24% | [+0.0047, +0.0227] | 4.2000e-03 | 5.2500e-03 | 0.167 | YES (p < 0.05) |
-| Baseline: hybrid_persona | 0.0250 | 0.0149 | +67.89% | [-0.0002, +0.0204] | 5.4900e-02 | 5.4900e-02 | 0.111 | NO |
+| Baseline: random | 0.0290 | 0.0000 | +0.00% | [+0.0214, +0.0374] | 1.0000e-04 | 1.0000e-04 | 0.395 | YES (p < 0.05) |
+| Baseline: popularity | 0.0290 | 0.0000 | +0.00% | [+0.0214, +0.0374] | 1.0000e-04 | 1.0000e-04 | 0.395 | YES (p < 0.05) |
+| Baseline: bm25_author | 0.0290 | 0.0086 | +236.75% | [+0.0119, +0.0290] | 1.0000e-04 | 1.0000e-04 | 0.264 | YES (p < 0.05) |
+| Baseline: dense_centroid | 0.0290 | 0.0111 | +162.00% | [+0.0103, +0.0257] | 1.0000e-04 | 1.0000e-04 | 0.258 | YES (p < 0.05) |
+| Baseline: hybrid_persona | 0.0290 | 0.0149 | +94.54% | [+0.0065, +0.0218] | 1.0000e-04 | 1.0000e-04 | 0.203 | YES (p < 0.05) |
 
 #### Hypothesis H2: MMR Diversity with Non-Inferiority
 **Verdict:** REJECTED / INCONCLUSIVE
 
-- **Entropy Increase (one-sided):** Delta = +0.0107 (+0.72%), 95% CI = [+0.0032, +0.0189], p = 6.7000e-03 (Significant: True)
-- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = 1.53%, 95% CI = [-0.0012, +0.0002], p = 8.6350e-01 (Non-inferior: False)
+- **Entropy Increase (one-sided):** Delta = +0.0000 (+0.00%), 95% CI = [+0.0000, +0.0000], p = 1.0000e+00 (Significant: False)
+- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = 0.00%, 95% CI = [+0.0000, +0.0000], p = 1.0000e+00 (Non-inferior: True)
 
 ## 4. History Slice Stratification
 
 | Stratum | Authors (n) | Paper Feed NDCG@10 | Best Baseline NDCG@10 | Relative Gain |
 | :--- | :---: | :---: | :---: | :---: |
-| Warm | 237 | 0.0240 | 0.0134 | +79.88% |
-| Moderate | 35 | 0.0415 | 0.0206 | +101.39% |
-| Sparse | 32 | 0.0138 | 0.0284 | -51.39% |
+| Warm | 248 | 0.0204 | 0.0104 | +96.31% |
+| Moderate | 37 | 0.0591 | 0.0320 | +84.75% |
+| Sparse | 35 | 0.0579 | 0.0323 | +79.16% |

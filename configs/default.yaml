@@ -63,6 +63,7 @@ scoring_weights:
   w_nov: 0.5                     # tuned in Track 1 tuning split
   lambda_div: 0.2                # MMR diversity weight (tuned in Track 1)
   lambda_neg: 0.5                # negative skip penalty weight (tuned in Track 2)
+  adaptive_graph: true           # scale w_cite by min(1, |Authored|/3) for sparse authors
 
 tuning_grids:
   track1:

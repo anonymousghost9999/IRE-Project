@@ -59,6 +59,7 @@ class TuningResult:
     grid_size: int
     n_users: int
     top_configurations: List[Dict[str, Any]] = field(default_factory=list)
+    config_signature: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -68,6 +69,7 @@ class TuningResult:
             "grid_size": self.grid_size,
             "n_users": self.n_users,
             "top_configurations": self.top_configurations,
+            "config_signature": self.config_signature,
         }
 
     def save(self, path: Path | str) -> None:
@@ -158,6 +160,8 @@ def evaluate_parameter_grid(
     resources: RecommenderResources,
     grid: Optional[Mapping[str, Sequence[float]]] = None,
     k: int = 10,
+    adaptive_graph: bool = True,
+    config_signature: Optional[Dict[str, Any]] = None,
 ) -> TuningResult:
     """Evaluate grid search in memory across all cached tuning authors."""
     g = dict(grid or DEFAULT_TRACK1_GRID)
@@ -182,7 +186,11 @@ def evaluate_parameter_grid(
                 ndcgs.append(0.0)
                 continue
 
-            scored = score_candidates(user_data.features, weights)
+            user_weights = weights
+            n_auth = len(user_data.profile.authored_papers)
+            if adaptive_graph and not user_data.profile.zero_pub and 0 < n_auth < 3:
+                user_weights = weights.with_overrides(w_cite=weights.w_cite * (n_auth / 3.0))
+            scored = score_candidates(user_data.features, user_weights)
             picks = select_top_k(scored, resources.store, k=k, lambda_div=lam)
             recommended_ids = [p.paper_id for p in picks]
             score = ndcg_at_k(recommended_ids, user_data.targets, k=k)
@@ -218,4 +226,5 @@ def evaluate_parameter_grid(
         grid_size=len(combinations),
         n_users=len(cached_data),
         top_configurations=results[:10],
+        config_signature=config_signature,
     )
