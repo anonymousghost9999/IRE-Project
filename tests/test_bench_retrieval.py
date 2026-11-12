@@ -247,3 +247,129 @@ def test_an_interrupted_build_resumes_from_its_checkpoint(tmp_path):
     manifest = build_benchmark_index(bench, resumed, tmp_path, checkpoint_every=2)
     assert resumed.papers_embedded == 1  # only the document after the checkpoint
     assert manifest["n_docs"] == 3 and "status" not in manifest
+
+
+# ---------------------------------------------------------------------------
+# 7.2 Runs and metrics
+# ---------------------------------------------------------------------------
+
+import math
+
+from paperfeed.bench.retrieval_eval import (
+    bootstrap_ci,
+    csfcube_official_metrics,
+    format_csfcube_official_table,
+    format_main_table,
+    mrr,
+    ndcg_at_k,
+    query_metrics,
+    rank_query,
+    recall_at_k,
+    run_benchmark,
+)
+
+
+def test_binary_metrics_hand_computed():
+    ranked = ["a", "b", "c", "d"]
+    assert recall_at_k(ranked, ["b", "d", "z"], 2) == pytest.approx(1 / 3)
+    assert recall_at_k(ranked, ["b", "d", "z"], 100) == pytest.approx(2 / 3)
+    assert recall_at_k(ranked, [], 10) == 0.0
+    assert mrr(ranked, ["c"]) == pytest.approx(1 / 3) and mrr(ranked, ["z"]) == 0.0
+
+
+def test_graded_ndcg_hand_computed():
+    qrels = {"a": 3, "b": 0, "c": 1, "z": 2}  # z is judged but never retrieved: it still counts in the ideal
+    dcg = 3 / math.log2(2) + 0 + 1 / math.log2(4)
+    idcg = 3 / math.log2(2) + 2 / math.log2(3) + 1 / math.log2(4)
+    assert ndcg_at_k(["a", "b", "c"], qrels, 10) == pytest.approx(dcg / idcg)
+    assert ndcg_at_k(["a", "z", "c"], qrels, 10) == pytest.approx(1.0)
+    assert ndcg_at_k(["x"], {"x": 0}, 10) == 0.0
+
+
+def _ranked_with_grades(grades):
+    ids = [f"d{i}" for i in range(len(grades))]
+    return ids, dict(zip(ids, grades))
+
+
+def test_csfcube_official_metrics_match_their_rank_metrics_examples():
+    # rank_metrics.py docstrings: r_precision([0,0,1]) = 1/3, ([0,1,0]) = 0.5, ([1,0,0]) = 1.0
+    for binary, expected in (([0, 0, 1], 1 / 3), ([0, 1, 0], 0.5), ([1, 0, 0], 1.0)):
+        ids, qrels = _ranked_with_grades([2 * b for b in binary])
+        assert csfcube_official_metrics(ids, qrels, threshold=2)["r_precision"] == pytest.approx(expected)
+    # average_precision([1,1,0,1,0,1,0,0,0,1]) = 0.78333...
+    ids, qrels = _ranked_with_grades([2 * b for b in (1, 1, 0, 1, 0, 1, 0, 0, 0, 1)])
+    assert csfcube_official_metrics(ids, qrels, threshold=2)["map"] == pytest.approx(0.78333333333333333)
+    # ndcg_at_k([2,1,2,0], 4) = 0.9203032077642922 with their default discount; a 20-paper pool cuts at 20% = 4
+    ids, qrels = _ranked_with_grades([2, 1, 2, 0] + [0] * 16)
+    assert csfcube_official_metrics(ids, qrels, threshold=2)["ndcg_pct20"] == pytest.approx(0.9203032077642922)
+    # grade 1 is not relevant at their threshold of 2
+    ids, qrels = _ranked_with_grades([1, 1, 0])
+    m = csfcube_official_metrics(ids, qrels, threshold=2)
+    assert m["map"] == 0.0 and m["r_precision"] == 0.0
+
+
+def test_bootstrap_ci_brackets_the_mean():
+    lo, hi = bootstrap_ci([0.0, 1.0] * 50, n_resamples=2000)
+    assert lo < 0.5 < hi and 0.35 < lo and hi < 0.65
+    assert bootstrap_ci([]) == (0.0, 0.0)
+
+
+def test_corpus_mode_runs_fuse_both_channels(tmp_path):
+    bench, enc = _text_bench(), FakeEncoder()
+    build_benchmark_index(bench, enc, tmp_path)
+    idx = load_benchmark_index(bench, tmp_path)
+    runs = rank_query(bench, idx, bench.queries[0], mode="corpus")
+    assert set(runs) == {"BM25", "SPECTER2", "RRF"}
+    assert runs["BM25"][0] == "1"  # "distilling language models" matches doc 1's text
+    assert set(runs["RRF"]) == set(runs["BM25"]) | set(runs["SPECTER2"])
+    assert all(len(set(r)) == len(r) for r in runs.values())
+
+
+def test_paper_queries_exclude_themselves_and_pool_mode_ranks_the_whole_pool(csfcube_raw, tmp_path):
+    bench = prepare_csfcube(csfcube_raw)
+    build_benchmark_index(bench, FakeEncoder(), tmp_path)
+    idx = load_benchmark_index(bench, tmp_path)
+    q = bench.queries[0]  # query paper 100, pool [200, 300, 400]
+    corpus_runs = rank_query(bench, idx, q, mode="corpus")
+    assert all("100" not in r for r in corpus_runs.values())
+    assert set(corpus_runs["SPECTER2"]) == {"200", "300", "400", "500"}  # every other paper in the corpus
+    pool_runs = rank_query(bench, idx, q, mode="pool")
+    assert all(sorted(r) == ["200", "300", "400"] for r in pool_runs.values())  # exactly the pool, all of it
+    with pytest.raises(ValueError, match="no annotated pool"):
+        rank_query(bench, idx, BenchmarkQuery(qid="x", kind="paper", doc_id="100", qrels={}), mode="pool")
+
+
+def test_run_benchmark_scores_every_system_and_facet(csfcube_raw, tmp_path):
+    bench = prepare_csfcube(csfcube_raw)
+    build_benchmark_index(bench, FakeEncoder(), tmp_path)
+    idx = load_benchmark_index(bench, tmp_path)
+
+    class ReverseReranker:  # stands in for a cross-encoder: reverses the RRF order
+        model_name = "fake-ce"
+
+        def rerank(self, query, doc_ids, docs):
+            return list(reversed(doc_ids))
+
+    run = run_benchmark(bench, idx, mode="pool", rerankers=[ReverseReranker()])
+    assert run.systems == ["BM25", "SPECTER2", "RRF", "RRF + CE (fake-ce)"]
+    assert run.rankings["RRF + CE (fake-ce)"]["100_method"] == list(reversed(run.rankings["RRF"]["100_method"]))
+    m = run.per_query["SPECTER2"]["100_method"]
+    assert {"recall_at_100", "ndcg_at_10", "mrr", "map", "r_precision", "ndcg_pct20"} <= set(m)
+    assert m["recall_at_100"] == 1.0  # the pool has 3 papers: all of them are ranked
+    assert run.aggregate()["BM25"]["n_queries"] == 2.0
+    assert run.aggregate("method")["BM25"]["n_queries"] == 1.0 and run.aggregate("background") == {}
+
+    table = format_main_table(run, n_resamples=200)
+    assert "| RRF + CE (fake-ce) |" in table and "Recall@100 [95% CI]" in table
+    official = format_csfcube_official_table(run)
+    assert "method: MAP / R-Prec / nDCG%20" in official and "| BM25 | - |" in official  # no background query here
+    corpus_run = run_benchmark(bench, idx, mode="corpus")
+    assert "map" not in corpus_run.per_query["BM25"]["100_method"]
+    with pytest.raises(ValueError, match="pool mode"):
+        format_csfcube_official_table(corpus_run)
+
+
+def test_query_metrics_use_the_benchmark_threshold():
+    q = BenchmarkQuery(qid="q", kind="text", text="t", qrels={"a": 1, "b": 2})
+    assert query_metrics(["a"], q, threshold=2)["recall_at_100"] == 0.0  # grade 1 below the threshold
+    assert query_metrics(["a"], q, threshold=1)["recall_at_100"] == 0.5
