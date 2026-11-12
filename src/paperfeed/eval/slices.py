@@ -6,9 +6,9 @@ Computes metric breakdowns across:
    - Moderate (3-4 authored papers)
    - Sparse (1-2 authored papers)
    - Zero-Pub (0 authored papers, seed topics only)
-2. Item cold-start slices:
-   - Discovery targets with citation_count_T <= 1 (new / unestablished papers)
-   - Discovery targets with citation_count_T >= 20 (established papers)
+2. Item cold-start slices (design §12):
+   - fresh targets: citation_count_T <= 1 and published in [T-1, T]
+   - established targets: citation_count_T >= 20 and published since 2012
 """
 
 from __future__ import annotations
@@ -59,36 +59,64 @@ def slice_by_history_volume(
     return results
 
 
+FRESH = "fresh"
+ESTABLISHED = "established"
+
+
+def classify_cold_start_targets(
+    citation_counts: Mapping[str, int],
+    years: Mapping[str, int],
+    cutoff_year: int,
+) -> Dict[str, str]:
+    """Item cold-start classes of design §12 for each paper with a known count and year.
+
+    - fresh: citation_count_T <= 1 and published in [T-1, T] (a new paper, not an old one whose citations predate the
+      2012 ``counts_by_year`` window);
+    - established: citation_count_T >= 20 and published since 2012.
+    Papers in neither class are left out.
+    """
+    classes: Dict[str, str] = {}
+    for pid, count in citation_counts.items():
+        year = years.get(pid)
+        if year is None:
+            continue
+        if count <= 1 and cutoff_year - 1 <= year <= cutoff_year:
+            classes[pid] = FRESH
+        elif count >= 20 and year >= 2012:
+            classes[pid] = ESTABLISHED
+    return classes
+
+
 def item_cold_start_breakdown(
-    recommended_by_user: Mapping[str, Sequence[str]],
+    rows: Sequence[UserEvaluationRow],
     targets_by_user: Mapping[str, Sequence[str]],
-    citation_count_map: Mapping[str, int],
+    target_class: Mapping[str, str],
     k: int = 10,
-) -> Dict[str, Dict[str, float]]:
-    """Evaluate target recall separated into low-citation (<= 1) vs high-citation (>= 20) items."""
-    cold_recalls: List[float] = []
-    warm_recalls: List[float] = []
+) -> Dict[str, Dict[str, Dict[str, float]]]:
+    """Recall@k restricted to fresh vs established targets, per system (plan §6.4 / design §12).
 
-    for uid, rec_ids in recommended_by_user.items():
-        all_targets = targets_by_user.get(uid, [])
-        cold_targets = {t for t in all_targets if citation_count_map.get(t, 0) <= 1}
-        warm_targets = {t for t in all_targets if citation_count_map.get(t, 0) >= 20}
+    For each class, a user counts only if they have at least one target of that class; ``n_authors`` reports how many
+    did. Uses the top-k lists saved in each row (``system_recommendations``).
 
-        rec_k = set(rec_ids[:k])
-
-        if cold_targets:
-            cold_recalls.append(len(rec_k & cold_targets) / len(cold_targets))
-        if warm_targets:
-            warm_recalls.append(len(rec_k & warm_targets) / len(warm_targets))
-
-    return {
-        "cold_start_targets (cite <= 1)": {
-            "recall_at_10": float(np.mean(cold_recalls)) if cold_recalls else 0.0,
-            "n_eval_authors": float(len(cold_recalls)),
-        },
-        "established_targets (cite >= 20)": {
-            "recall_at_10": float(np.mean(warm_recalls)) if warm_recalls else 0.0,
-            "n_eval_authors": float(len(warm_recalls)),
-        },
-    }
-
+    Returns:
+        class -> system_name -> {"recall_at_10", "n_authors", "n_targets"}
+    """
+    out: Dict[str, Dict[str, Dict[str, float]]] = {}
+    for cls in (FRESH, ESTABLISHED):
+        per_system: Dict[str, List[float]] = {}
+        n_targets = 0
+        for r in rows:
+            cls_targets = {t for t in targets_by_user.get(r.author_id, []) if target_class.get(t) == cls}
+            if not cls_targets:
+                continue
+            n_targets += len(cls_targets)
+            for sys_name, rec_ids in r.system_recommendations.items():
+                if sys_name.startswith("Diagnostic:"):  # scored against re-citation targets, not Discovery
+                    continue
+                hits = len(set(rec_ids[:k]) & cls_targets)
+                per_system.setdefault(sys_name, []).append(hits / len(cls_targets))
+        out[cls] = {
+            sys_name: {"recall_at_10": float(np.mean(vals)), "n_authors": float(len(vals)), "n_targets": float(n_targets)}
+            for sys_name, vals in per_system.items()
+        }
+    return out

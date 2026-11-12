@@ -50,7 +50,7 @@ def main() -> int:
 
     logger.info("Initializing Phase 5 RecommenderResources from %s...", root)
     t0 = time.perf_counter()
-    resources = RecommenderResources.load(cfg, root, load_encoder=False, use_facets=True)
+    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True)  # title-only authored papers and seed topics need it
     t_init = time.perf_counter() - t0
     logger.info("RecommenderResources loaded in %.2fs (Eligible candidates: %d)", t_init, len(resources.eligible))
 

@@ -169,6 +169,7 @@ class UserProfile:
     citation_ctx: UserCitationContext
     authored_papers: List[Dict[str, Any]] = field(default_factory=list)  # dicts with paper_id, title, abstract, year
     zero_pub: bool = False  # True when the persona comes from seed topics
+    seed_topics: List[str] = field(default_factory=list)  # onboarding seed topics (the whole profile when zero_pub)
 
 
 def _build_fallback_persona(
@@ -301,7 +302,7 @@ def build_user_profile(
             user_id=user_id, persona=persona, user_facets=facets,
             exclusion_sources=load_exclusion_sources(r.db, paper_ids),
             citation_ctx=build_citation_context(r.db, paper_ids, r.cutoff_year),
-            authored_papers=papers,
+            authored_papers=papers, seed_topics=list(seed_topics),
         )
     if r.encoder is None:
         raise ValueError("A zero-publication user needs the encoder to embed their seed topics.")
@@ -313,6 +314,7 @@ def build_user_profile(
     return UserProfile(
         user_id=user_id, persona=persona, user_facets=facets, exclusion_sources=ExclusionSources(),
         citation_ctx=build_citation_context(r.db, [], r.cutoff_year), zero_pub=True,
+        seed_topics=[t for t in seed_topics if t and t.strip()],
     )
 
 

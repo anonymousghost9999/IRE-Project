@@ -7,8 +7,8 @@ Executes the offline benchmark over test authors from the cohort:
    - No-Graph (w_cite = 0)
    - No-Facets (w_facet = w_nov = 0)
 3. Diagnostic Re-Citation run (Citations(u, <= T) dropped from E_u).
-4. Five competitive baselines:
-   - Random, Popularity, BM25 Lexical, Dense Centroid, Hybrid-Persona.
+4. Five competitive baselines (plan §6.2):
+   - Popularity, BM25 Lexical, Dense Centroid, Citation-only, Hybrid-Persona (with its own tuned gamma_rec, n_terms).
 5. Anchors:
    - Random Anchor (100 uniform draws), Oracle@10 ceiling.
 6. Slices:
@@ -60,6 +60,9 @@ class UserEvaluationRow:
     n_authored: int
     n_targets: int
     system_metrics: Dict[str, Dict[str, float]]  # system_name -> metric_name -> value
+    # system_name -> its top-k paper IDs (not kept for the random anchor, which is a mean over many draws).
+    # Saved so slices over items (item cold start) and any later re-analysis work from the same run.
+    system_recommendations: Dict[str, List[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -83,6 +86,7 @@ class LFOEvaluationResult:
                     "n_authored": r.n_authored,
                     "n_targets": r.n_targets,
                     "system_metrics": r.system_metrics,
+                    "system_recommendations": r.system_recommendations,
                 }
                 for r in self.per_user_results
             ],
@@ -108,6 +112,7 @@ def evaluate_author(
     k: int = 10,
     include_anchors: bool = True,
     n_random_draws: int = 100,
+    baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> UserEvaluationRow:
     """Evaluate one author across full system, ablations, baselines, and diagnostic runs."""
     cfg = base_config or RecommendConfig()
@@ -122,6 +127,7 @@ def evaluate_author(
     targets = [clean_id(t) for t in ground_truth_targets]
 
     system_metrics: Dict[str, Dict[str, float]] = {}
+    system_recommendations: Dict[str, List[str]] = {}
 
     def _eval_list(rec_pids: List[str], cand_pids: List[str], tgt: List[str]) -> Dict[str, float]:
         return per_user_metrics(
@@ -136,36 +142,32 @@ def evaluate_author(
             k=k,
         )
 
+    def _record(name: str, rec_pids: List[str], cand_pids: List[str], tgt: List[str]) -> None:
+        system_metrics[name] = _eval_list(rec_pids, cand_pids, tgt)
+        system_recommendations[name] = list(rec_pids[:k])
+
     # 1. Full tuned system
     res_full = recommend(resources, profile, session=None, mode="feed", config=cfg)
-    system_metrics["Paper Feed (Full)"] = _eval_list(res_full.paper_ids, res_full.candidate_ids, targets)
+    _record("Paper Feed (Full)", res_full.paper_ids, res_full.candidate_ids, targets)
 
-    # 2. Ablations
-    # No-MMR: lambda_div = 0
-    cfg_no_mmr = cfg.with_overrides(lambda_div=0.0)
-    res_no_mmr = recommend(resources, profile, session=None, mode="feed", config=cfg_no_mmr)
-    system_metrics["Ablation: No-MMR"] = _eval_list(res_no_mmr.paper_ids, res_no_mmr.candidate_ids, targets)
-
-    # No-Graph: w_cite = 0
-    cfg_no_graph = cfg.with_overrides(weights=cfg.weights.with_overrides(w_cite=0.0))
-    res_no_graph = recommend(resources, profile, session=None, mode="feed", config=cfg_no_graph)
-    system_metrics["Ablation: No-Graph"] = _eval_list(res_no_graph.paper_ids, res_no_graph.candidate_ids, targets)
-
-    # No-Facets: w_facet = 0, w_nov = 0
-    cfg_no_facets = cfg.with_overrides(weights=cfg.weights.with_overrides(w_facet=0.0, w_nov=0.0))
-    res_no_facets = recommend(resources, profile, session=None, mode="feed", config=cfg_no_facets)
-    system_metrics["Ablation: No-Facets"] = _eval_list(res_no_facets.paper_ids, res_no_facets.candidate_ids, targets)
+    # 2. Ablations (one component changed at a time, same candidate pool)
+    ablations = {
+        "Ablation: No-MMR": cfg.with_overrides(lambda_div=0.0),
+        "Ablation: No-Graph": cfg.with_overrides(weights=cfg.weights.with_overrides(w_cite=0.0)),
+        "Ablation: No-Facets": cfg.with_overrides(weights=cfg.weights.with_overrides(w_facet=0.0, w_nov=0.0)),
+    }
+    for name, ablation_cfg in ablations.items():
+        res = recommend(resources, profile, session=None, mode="feed", config=ablation_cfg)
+        _record(name, res.paper_ids, res.candidate_ids, targets)
 
     # 3. Diagnostic Re-Citation run (Citations(u, <= T) dropped from E_u)
-    cfg_diag = cfg.with_overrides(diagnostic=True)
-    res_diag = recommend(resources, profile, session=None, mode="feed", config=cfg_diag)
-    diag_tgt = [clean_id(t) for t in recitation_targets]
-    system_metrics["Diagnostic: Re-Citation"] = _eval_list(res_diag.paper_ids, res_diag.candidate_ids, diag_tgt)
+    res_diag = recommend(resources, profile, session=None, mode="feed", config=cfg.with_overrides(diagnostic=True))
+    _record("Diagnostic: Re-Citation", res_diag.paper_ids, res_diag.candidate_ids, [clean_id(t) for t in recitation_targets])
 
     # 4. Baselines
     for b_name in BASELINE_NAMES:
-        b_pids = run_baseline(b_name, resources, profile, k=k)
-        system_metrics[f"Baseline: {b_name}"] = _eval_list(b_pids, b_pids, targets)
+        b_pids = run_baseline(b_name, resources, profile, k=k, baseline_kwargs=(baseline_kwargs or {}).get(b_name))
+        _record(f"Baseline: {b_name}", b_pids, b_pids, targets)
 
     # 5. Anchors
     if include_anchors:
@@ -180,7 +182,124 @@ def evaluate_author(
         n_authored=len(authored_ids),
         n_targets=len(targets),
         system_metrics=system_metrics,
+        system_recommendations=system_recommendations,
     )
+
+
+# Baselines that apply when the profile is seed topics only (design §13.1): Citation-only has no authored papers.
+ZERO_PUB_BASELINES = ("popularity", "bm25_author", "dense_centroid", "hybrid_persona")
+
+
+def evaluate_zero_pub_author(
+    resources: RecommenderResources,
+    author_info: Mapping[str, Any],
+    ground_truth_targets: Sequence[str],
+    topic_map: Dict[str, str],
+    paper_id_index: Dict[str, int],
+    embedding_matrix: np.ndarray,
+    paper_facet_map: Dict[str, Set[str]],
+    base_config: Optional[RecommendConfig] = None,
+    k: int = 10,
+    include_anchors: bool = True,
+    n_random_draws: int = 100,
+    seed_subfield: Optional[str] = None,
+    baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
+) -> UserEvaluationRow:
+    """Zero-Publication Seed-Only slice for one author (plan §6.4 / design §13.1).
+
+    The profile is replaced by the author's 3 seed topics: no authored papers, E_u = empty, and the ground truth is
+    Ref(B) with year <= T minus Authored(u) (``zero_pub_in_corpus``). Lexical and Dense baselines query with the seed
+    topics, Popularity uses the seed topics' subfield (``seed_subfield``), Citation-only is not applicable.
+    """
+    cfg = base_config or RecommendConfig()
+    aid = clean_id(author_info["author_id"])
+    seed_topics = list(author_info.get("seed_topics") or [])
+    if not seed_topics:
+        raise ValueError(f"Author {aid} has no seed topics for the zero-publication slice.")
+    profile = build_user_profile(resources, aid, (), seed_topics, cfg)
+    if not profile.zero_pub:
+        raise RuntimeError(f"Zero-publication profile for {aid} was not built from seed topics.")
+    user_facets_set = set(profile.user_facets.ids)
+    targets = [clean_id(t) for t in ground_truth_targets]
+
+    system_metrics: Dict[str, Dict[str, float]] = {}
+    system_recommendations: Dict[str, List[str]] = {}
+
+    def _eval_list(rec_pids: List[str], cand_pids: List[str]) -> Dict[str, float]:
+        return per_user_metrics(
+            recommended_ids=rec_pids, ground_truth_ids=targets, candidate_ids=cand_pids, topic_map=topic_map,
+            embedding_matrix=embedding_matrix, paper_id_index=paper_id_index,
+            user_canonical_facet_ids=user_facets_set, paper_facet_map=paper_facet_map, k=k,
+        )
+
+    res = recommend(resources, profile, session=None, mode="feed", config=cfg)
+    system_metrics["Paper Feed (Full)"] = _eval_list(res.paper_ids, res.candidate_ids)
+    system_recommendations["Paper Feed (Full)"] = list(res.paper_ids[:k])
+
+    kwargs = {name: dict((baseline_kwargs or {}).get(name) or {}) for name in ZERO_PUB_BASELINES}
+    kwargs["popularity"]["subfield"] = seed_subfield
+    for b_name in ZERO_PUB_BASELINES:
+        b_pids = run_baseline(b_name, resources, profile, k=k, baseline_kwargs=kwargs[b_name])
+        system_metrics[f"Baseline: {b_name}"] = _eval_list(b_pids, b_pids)
+        system_recommendations[f"Baseline: {b_name}"] = list(b_pids[:k])
+
+    if include_anchors:
+        draws = random_anchor_ids(resources, profile, k=k, n_draws=n_random_draws)
+        system_metrics[f"Anchor: Random ({n_random_draws}-draw)"] = aggregate_metrics([_eval_list(d, d) for d in draws])
+
+    return UserEvaluationRow(
+        author_id=aid,
+        split=str(author_info.get("split", "test")),
+        history_slice="zero_pub",
+        n_authored=0,
+        n_targets=len(targets),
+        system_metrics=system_metrics,
+        system_recommendations=system_recommendations,
+    )
+
+
+def _aggregate(rows: Sequence[UserEvaluationRow]) -> Dict[str, Dict[str, float]]:
+    system_names = list(dict.fromkeys(name for r in rows for name in r.system_metrics))
+    return {
+        name: aggregate_metrics([r.system_metrics[name] for r in rows if name in r.system_metrics])
+        for name in system_names
+    }
+
+
+def run_zero_pub_evaluation(
+    resources: RecommenderResources,
+    cohort: Sequence[Dict[str, Any]],
+    zero_pub_ground_truth: Mapping[str, Sequence[str]],
+    topic_map: Dict[str, str],
+    paper_id_index: Dict[str, int],
+    embedding_matrix: np.ndarray,
+    paper_facet_map: Dict[str, Set[str]],
+    seed_subfields: Mapping[str, Optional[str]],
+    config: Optional[RecommendConfig] = None,
+    k: int = 10,
+    include_anchors: bool = True,
+    baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
+) -> LFOEvaluationResult:
+    """Re-run the cohort with seed-only profiles. Any failing author aborts the run (no silent drops)."""
+    cfg = config or RecommendConfig()
+    rows: List[UserEvaluationRow] = []
+    failed: List[str] = []
+    for entry in cohort:
+        aid = clean_id(entry["author_id"])
+        try:
+            rows.append(
+                evaluate_zero_pub_author(
+                    resources, entry, zero_pub_ground_truth.get(aid, []), topic_map, paper_id_index, embedding_matrix,
+                    paper_facet_map, cfg, k, include_anchors, seed_subfield=seed_subfields.get(aid),
+                    baseline_kwargs=baseline_kwargs,
+                )
+            )
+        except Exception as exc:
+            logger.error("Error evaluating author %s in the zero-publication slice: %s", aid, exc)
+            failed.append(aid)
+    if failed:
+        raise RuntimeError(f"Zero-publication slice failed for {len(failed)} of {len(cohort)} authors: {failed[:5]}")
+    return LFOEvaluationResult(system_aggregates=_aggregate(rows), per_user_results=rows, config=cfg, n_authors=len(rows))
 
 
 def run_lfo_evaluation(
@@ -196,6 +315,7 @@ def run_lfo_evaluation(
     k: int = 10,
     include_anchors: bool = True,
     filter_empty_targets: bool = False,
+    baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
 ) -> LFOEvaluationResult:
     """Run Track 1 LFO evaluation over all authors in cohort."""
     cfg = config or RecommendConfig()
@@ -232,6 +352,7 @@ def run_lfo_evaluation(
                 base_config=cfg,
                 k=k,
                 include_anchors=include_anchors,
+                baseline_kwargs=baseline_kwargs,
             )
             rows.append(row)
         except Exception as exc:
@@ -243,13 +364,7 @@ def run_lfo_evaluation(
             f"LFO evaluation failed for {len(failed_authors)} of {len(eval_cohort)} authors: {failed_authors[:5]}"
         )
 
-    # Aggregate by system
-    system_names = list(dict.fromkeys(k for r in rows for k in r.system_metrics)) if rows else []
-    system_aggregates: Dict[str, Dict[str, float]] = {}
-
-    for sys_name in system_names:
-        user_dicts = [r.system_metrics[sys_name] for r in rows if sys_name in r.system_metrics]
-        system_aggregates[sys_name] = aggregate_metrics(user_dicts)
+    system_aggregates = _aggregate(rows)
 
     return LFOEvaluationResult(
         system_aggregates=system_aggregates,

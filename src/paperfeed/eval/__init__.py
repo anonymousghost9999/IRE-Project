@@ -3,6 +3,7 @@
 from paperfeed.eval.baselines import (
     BASELINE_NAMES,
     bm25_author_baseline,
+    citation_only_baseline,
     dense_centroid_baseline,
     hybrid_persona_baseline,
     popularity_baseline,
@@ -14,7 +15,9 @@ from paperfeed.eval.lfo import (
     LFOEvaluationResult,
     UserEvaluationRow,
     evaluate_author,
+    evaluate_zero_pub_author,
     run_lfo_evaluation,
+    run_zero_pub_evaluation,
 )
 from paperfeed.eval.metrics import (
     aggregate_metrics,
@@ -36,13 +39,15 @@ from paperfeed.eval.report import (
     format_main_table_markdown,
     generate_full_evaluation_report,
 )
-from paperfeed.eval.slices import item_cold_start_breakdown, slice_by_history_volume
+from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown, slice_by_history_volume
 from paperfeed.eval.stats import (
     BootstrapComparison,
     HypothesisTestReport,
     benjamini_hochberg_correction,
     paired_bootstrap_test,
     paired_cohens_d,
+    bootstrap_mde,
+    compare_system_to_baselines,
     run_track1_hypothesis_tests,
 )
 from paperfeed.eval.tuning import (
@@ -50,6 +55,7 @@ from paperfeed.eval.tuning import (
     TuningResult,
     evaluate_parameter_grid,
     precompute_tuning_cache,
+    tune_hybrid_persona,
 )
 
 __all__ = [
@@ -71,6 +77,7 @@ __all__ = [
     "random_baseline",
     "popularity_baseline",
     "bm25_author_baseline",
+    "citation_only_baseline",
     "dense_centroid_baseline",
     "hybrid_persona_baseline",
     "random_anchor_ids",
@@ -80,11 +87,14 @@ __all__ = [
     "TuningResult",
     "precompute_tuning_cache",
     "evaluate_parameter_grid",
+    "tune_hybrid_persona",
     # LFO
     "UserEvaluationRow",
     "LFOEvaluationResult",
     "evaluate_author",
     "run_lfo_evaluation",
+    "run_zero_pub_evaluation",
+    "evaluate_zero_pub_author",
     # Stats
     "BootstrapComparison",
     "HypothesisTestReport",
@@ -92,9 +102,12 @@ __all__ = [
     "paired_bootstrap_test",
     "benjamini_hochberg_correction",
     "run_track1_hypothesis_tests",
+    "bootstrap_mde",
+    "compare_system_to_baselines",
     # Slices & Report
     "slice_by_history_volume",
     "item_cold_start_breakdown",
+    "classify_cold_start_targets",
     "format_main_table_markdown",
     "format_ablation_table_markdown",
     "format_hypothesis_markdown",

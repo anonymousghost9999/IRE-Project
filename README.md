@@ -1,7 +1,7 @@
 # PaperFeed: Grounded, Explainable Scientific Paper Recommendation Engine
 
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](#environment-setup)
-[![Tests](https://img.shields.io/badge/pytest-257%20passed%2C%201%20skipped-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/pytest-299%20passed%2C%201%20skipped-brightgreen.svg)](#running-tests)
 [![Temporal Leakage](https://img.shields.io/badge/leakage%20check-clean%20(0%20violations)-success.svg)](#2-cohort-selection-ground-truth--leakage-check)
 [![SciERC Core F1](https://img.shields.io/badge/SciERC%20Core%20Relaxed%20F1-41.15%25-orange.svg)](#7-scierc-extraction-benchmark-phase-34)
 
@@ -26,6 +26,7 @@
    - [7. SciERC Extraction Benchmark](#7-scierc-extraction-benchmark-phase-34)
    - [8. Recommender Engine Verification](#8-recommender-engine-verification)
    - [9. Running Tests](#9-running-tests)
+   - [10. Track 1 Leave-Future-Out Evaluation](#10-track-1-leave-future-out-evaluation-phase-6)
 5. [Benchmark Results Summary](#benchmark-results-summary)
 6. [Repository Structure](#repository-structure)
 
@@ -68,9 +69,9 @@ Dynamic Session State ─────────────────┼─�
 | **Phase 3.4** | **SciERC Gold Extraction Benchmark** | Complete | Full benchmark suite evaluated on official SciERC test split (Luan et al., 2018). Strict & relaxed multiset matching, confidence threshold sweep, 3-label core averages recorded (`results/scierc_benchmark_report.md`). |
 | **Phase 4** | **User Modeling & Dynamic Session State** | Complete | Recency-weighted persona vectors ($\gamma=0.9$), user facet profiles $\mathcal{F}_u$, exclusion sets $\mathcal{E}_u$, dynamic session state $\mathbf{v}_t^{\text{sess}}$ (EMA $\alpha=0.5$), negative skip penalty set $\mathcal{S}_u^-$, cosine pivot gate ($\gamma_{\text{pivot}}=0.35$). |
 | **Phase 5** | **Recommendation Engine** | Complete | `recommend(resources, profile, session, mode)`: Hybrid candidate generation ($M=100$), multi-feature linear scoring, greedy MMR diversity ($\lambda=0.2$), deterministic grounded explanations. End-to-end audit passed (`results/phase5_verification_report.md`: 222ms latency, 100% explanation coverage, 0 leaks). |
-| **Phase 6** | **Track 1: Full LFO Benchmark Runs** | Ready to Run | Code and harness complete in `src/paperfeed/rec/`; ready to execute test split evaluation across all 5 baselines with bootstrap significance testing ($H_1, H_2$). |
-| **Phase 7** | **Retrieval Benchmark (CSFCube, LitSearch)** | Planned | Code infrastructure ready in `src/paperfeed/bench/`. |
-| **Phase 8** | **Explanation Faithfulness Audit** | Ready to Run | Counterfactual drop-out testing infrastructure ready in `src/paperfeed/rec/explain.py`. |
+| **Phase 6** | **Track 1: Full LFO Benchmark Runs** | Implemented, results pending re-run | Harness in `src/paperfeed/eval/` and `scripts/run_track1_eval.py`: tuning on the tuning split (system grid + Hybrid-Persona baseline), the five plan baselines (Popularity, BM25, Dense centroid, Citation-only, Hybrid-Persona), random anchor, ablations, re-citation diagnostic, Warm/Moderate/Sparse, Zero-Publication and Item Cold-Start slices, $H_1$ on NDCG@10 and Recall@10 and $H_2$ with paired bootstrap, BH correction and MDE, and a run manifest per run. The `results/track1_lfo_*` files predate these fixes and must be regenerated. |
+| **Phase 7** | **Retrieval Benchmark (CSFCube, LitSearch)** | Not started | `src/paperfeed/bench/` currently holds only the SciERC benchmark. |
+| **Phase 8** | **Explanation Faithfulness Audit** | Not started | The explainer (`src/paperfeed/rec/explain.py`) reports grounding failures and coverage; the counterfactual drop-out test is not written yet. |
 | **Phases 9–12** | **Extended Track 2 Simulation, SOTA Variants, Best Configuration & SOTA Comparison, UI** | Planned | Empty module skeletons in `src/paperfeed/sim/`, `src/paperfeed/variants/`, and `src/paperfeed/ui/`. Phase 11 assembles the best option for each part from the Phase 10 tuning evidence and compares it with current SOTA paper recommenders (`docs/plan.md` Phase 11). |
 
 ---
@@ -218,7 +219,7 @@ Run the entire offline test suite covering all phases (fixtures require zero net
 ```bash
 pytest
 ```
-*Current test suite: **257 passed, 1 skipped** (total 258 tests across all modules).*
+*Current test suite: **299 passed, 1 skipped** (total 300 tests across all modules).*
 
 To run specific test modules:
 ```bash
@@ -231,6 +232,23 @@ pytest tests/test_cohort.py    # Cohort stratification & leakage tests
 ```
 
 ---
+
+### 10. Track 1 Leave-Future-Out Evaluation (Phase 6)
+Tunes on the 80 tuning authors, then runs the full system, ablations, the five baselines, the random anchor and all slices once on the 320 test authors. Needs the full canonicalized facet database and loads SPECTER2 (title-only authored papers and seed topics are embedded on the fly):
+```bash
+# Main run (plan configuration)
+python scripts/run_track1_eval.py
+
+# Secondary analyses, each labelled in its report
+python scripts/run_track1_eval.py --enhanced                 # M=250, M_channel=500, w_pop=0.20
+python scripts/run_track1_eval.py --filter-popular 200       # targets with citation_count_T >= 200 removed
+
+# Quick check on a few authors (not a result)
+python scripts/run_track1_eval.py --test-sample 10 --tuning-sample 10 --n-bootstrap 500 --skip-zero-pub
+```
+- **Outputs:** `results/<report-name>.md`, `results/<results-name>.json` (per-user metrics and top-10 lists), `results/<results-name>_zero_pub.json`, and `results/runs/<run_id>/manifest.json` with copies of the outputs, the git commit, config, arguments, tuned values, input-file hashes and timings.
+- **Tuning cache:** `data/artifacts/tuning_results.json` is reused only when its configuration signature matches the run; otherwise the run re-tunes.
+- The headline is the main run; the popularity filter removes the targets the Popularity baseline can hit, so it is a secondary analysis only.
 
 ## Benchmark Results Summary
 
@@ -287,7 +305,8 @@ Tested across all cohort strata (Warm, Moderate, Sparse, Zero-Publication):
 │   ├── extract_facets.py           # Phase 3: GLiNER extraction & canonicalization
 │   ├── audit_facets.py             # Phase 3.3: In-corpus profile audit
 │   ├── evaluate_scierc.py          # Phase 3.4: SciERC benchmark evaluation
-│   └── verify_recommender.py       # Phase 5: End-to-end recommender verification
+│   ├── verify_recommender.py       # Phase 5: End-to-end recommender verification
+│   └── run_track1_eval.py          # Phase 6: Track 1 LFO evaluation (tuning, test run, slices, statistics)
 ├── src/paperfeed/                  # Core package source
 │   ├── openalex/                   # REST client & abstract reconstruction
 │   ├── data/                       # Database manager, schema, graph, cohort, leakage
@@ -301,7 +320,7 @@ Tested across all cohort strata (Warm, Moderate, Sparse, Zero-Publication):
 │   ├── sim/                        # Track 2 LLM session simulation (Phase 9)
 │   ├── variants/                   # SOTA variants (Phase 10), best configuration & SOTA comparison (Phase 11)
 │   └── ui/                         # Streamlit interactive interface (Phase 12)
-├── tests/                          # Automated test suite (258 unit & integration tests)
+├── tests/                          # Automated test suite (300 unit & integration tests)
 ├── pyproject.toml                  # Packaging & dependencies
 └── requirements.txt                # Pinned dependency manifest
 ```

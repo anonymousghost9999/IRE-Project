@@ -297,15 +297,19 @@ def test_run_track1_hypothesis_tests():
             "ndcg_at_10": [0.51, 0.61, 0.71, 0.81],
             "topic_entropy": [1.0, 1.1, 1.2, 1.3],
         },
-        "Baseline: random": {"ndcg_at_10": [0.1, 0.1, 0.1, 0.1]},
         "Baseline: popularity": {"ndcg_at_10": [0.2, 0.2, 0.2, 0.2]},
+        "Baseline: citation_only": {"ndcg_at_10": [0.1, 0.1, 0.1, 0.1]},
         "Baseline: bm25_author": {"ndcg_at_10": [0.25, 0.25, 0.25, 0.25]},
         "Baseline: dense_centroid": {"ndcg_at_10": [0.3, 0.3, 0.3, 0.3]},
         "Baseline: hybrid_persona": {"ndcg_at_10": [0.35, 0.35, 0.35, 0.35]},
     }
+    for name, series in data.items():  # Recall@10 mirrors NDCG@10 here
+        series["recall_at_10"] = list(series["ndcg_at_10"])
     rep = run_track1_hypothesis_tests(data, n_resamples=500)
     assert isinstance(rep, HypothesisTestReport)
-    assert len(rep.h1_comparisons) == 5
+    assert len(rep.h1_comparisons) == 10  # 5 baselines x {NDCG@10, Recall@10}, one BH family
+    assert {c.metric_name for c in rep.h1_comparisons} == {"ndcg_at_10", "recall_at_10"}
+    assert all(c.mde >= 0 for c in rep.h1_comparisons)
     assert rep.h1_supported is True
     assert rep.h2_supported is True
 
@@ -345,3 +349,311 @@ def test_reporting_formatting():
 
     abl_tbl = format_ablation_table_markdown(aggs)
     assert "No-MMR" in abl_tbl
+
+
+# ---------------------------------------------------------------------------
+# Baseline set, no silent fallbacks, Citation-only, tuning with the configured weights
+# ---------------------------------------------------------------------------
+
+from types import SimpleNamespace
+
+from paperfeed.data.db import DatabaseManager
+from paperfeed.eval.baselines import (
+    bm25_author_baseline,
+    citation_only_baseline,
+    popularity_baseline,
+)
+from paperfeed.rec.features import build_citation_context
+from paperfeed.rec.scoring import ScoringWeights
+from paperfeed.user.exclusion import build_exclusion_sources
+
+
+def _uri(pid):
+    return f"https://openalex.org/{pid}"
+
+
+def _paper(pid, year=2022, subfield="https://openalex.org/subfields/1702", cites=0):
+    return {
+        "paper_id": _uri(pid), "title": f"Title {pid}", "abstract": "x", "authors": "[]", "year": year,
+        "publication_date": None, "venue": None, "doi": None, "url": None, "citation_count_T": cites,
+        "primary_topic_id": None, "subfield_id": subfield, "field_id": None, "in_candidates": 1,
+    }
+
+
+def test_baseline_registry_matches_the_plan_and_h1_family():
+    from paperfeed.eval.stats import H1_BASELINES
+
+    assert BASELINE_NAMES == ["popularity", "bm25_author", "dense_centroid", "citation_only", "hybrid_persona"]
+    assert tuple(BASELINE_NAMES) == H1_BASELINES  # Random is an anchor, never an H1 baseline
+
+
+def test_h1_refuses_to_run_with_a_missing_baseline():
+    data = {
+        "Paper Feed (Full)": {"ndcg_at_10": [0.5, 0.6], "topic_entropy": [1.0, 1.0]},
+        "Ablation: No-MMR": {"ndcg_at_10": [0.5, 0.6], "topic_entropy": [1.0, 1.0]},
+        "Baseline: popularity": {"ndcg_at_10": [0.2, 0.2]},
+    }
+    with pytest.raises(ValueError, match="missing"):
+        run_track1_hypothesis_tests(data, n_resamples=50)
+
+
+@pytest.fixture
+def pop_world(tmp_path):
+    """Two subfields; the user's papers are in 1702. P1-P3 are popular in 1702, Q1 is more popular but in 9999."""
+    db = DatabaseManager(db_path=tmp_path / "pop.sqlite3", cutoff_year=2024)
+    db.insert_papers_batch([
+        _paper("U1"), _paper("U2"),
+        _paper("P1", cites=500), _paper("P2", cites=300), _paper("P3", cites=100),
+        _paper("OLD", year=2005, cites=900),  # before the counts_by_year window: never ranked
+        _paper("Q1", subfield="https://openalex.org/subfields/9999", cites=1000),
+    ])
+    eligible = {"U1", "U2", "P1", "P2", "P3", "OLD", "Q1"}
+    resources = SimpleNamespace(db=db, eligible=eligible, cutoff_year=2024)
+    profile = SimpleNamespace(
+        authored_papers=[{"paper_id": "U1", "title": "Title U1", "abstract": "x"}, {"paper_id": "U2", "title": "Title U2", "abstract": "x"}],
+        zero_pub=False,
+        exclusion_sources=build_exclusion_sources(["U1", "U2"], ["P2"]),
+    )
+    return resources, profile
+
+
+def test_popularity_baseline_is_domain_conditioned(pop_world):
+    resources, profile = pop_world
+    assert popularity_baseline(resources, profile, k=10) == ["P1", "P3"]  # P2 cited by the user, Q1 other subfield
+
+
+def test_popularity_baseline_never_falls_back_to_random(pop_world):
+    resources, profile = pop_world
+    resources.eligible = {"U1", "U2"}  # nothing recommendable
+    assert popularity_baseline(resources, profile, k=10) == []  # an honest empty list, not a random sample
+
+    class BrokenDB:
+        def get_connection(self):
+            raise RuntimeError("database is locked")
+
+    resources.db = BrokenDB()
+    with pytest.raises(RuntimeError, match="locked"):
+        popularity_baseline(resources, profile, k=10)
+
+
+def test_bm25_baseline_uses_the_full_author_text():
+    seen = {}
+
+    class Lexical:
+        def search(self, query, k, exclusion_set=None, candidate_filter=None):
+            seen["query"] = query
+            return [("P9", 1.0)]
+
+    long_abstract = " ".join(f"word{i}" for i in range(1000))
+    resources = SimpleNamespace(retriever=SimpleNamespace(lexical_index=Lexical()), eligible={"P9"})
+    profile = SimpleNamespace(
+        authored_papers=[{"paper_id": "U1", "title": "First", "abstract": long_abstract}, {"paper_id": "U2", "title": "Last", "abstract": ""}],
+        zero_pub=False,
+        exclusion_sources=build_exclusion_sources(["U1", "U2"], []),
+    )
+    assert bm25_author_baseline(resources, profile, k=5) == ["P9"]
+    assert "word999" in seen["query"] and seen["query"].endswith("Last")  # nothing cut off
+    profile.authored_papers = [{"paper_id": "U1", "title": "", "abstract": ""}]
+    assert bm25_author_baseline(resources, profile, k=5) == []  # no text: empty, not random
+
+
+@pytest.fixture
+def cite_world(tmp_path):
+    """Authored A1 refs {R1, R2}; A2 refs {R2, R3}.
+    P refs {R2, R3}: BC 2.  Q refs {R1}: BC 1, and the third party C1 cites A1 and Q: CC 1.  S refs {R9}: 0.
+    The user already cites R1-R3 (excluded); X is from after T and cites R1-R3 (its edges are never counted)."""
+    db = DatabaseManager(db_path=tmp_path / "cite.sqlite3", cutoff_year=2024)
+    ids = ["A1", "A2", "P", "Q", "S", "C1", "R1", "R2", "R3", "R9"]
+    db.insert_papers_batch([_paper(i) for i in ids] + [_paper("X", year=2025)])
+    edges = [("A1", "R1"), ("A1", "R2"), ("A2", "R2"), ("A2", "R3"), ("P", "R2"), ("P", "R3"), ("Q", "R1"),
+             ("S", "R9"), ("C1", "A1"), ("C1", "Q")]
+    db.insert_citations_batch([(_uri(a), _uri(b), 2022) for a, b in edges])
+    with db.get_connection() as conn:
+        conn.executemany(
+            "INSERT INTO paper_citations (source_paper_id, target_paper_id, source_year) VALUES (?, ?, 2025)",
+            [(_uri("X"), _uri(r)) for r in ("R1", "R2", "R3")],
+        )
+    eligible = set(ids) | {"X"}
+    resources = SimpleNamespace(db=db, eligible=eligible, cutoff_year=2024)
+    ctx = build_citation_context(db, ["A1", "A2"], 2024)
+    profile = SimpleNamespace(
+        citation_ctx=ctx, zero_pub=False,
+        exclusion_sources=build_exclusion_sources(["A1", "A2"], sorted(ctx.ref_to_authored)),
+    )
+    return resources, profile
+
+
+def test_citation_only_baseline_ranks_by_bc_plus_cc(cite_world):
+    resources, profile = cite_world
+    # P: BC 2. Q: BC 1 + CC 1 = 2 (tie with P, broken by id). C1 cites A1 but shares no reference: 0. X: post-T.
+    assert citation_only_baseline(resources, profile, k=10) == ["P", "Q"]
+    assert citation_only_baseline(resources, profile, k=1) == ["P"]
+
+
+def test_citation_only_baseline_is_not_applicable_to_zero_publication_users(cite_world):
+    resources, profile = cite_world
+    profile.citation_ctx = build_citation_context(resources.db, [], 2024)
+    assert citation_only_baseline(resources, profile, k=10) == []
+
+
+def test_tuning_grid_scores_with_the_configured_weights():
+    seen = []
+
+    def fake_score(features, weights):
+        seen.append(weights)
+        from paperfeed.rec.scoring import score_candidates as real
+        return real(features, weights)
+
+    from paperfeed.rec.features import CitationSignal, FacetMatch, NewMethod
+    f = CandidateFeatures(paper_id="p1", persona_cos=0.8, session_cos=None, citation=CitationSignal(),
+                          facet=FacetMatch(), new_method=NewMethod(), penalty=0.0)
+    user = CachedUserCandidateData(author_id="A1", profile=MagicMock(), candidate_ids=["p1"], features=[f], targets=["p1"])
+    store = MagicMock()
+    store.select.side_effect = lambda pids: np.ones((len(pids), 2), dtype=np.float32)
+    resources = SimpleNamespace(store=store)
+    import paperfeed.eval.tuning as tuning
+    orig = tuning.score_candidates
+    tuning.score_candidates = fake_score
+    try:
+        res = evaluate_parameter_grid(
+            [user], resources, grid={"w_cite": [0.5], "w_facet": [0.0], "w_nov": [0.0], "lambda_div": [0.0]},
+            k=1, adaptive_graph=False, base_weights=ScoringWeights(w_pop=0.2, lambda_neg=0.7),
+        )
+    finally:
+        tuning.score_candidates = orig
+    assert seen and all(w.w_pop == 0.2 and w.lambda_neg == 0.7 for w in seen)  # not silently reset to 0
+    assert res.best_weights.w_pop == 0.2
+
+
+def test_hybrid_persona_rebuilds_the_persona_with_its_own_gamma():
+    from paperfeed.eval.baselines import _persona_vector_for_gamma
+    from paperfeed.index.store import EmbeddingStore
+    from paperfeed.user.persona import Persona
+
+    store = EmbeddingStore(["U1", "U2"], np.array([[1, 0], [0, 1]], dtype=np.float32))
+    papers = [{"paper_id": "U1", "title": "a", "abstract": "x", "year": 2024}, {"paper_id": "U2", "title": "b", "abstract": "x", "year": 2014}]
+    own = Persona(vector=np.array([1.0, 0.0], dtype=np.float32), source="authored", paper_ids=["U1", "U2"])
+    profile = SimpleNamespace(persona=own, authored_papers=papers, zero_pub=False)
+    resources = SimpleNamespace(store=store, encoder=None, cutoff_year=2024)
+
+    np.testing.assert_array_equal(_persona_vector_for_gamma(resources, profile, None), own.vector)
+    np.testing.assert_allclose(_persona_vector_for_gamma(resources, profile, 1.0), [2 ** -0.5, 2 ** -0.5], atol=1e-6)
+    profile.zero_pub = True  # a seed-topic persona has no papers to re-weight
+    np.testing.assert_array_equal(_persona_vector_for_gamma(resources, profile, 1.0), own.vector)
+
+
+def test_tune_hybrid_persona_picks_the_best_grid_point(monkeypatch):
+    import paperfeed.eval.baselines as baselines
+    from paperfeed.eval.tuning import tune_hybrid_persona
+
+    def fake_hybrid(resources, profile, k, n_terms, n_titles, gamma_rec):
+        return ["hit"] if (gamma_rec, n_terms) == (0.8, 20) else ["miss"]
+
+    monkeypatch.setattr(baselines, "hybrid_persona_baseline", fake_hybrid)
+    users = [CachedUserCandidateData(author_id=f"A{i}", profile=None, candidate_ids=[], features=[], targets=["hit"]) for i in range(3)]
+    out = tune_hybrid_persona(users, resources=None, grid={"gamma_rec": [0.7, 0.8], "n_terms": [10, 20]}, n_titles=3)
+    assert (out["gamma_rec"], out["n_terms"], out["mean_ndcg"]) == (0.8, 20, 1.0)
+    assert out["grid_size"] == 4 and out["n_users"] == 3 and out["n_titles"] == 3
+
+
+
+def test_h1_is_supported_only_if_both_metrics_win():
+    n = 30
+    data = {
+        "Paper Feed (Full)": {"ndcg_at_10": [0.6] * n, "recall_at_10": [0.1] * n, "topic_entropy": [1.0] * n},
+        "Ablation: No-MMR": {"ndcg_at_10": [0.6] * n, "recall_at_10": [0.1] * n, "topic_entropy": [1.0] * n},
+    }
+    for b in ("popularity", "bm25_author", "dense_centroid", "citation_only", "hybrid_persona"):
+        data[f"Baseline: {b}"] = {"ndcg_at_10": [0.2] * n, "recall_at_10": [0.3] * n}  # wins NDCG, loses Recall
+    rep = run_track1_hypothesis_tests(data, n_resamples=200)
+    assert not rep.h1_supported
+
+
+def test_bootstrap_mde_matches_the_normal_approximation_and_shrinks_with_n():
+    from paperfeed.eval.stats import bootstrap_mde
+
+    rng = np.random.default_rng(0)
+    small = rng.normal(0.0, 1.0, size=50)
+    large = rng.normal(0.0, 1.0, size=800)
+    mde_small = bootstrap_mde(small, np.zeros_like(small), n_resamples=4000)
+    mde_large = bootstrap_mde(large, np.zeros_like(large), n_resamples=4000)
+    analytic = 2.8016 * np.std(small, ddof=1) / np.sqrt(len(small))  # (1.96 + 0.84) * SE
+    assert mde_small == pytest.approx(analytic, rel=0.1)
+    assert mde_large < mde_small / 3  # ~ 1/sqrt(16) = 1/4 of the small-N MDE
+    assert bootstrap_mde([], []) == 0.0
+
+
+def test_h2_refuses_to_run_without_the_no_mmr_ablation():
+    n = 5
+    data = {"Paper Feed (Full)": {"ndcg_at_10": [0.5] * n, "recall_at_10": [0.1] * n, "topic_entropy": [1.0] * n}}
+    for b in ("popularity", "bm25_author", "dense_centroid", "citation_only", "hybrid_persona"):
+        data[f"Baseline: {b}"] = {"ndcg_at_10": [0.2] * n, "recall_at_10": [0.05] * n}
+    with pytest.raises(ValueError, match="No-MMR"):
+        run_track1_hypothesis_tests(data, n_resamples=50)
+
+
+# ---------------------------------------------------------------------------
+# Item cold-start slice, zero-publication baselines, report sections
+# ---------------------------------------------------------------------------
+
+from paperfeed.eval.report import format_cold_start_table, format_comparisons_markdown, format_zero_pub_section
+from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown
+
+
+def test_classify_cold_start_targets_follows_design_section_12():
+    counts = {"new": 0, "new1": 1, "old_uncited": 0, "busy": 50, "old_busy": 50, "middle": 5, "no_year": 0}
+    years = {"new": 2024, "new1": 2023, "old_uncited": 2005, "busy": 2015, "old_busy": 2008, "middle": 2023}
+    classes = classify_cold_start_targets(counts, years, cutoff_year=2024)
+    assert classes == {"new": "fresh", "new1": "fresh", "busy": "established"}
+    # an old paper with no counted citations is NOT fresh (its citations predate the 2012 counts_by_year window),
+    # an established paper must be from 2012 on, and unknown years are left out
+
+
+def test_item_cold_start_breakdown_hand_computed():
+    rows = [
+        UserEvaluationRow("A1", "test", "warm", 5, 3, {}, {"PF": ["f1", "x"], "BL": ["e1"], "Diagnostic: Re-Citation": ["f1"]}),
+        UserEvaluationRow("A2", "test", "warm", 5, 1, {}, {"PF": ["e2"], "BL": ["y"]}),
+    ]
+    targets = {"A1": ["f1", "f2", "e1"], "A2": ["e2"]}
+    classes = {"f1": "fresh", "f2": "fresh", "e1": "established", "e2": "established"}
+    out = item_cold_start_breakdown(rows, targets, classes, k=10)
+    assert out["fresh"]["PF"] == {"recall_at_10": 0.5, "n_authors": 1.0, "n_targets": 2.0}  # A2 has no fresh target
+    assert out["fresh"]["BL"]["recall_at_10"] == 0.0
+    assert out["established"]["PF"]["recall_at_10"] == pytest.approx(0.5)  # A1: 0/1, A2: 1/1
+    assert out["established"]["BL"]["recall_at_10"] == pytest.approx(0.5)  # A1: 1/1, A2: 0/1
+    assert out["established"]["PF"]["n_authors"] == 2.0
+    assert "Diagnostic: Re-Citation" not in out["fresh"]  # its targets are re-citations, not Discovery
+    table = format_cold_start_table(out)
+    assert "fresh (n = 1 authors)" in table and "established (n = 2 authors)" in table
+
+
+def test_zero_pub_bm25_queries_with_the_seed_topics():
+    seen = {}
+
+    class Lexical:
+        def search(self, query, k, exclusion_set=None, candidate_filter=None):
+            seen["query"] = query
+            return []
+
+    resources = SimpleNamespace(retriever=SimpleNamespace(lexical_index=Lexical()), eligible=set())
+    profile = SimpleNamespace(authored_papers=[], zero_pub=True, seed_topics=["Dense Retrieval", "Recommender Systems"],
+                              exclusion_sources=build_exclusion_sources([], []))
+    bm25_author_baseline(resources, profile, k=5)
+    assert seen["query"] == "Dense Retrieval Recommender Systems"
+
+
+def test_popularity_subfield_override_for_the_zero_pub_slice(pop_world):
+    resources, profile = pop_world
+    assert popularity_baseline(resources, profile, k=10, subfield="https://openalex.org/subfields/9999") == ["Q1"]
+    assert run_baseline("popularity", resources, profile, k=10, baseline_kwargs={"subfield": "https://openalex.org/subfields/9999"}) == ["Q1"]
+
+
+def test_report_sections_render():
+    from paperfeed.eval.stats import BootstrapComparison
+
+    comp = BootstrapComparison("Paper Feed (Full)", "Baseline: popularity", "recall_at_10", 0.2, 0.1, 0.1, 100.0,
+                               0.05, 0.15, 0.001, 0.002, 0.5, True, mde=0.04)
+    table = format_comparisons_markdown([comp])
+    assert "| Baseline: popularity | recall_at_10 |" in table and "| 0.0400 |" in table
+    section = format_zero_pub_section({"Paper Feed (Full)": {"ndcg_at_10": 0.1}}, [comp], n_authors=320)
+    assert "n = 320" in section and "Citation-only is not applicable" in section

@@ -11,9 +11,9 @@ Outputs both Markdown and LaTeX formats.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-from paperfeed.eval.stats import HypothesisTestReport
+from paperfeed.eval.stats import BootstrapComparison, HypothesisTestReport
 
 
 def format_main_table_markdown(system_aggregates: Mapping[str, Mapping[str, float]]) -> str:
@@ -81,17 +81,14 @@ def format_hypothesis_markdown(report: HypothesisTestReport) -> str:
     lines = [
         "### Hypothesis Testing Summary\n",
         f"**Sample Size:** N = {report.n_authors} test researchers | **Bootstrap Resamples:** B = {report.n_resamples:,}\n",
-        "#### Hypothesis H1: Paper Feed Outperforms Baselines (NDCG@10)",
+        "#### Hypothesis H1: Paper Feed Outperforms the Five Baselines (NDCG@10 and Recall@10)",
         f"**Verdict:** {'ACCEPTED (Supported by empirical data)' if report.h1_supported else 'REJECTED / INCONCLUSIVE'}\n",
-        "| Comparison Baseline | System NDCG | Baseline NDCG | Rel. Gain | 95% CI of Difference | p-value (raw) | p-value (BH FDR) | Cohen's d | Significant? |",
-        "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
+        format_comparisons_markdown(report.h1_comparisons),
+        "",
+        "*BH correction runs over all baseline x metric comparisons. MDE: smallest true difference detectable with 80% "
+        "power at alpha = 0.05 and this N; a non-significant row whose observed difference is below its MDE is "
+        "inconclusive, not evidence of no effect.*",
     ]
-
-    for c in report.h1_comparisons:
-        sig = "YES (p < 0.05)" if c.significant_at_05 else "NO"
-        lines.append(
-            f"| {c.baseline_name} | {c.mean_system:.4f} | {c.mean_baseline:.4f} | {c.relative_gain_percent:+.2f}% | [{c.ci_lower:+.4f}, {c.ci_upper:+.4f}] | {c.p_value:.4e} | {c.p_value_corrected:.4e} | {c.cohens_d:.3f} | {sig} |"
-        )
 
     lines.append("\n#### Hypothesis H2: MMR Diversity with Non-Inferiority")
     lines.append(f"**Verdict:** {'ACCEPTED (Supported by empirical data)' if report.h2_supported else 'REJECTED / INCONCLUSIVE'}\n")
@@ -99,13 +96,65 @@ def format_hypothesis_markdown(report: HypothesisTestReport) -> str:
     ndcg = report.h2_mmr_ndcg_retention
     lines.append(
         f"- **Entropy Increase (one-sided):** Delta = {ent.mean_diff:+.4f} ({ent.relative_gain_percent:+.2f}%), "
-        f"95% CI = [{ent.ci_lower:+.4f}, {ent.ci_upper:+.4f}], p = {ent.p_value:.4e} (Significant: {ent.significant_at_05})"
+        f"95% CI = [{ent.ci_lower:+.4f}, {ent.ci_upper:+.4f}], p = {ent.p_value:.4e}, MDE = {ent.mde:.4f} (Significant: {ent.significant_at_05})"
     )
     lines.append(
         f"- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = {abs(ndcg.relative_gain_percent):.2f}%, "
-        f"95% CI = [{ndcg.ci_lower:+.4f}, {ndcg.ci_upper:+.4f}], p = {ndcg.p_value:.4e} (Non-inferior: {ndcg.significant_at_05})"
+        f"95% CI = [{ndcg.ci_lower:+.4f}, {ndcg.ci_upper:+.4f}], p = {ndcg.p_value:.4e}, MDE = {ndcg.mde:.4f} (Non-inferior: {ndcg.significant_at_05})"
     )
 
+    return "\n".join(lines)
+
+
+def format_comparisons_markdown(comparisons: List[BootstrapComparison]) -> str:
+    """One row per (baseline, metric) paired-bootstrap comparison."""
+    lines = [
+        "| Comparison Baseline | Metric | System | Baseline | Rel. Gain | 95% CI of Difference | p (raw) | p (BH) | Cohen's d | MDE | Significant? |",
+        "| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
+    ]
+    for c in comparisons:
+        sig = "YES (p < 0.05)" if c.significant_at_05 else "NO"
+        lines.append(
+            f"| {c.baseline_name} | {c.metric_name} | {c.mean_system:.4f} | {c.mean_baseline:.4f} | {c.relative_gain_percent:+.2f}% "
+            f"| [{c.ci_lower:+.4f}, {c.ci_upper:+.4f}] | {c.p_value:.4e} | {c.p_value_corrected:.4e} | {c.cohens_d:.3f} "
+            f"| {c.mde:.4f} | {sig} |"
+        )
+    return "\n".join(lines)
+
+
+def format_zero_pub_section(
+    system_aggregates: Mapping[str, Mapping[str, float]],
+    comparisons: List[BootstrapComparison],
+    n_authors: int,
+) -> str:
+    """Zero-Publication Seed-Only slice: its own systems and comparisons, never mixed with the main tables."""
+    return "\n".join([
+        f"Re-run of the test cohort with each profile replaced by the author's 3 seed topics (n = {n_authors}): "
+        "E_u is empty and the ground truth is Ref(B) <= T minus Authored(u). Lexical and Dense baselines query with "
+        "the seed topics, Popularity uses the seed topics' subfield, Citation-only is not applicable. Compare only "
+        "within this table.\n",
+        format_main_table_markdown(system_aggregates),
+        "",
+        format_comparisons_markdown(comparisons),
+    ])
+
+
+def format_cold_start_table(breakdown: Mapping[str, Mapping[str, Mapping[str, float]]]) -> str:
+    """Recall@10 over fresh vs established targets, per system, with n per class."""
+    classes = [c for c in ("fresh", "established") if c in breakdown]
+    systems = list(dict.fromkeys(name for c in classes for name in breakdown[c]))
+    header = "| System | " + " | ".join(
+        f"Recall@10 {c} (n = {int(next(iter(breakdown[c].values()))['n_authors']) if breakdown[c] else 0} authors)" for c in classes
+    ) + " |"
+    lines = [header, "| :--- |" + " :---: |" * len(classes)]
+    for name in systems:
+        cells = [f"{breakdown[c][name]['recall_at_10']:.4f}" if name in breakdown[c] else "-" for c in classes]
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    lines.append("")
+    lines.append(
+        "*fresh: citation_count_T <= 1 and published in [T-1, T]; established: citation_count_T >= 20 and published "
+        "since 2012 (design §12). Each class averages over the authors with at least one target in it.*"
+    )
     return "\n".join(lines)
 
 
@@ -114,6 +163,7 @@ def generate_full_evaluation_report(
     hypothesis_report: HypothesisTestReport,
     slice_results: Optional[Mapping[str, Mapping[str, Mapping[str, float]]]] = None,
     run_notes: Optional[str] = None,
+    extra_sections: Optional[List[Tuple[str, str]]] = None,
 ) -> str:
     """Generate complete markdown report containing all tables and hypothesis results."""
     parts = [
@@ -152,6 +202,10 @@ def generate_full_evaluation_report(
                 f"| {s_name.capitalize()} | {n_auth} | {pf_ndcg:.4f} | {best_base:.4f} | {gain:+.2f}% |"
             )
         parts.append("\n".join(lines))
+
+    for i, (title, body) in enumerate(extra_sections or [], start=5):
+        parts.append(f"\n## {i}. {title}\n")
+        parts.append(body)
 
     return "\n".join(parts)
 

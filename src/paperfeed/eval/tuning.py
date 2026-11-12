@@ -60,6 +60,7 @@ class TuningResult:
     n_users: int
     top_configurations: List[Dict[str, Any]] = field(default_factory=list)
     config_signature: Optional[Dict[str, Any]] = None
+    hybrid_persona: Optional[Dict[str, Any]] = None  # the baseline's own tuned gamma_rec / n_terms (plan §6.3)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -70,6 +71,7 @@ class TuningResult:
             "n_users": self.n_users,
             "top_configurations": self.top_configurations,
             "config_signature": self.config_signature,
+            "hybrid_persona": self.hybrid_persona,
         }
 
     def save(self, path: Path | str) -> None:
@@ -162,13 +164,19 @@ def evaluate_parameter_grid(
     k: int = 10,
     adaptive_graph: bool = True,
     config_signature: Optional[Dict[str, Any]] = None,
+    base_weights: Optional[ScoringWeights] = None,
 ) -> TuningResult:
-    """Evaluate grid search in memory across all cached tuning authors."""
+    """Evaluate grid search in memory across all cached tuning authors.
+
+    Weights that are not on the grid (w_pers, w_sess, lambda_neg and, unless the grid lists it, w_pop) come from
+    ``base_weights``: the run's configured weights, so the grid is tuned with the same scoring rule it is evaluated with.
+    """
+    base = base_weights or ScoringWeights()
     g = dict(grid or DEFAULT_TRACK1_GRID)
     w_cites = list(g.get("w_cite", [0.5]))
     w_facets = list(g.get("w_facet", [0.5]))
     w_novs = list(g.get("w_nov", [0.5]))
-    w_pops = list(g.get("w_pop", [0.0]))
+    w_pops = list(g.get("w_pop", [base.w_pop]))
     lambdas = list(g.get("lambda_div", [0.2]))
 
     combinations = list(itertools.product(w_cites, w_facets, w_novs, w_pops, lambdas))
@@ -178,7 +186,7 @@ def evaluate_parameter_grid(
     best_combo = None
 
     for w_cite, w_facet, w_nov, w_pop, lam in combinations:
-        weights = ScoringWeights(w_pers=1.0, w_sess=1.0, w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
+        weights = base.with_overrides(w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
         ndcgs: List[float] = []
 
         for user_data in cached_data:
@@ -214,7 +222,7 @@ def evaluate_parameter_grid(
     results.sort(key=lambda x: x["mean_ndcg"], reverse=True)
 
     if best_combo is None:
-        best_weights = ScoringWeights()
+        best_weights = base
         best_lam = 0.2
     else:
         best_weights, best_lam = best_combo
@@ -228,3 +236,41 @@ def evaluate_parameter_grid(
         top_configurations=results[:10],
         config_signature=config_signature,
     )
+
+
+DEFAULT_HYBRID_GRID = {
+    "gamma_rec": [0.7, 0.8, 0.9, 1.0],
+    "n_terms": [5, 10, 20],
+}
+
+
+def tune_hybrid_persona(
+    cached_data: Sequence[CachedUserCandidateData],
+    resources: RecommenderResources,
+    grid: Optional[Mapping[str, Sequence[float]]] = None,
+    n_titles: int = 3,
+    k: int = 10,
+) -> Dict[str, Any]:
+    """Tune the Hybrid-Persona baseline's gamma_rec and pseudo-query length on the tuning authors (plan §6.3).
+
+    Objective: mean Discovery NDCG@10, the same objective and authors as the system's grid. Ties keep the earlier
+    grid point, so the choice is reproducible.
+    """
+    from paperfeed.eval.baselines import hybrid_persona_baseline
+
+    g = dict(grid or DEFAULT_HYBRID_GRID)
+    records: List[Dict[str, Any]] = []
+    best: Optional[Dict[str, Any]] = None
+    for gamma_rec, n_terms in itertools.product(g.get("gamma_rec", [0.9]), g.get("n_terms", [10])):
+        ndcgs = [
+            ndcg_at_k(
+                hybrid_persona_baseline(resources, u.profile, k, int(n_terms), n_titles, float(gamma_rec)), u.targets, k=k
+            )
+            for u in cached_data
+        ]
+        record = {"gamma_rec": float(gamma_rec), "n_terms": int(n_terms), "mean_ndcg": float(np.mean(ndcgs)) if ndcgs else 0.0}
+        records.append(record)
+        if best is None or record["mean_ndcg"] > best["mean_ndcg"]:
+            best = record
+    records.sort(key=lambda r: r["mean_ndcg"], reverse=True)
+    return {**(best or {}), "n_titles": n_titles, "grid_size": len(records), "n_users": len(cached_data), "top_configurations": records[:10]}
