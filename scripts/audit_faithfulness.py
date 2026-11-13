@@ -18,6 +18,7 @@ Audits deterministic recommendations against two criteria (prob.md §2.4, §6E.5
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from datetime import datetime, timezone
 import json
 from pathlib import Path
@@ -35,9 +36,11 @@ from paperfeed.eval.tuning import (
     default_facet_selection_path,
     find_tuning_artifact,
     load_facet_selection,
+    load_v2_decision,
     tuning_signature,
 )
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
+from paperfeed.rec.rerank import CrossEncoderScorer
 from paperfeed.rec.scoring import ScoringWeights
 
 logger = get_logger("scripts.audit_faithfulness")
@@ -50,6 +53,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--enhanced", action="store_true", help="Use Track 1 enhanced parameters (M=250, M_channel=500, w_pop=0.20)")
     parser.add_argument("--facet-active", action="store_true", help="Audit the facet-active variant frozen by select_facet_config.py")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Filter popular papers from discovery")
+    parser.add_argument(
+        "--cross-encoder",
+        action="store_true",
+        help="Audit the V2 cross-encoder variant (plan 10.2d), with the reranker and weights frozen by decide_cross_encoder.py",
+    )
     parser.add_argument(
         "--graph-channel",
         action="store_true",
@@ -94,6 +102,13 @@ def audit_config(cfg, cohort, args, artifacts_dir):
             raise ValueError("--graph-channel audits the V4 run of the headline configuration with its frozen weights; "
                              "drop --enhanced, --filter-popular, --facet-active and --skip-tuning.")
         rec_cfg = rec_cfg.with_overrides(graph_channel=True)  # part of the tuning signature
+    if getattr(args, "cross_encoder", False):
+        if (getattr(args, "enhanced", False) or filter_popular is not None or facet_active or span_check
+                or getattr(args, "graph_channel", False) or getattr(args, "skip_tuning", False)):
+            raise ValueError("--cross-encoder audits the V2 run of the headline configuration with its frozen reranker "
+                             "and weights; drop --enhanced, --filter-popular, --facet-active, --span-check, "
+                             "--graph-channel and --skip-tuning.")
+        rec_cfg = rec_cfg.with_overrides(cross_encoder=load_v2_decision(artifacts_dir)["chosen_model"])
     if getattr(args, "skip_tuning", False):
         if facet_active:
             raise ValueError("--facet-active audits the frozen selection; it cannot be combined with --skip-tuning.")
@@ -162,6 +177,11 @@ def main() -> int:
     else:
         results_name = "faithfulness_audit_report.json"
 
+    if args.cross_encoder:  # the V2 audit gets its own files
+        if not args.report_name:
+            report_name = report_name.replace(".md", "_cross_encoder.md")
+        if not args.results_name:
+            results_name = results_name.replace(".json", "_cross_encoder.json")
     if args.graph_channel:  # the V4 audit gets its own files
         if not args.report_name:
             report_name = report_name.replace(".md", "_graph_channel.md")
@@ -198,6 +218,8 @@ def _run(args, root, cfg, manifest, report_path, results_path):
     logger.info("Found %d test authors in cohort.", len(test_authors))
 
     rec_cfg, weights_source = audit_config(cfg, cohort, args, root / cfg["paths"]["artifacts_dir"])
+    if rec_cfg.cross_encoder:
+        resources = replace(resources, reranker=CrossEncoderScorer(rec_cfg.cross_encoder))
     logger.info("Auditing with %s: %s, lambda_div=%.2f", weights_source, rec_cfg.weights, rec_cfg.lambda_div)
 
     t_start = time.time()
@@ -225,6 +247,8 @@ def _run(args, root, cfg, manifest, report_path, results_path):
         "weights": vars(rec_cfg.weights),
         "lambda_div": rec_cfg.lambda_div,
         "pool_size": rec_cfg.pool_size,
+        "cross_encoder": rec_cfg.cross_encoder,
+        "n_reranker_dominant": audit_result.n_reranker_dominant,
         "n_span_explanations_audited": audit_result.n_span_explanations,
         "template_distribution": audit_result.template_distribution,
         "extractive_grounding_rate": audit_result.extractive_grounding_rate,

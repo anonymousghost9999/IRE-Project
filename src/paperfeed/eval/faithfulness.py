@@ -100,6 +100,9 @@ class FaithfulnessAuditResult:
     per_template: Dict[str, Dict[str, int]] = field(default_factory=dict)
     # population template counts over every covered Top-10 item (before sampling)
     population_template_distribution: Dict[str, int] = field(default_factory=dict)
+    # V2 (design §13.8 point 6): Top-10 items whose reranker contribution exceeds every explainable contribution, i.e.
+    # where the shown explanation is not the main reason for the rank. None when the reranker is off.
+    n_reranker_dominant: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -120,6 +123,7 @@ class FaithfulnessAuditResult:
             "per_template": self.per_template,
             "population_template_distribution": self.population_template_distribution,
             "n_span_explanations_audited": self.n_span_explanations,
+            "n_reranker_dominant": self.n_reranker_dominant,
             "audited_explanations": [a.to_dict() for a in self.audited_explanations],
         }
 
@@ -203,6 +207,13 @@ class FaithfulnessAuditResult:
             notes.append(
                 "- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation "
                 f"edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the audited weights {why}."
+            )
+        if self.n_reranker_dominant is not None:
+            share = self.n_reranker_dominant / max(self.total_evaluated_recommendations, 1)
+            notes.append(
+                f"- **Reranker (V2):** in {self.n_reranker_dominant} of {self.total_evaluated_recommendations} Top-10 items "
+                f"({share:.1%}) the cross-encoder term outweighs every explainable term, so the shown explanation is not "
+                "the main reason for the rank (design §13.8, V2 point 6)."
             )
         notes.append(
             "- Zeroing the dominant term removes the largest part of a paper's score, so a high drop-out rate is expected "
@@ -520,6 +531,7 @@ def run_faithfulness_audit(
     population_templates: Dict[str, int] = {}
     total_recs = 0
     covered_recs = 0
+    reranker_dominant = 0
 
     for idx, author_info in enumerate(authors_to_eval):
         aid = clean_id(author_info["author_id"])
@@ -543,6 +555,10 @@ def run_faithfulness_audit(
 
         for item in res.items:
             total_recs += 1
+            if cfg.cross_encoder:
+                explainable = max((item.contributions.get(f, 0.0) for f in EXPLAINABLE_FEATURES), default=0.0)
+                if item.contributions.get("cross_encoder", 0.0) > explainable + 1e-12:
+                    reranker_dominant += 1
             exp_res = item.explanation
             if exp_res and exp_res.covered and exp_res.dominant_feature:
                 population_templates[exp_res.dominant_feature] = population_templates.get(exp_res.dominant_feature, 0) + 1
@@ -652,5 +668,6 @@ def run_faithfulness_audit(
         audited_explanations=audited_list,
         per_template=per_template,
         population_template_distribution=population_templates,
+        n_reranker_dominant=reranker_dominant if cfg.cross_encoder else None,
     )
 

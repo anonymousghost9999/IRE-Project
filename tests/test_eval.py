@@ -921,3 +921,72 @@ def test_coverage_note_names_the_graph_channel_only_when_it_is_on():
     aggs = {"Paper Feed (Full)": {"recall_at_100": 0.08, "recall_at_10": 0.02}}
     assert "text channels (BM25 + SPECTER2, RRF)" in format_coverage_ceiling_table(aggs)
     assert "citation-graph channel" in format_coverage_ceiling_table(aggs, graph_channel=True)
+
+
+# ---------------------------------------------------------------------------
+# V2 cross-encoder tuning and decision (plan 10.2b-c)
+# ---------------------------------------------------------------------------
+
+def _gp_ce(w_ce, ndcgs):
+    params = {"w_cite": 1.0, "w_facet": 0.0, "w_nov": 0.0, "w_pop": 0.0, "lambda_div": 0.0, "w_ce": w_ce}
+    return GridPoint(params, ScoringWeights(w_cite=1.0, w_facet=0.0, w_nov=0.0, w_ce=w_ce), 0.0, np.asarray(ndcgs, dtype=float))
+
+
+def test_v2_picks_the_better_reranker_and_applies_the_ci_rule():
+    from paperfeed.eval.tuning import decide_cross_encoder
+
+    n = 40
+    users = _v4_users(n, [["t1"]] * n)
+    core = [_gp(0.0, w_cite=1.0, ndcgs=[0.2] * n)]
+    strong = [_gp_ce(0.0, [0.2] * n), _gp_ce(0.5, [0.3 + 0.01 * (i % 3) for i in range(n)])]
+    weak = [_gp_ce(0.0, [0.2] * n), _gp_ce(1.0, [0.22] * n)]
+    d = decide_cross_encoder(core, {"m1": weak, "m2": strong}, users, {"m1": users, "m2": users}, n_resamples=500)
+    assert d["chosen_model"] == "m2" and d["v2"]["w_ce"] == 0.5 and d["adopt_v2"] is True
+    assert d["per_model_optimum"]["m1"]["w_ce"] == 1.0
+
+    # the reranker never helps: the optimum is w_ce = 0, i.e. Core itself, and it is not adopted
+    useless = [_gp_ce(0.0, [0.2] * n), _gp_ce(0.5, [0.1] * n)]
+    d = decide_cross_encoder(core, {"m1": useless}, users, {"m1": users}, n_resamples=500)
+    assert d["v2"]["w_ce"] == 0.0 and d["ndcg_gain"]["mean_diff"] == 0.0 and d["adopt_v2"] is False
+
+
+def test_v2_grid_prefers_smaller_w_ce_on_ties_and_core_grid_records_are_unchanged():
+    from paperfeed.eval.tuning import CachedUserCandidateData, grid_per_user_ndcg
+    from paperfeed.rec.features import CitationSignal, FacetMatch, NewMethod
+
+    f = CandidateFeatures(paper_id="p1", persona_cos=0.8, session_cos=None, citation=CitationSignal(),
+                          facet=FacetMatch(), new_method=NewMethod(), penalty=0.0, ce_score=1.0)
+    user = CachedUserCandidateData(author_id="A1", profile=MagicMock(authored_papers=[{}] * 5, zero_pub=False),
+                                   candidate_ids=["p1"], features=[f], targets=["p1"])
+    store = MagicMock()
+    store.select.side_effect = lambda pids: np.ones((len(pids), 2), dtype=np.float32)
+    small = {"w_cite": [1.0], "w_facet": [0.0], "w_nov": [0.0], "lambda_div": [0.0]}
+    core_pts = grid_per_user_ndcg([user], SimpleNamespace(store=store), grid=small)
+    assert "w_ce" not in core_pts[0].params
+    v2_pts = grid_per_user_ndcg([user], SimpleNamespace(store=store), grid={**small, "w_ce": [0.0, 1.0]})
+    assert [p.params["w_ce"] for p in v2_pts] == [0.0, 1.0] and [p.weights.w_ce for p in v2_pts] == [0.0, 1.0]
+    from paperfeed.eval.tuning import best_grid_point
+    assert best_grid_point(v2_pts).params["w_ce"] == 0.0  # same NDCG: the earlier (smaller) w_ce wins
+
+
+def test_with_reranker_scores_keeps_the_pool_and_adds_scores(monkeypatch):
+    from paperfeed.eval import tuning
+    from paperfeed.eval.tuning import CachedUserCandidateData, latency_summary, with_reranker_scores
+    from paperfeed.rec import rerank
+    from paperfeed.rec.features import CitationSignal, FacetMatch, NewMethod
+
+    monkeypatch.setattr(rerank, "candidate_texts", lambda db, ids: {i: f"text {i}" for i in ids})
+    feats = [CandidateFeatures(paper_id=p, persona_cos=0.5, session_cos=None, citation=CitationSignal(),
+                               facet=FacetMatch(), new_method=NewMethod(), penalty=0.0) for p in ("a", "b")]
+    user = CachedUserCandidateData("A1", MagicMock(), ["a", "b"], feats, ["a"], pseudo_query="dense retrieval")
+
+    class Fake:
+        model_name = "fake"
+        def score(self, query, texts):
+            assert query == "dense retrieval" and texts == ["text a", "text b"]
+            return [0.1, 0.9]
+
+    out, secs = with_reranker_scores([user], SimpleNamespace(db=None), Fake())
+    assert [f.ce_score for f in out[0].features] == [0.1, 0.9] and out[0].candidate_ids == ["a", "b"]
+    assert user.features[0].ce_score is None  # the Core cache is not modified
+    assert len(secs) == 1 and latency_summary(secs)["n_feeds"] == 1

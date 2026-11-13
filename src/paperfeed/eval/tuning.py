@@ -56,6 +56,7 @@ class CachedUserCandidateData:
     candidate_ids: List[str]
     features: List[CandidateFeatures]
     targets: List[str]  # in-corpus discovery targets
+    pseudo_query: str = ""  # the feed pseudo-query (V2 reranks the pool against it)
 
 
 @dataclass
@@ -159,6 +160,7 @@ def precompute_tuning_cache(
                     candidate_ids=cand_ids,
                     features=features,
                     targets=targets,
+                    pseudo_query=pseudo_query,
                 )
             )
         except Exception as exc:
@@ -198,18 +200,19 @@ def grid_per_user_ndcg(
 ) -> List[GridPoint]:
     """Score every grid point on every cached tuning author, in grid order.
 
-    Weights that are not on the grid (w_pers, w_sess, lambda_neg and, unless the grid lists it, w_pop) come from
-    ``base_weights``: the run's configured weights, so the grid is tuned with the same scoring rule it is evaluated with.
+    Weights that are not on the grid (w_pers, w_sess, lambda_neg and, unless the grid lists them, w_pop and w_ce) come
+    from ``base_weights``: the run's configured weights, so the grid is tuned with the same scoring rule it is
+    evaluated with. ``w_ce`` (V2) varies fastest after the other weights, so on a tie the smaller w_ce wins.
     """
     base = base_weights or ScoringWeights()
     g = dict(grid or DEFAULT_TRACK1_GRID)
     combos = itertools.product(
         list(g.get("w_cite", [0.5])), list(g.get("w_facet", [0.5])), list(g.get("w_nov", [0.5])),
-        list(g.get("w_pop", [base.w_pop])), list(g.get("lambda_div", [0.2])),
+        list(g.get("w_pop", [base.w_pop])), list(g.get("w_ce", [base.w_ce])), list(g.get("lambda_div", [0.2])),
     )
     points: List[GridPoint] = []
-    for w_cite, w_facet, w_nov, w_pop, lam in combos:
-        weights = base.with_overrides(w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
+    for w_cite, w_facet, w_nov, w_pop, w_ce, lam in combos:
+        weights = base.with_overrides(w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop, w_ce=w_ce)
         ndcgs = []
         for user_data in cached_data:
             if not user_data.features:
@@ -218,6 +221,8 @@ def grid_per_user_ndcg(
             _, picks = _ranked_ids(user_data, resources, weights, lam, k, adaptive_graph)
             ndcgs.append(ndcg_at_k([p.paper_id for p in picks], user_data.targets, k=k))
         params = {"w_cite": w_cite, "w_facet": w_facet, "w_nov": w_nov, "w_pop": w_pop, "lambda_div": lam}
+        if "w_ce" in g:  # only V2 grids record it, so Core records stay as they were
+            params["w_ce"] = w_ce
         points.append(GridPoint(params, weights, lam, np.asarray(ndcgs, dtype=np.float64)))
     return points
 
@@ -465,6 +470,49 @@ def _point_record(pt: GridPoint) -> Dict[str, Any]:
     return {**pt.params, "mean_ndcg": pt.mean_ndcg}
 
 
+def _compare_to_core(
+    core_points: Sequence[GridPoint],
+    variant_points: Sequence[GridPoint],
+    core_cached: Sequence[CachedUserCandidateData],
+    variant_cached: Sequence[CachedUserCandidateData],
+    n_resamples: int,
+    seed: int,
+    alpha: float,
+) -> Dict[str, Any]:
+    """Each arm at its own grid optimum; paired-bootstrap NDCG@10 and candidate Recall@100 gains of the variant."""
+    from paperfeed.eval.stats import paired_bootstrap_test
+
+    core_ids = [u.author_id for u in core_cached]
+    if core_ids != [u.author_id for u in variant_cached]:
+        raise ValueError("Core and variant tuning caches must cover the same authors in the same order.")
+    core_best, var_best = best_grid_point(core_points), best_grid_point(variant_points)
+    if core_best is None or var_best is None:
+        raise ValueError("Both arms need at least one grid point.")
+    if len(core_best.per_user_ndcg) != len(core_ids) or len(var_best.per_user_ndcg) != len(core_ids):
+        raise ValueError("Grid points do not match the cached authors.")
+
+    diff, lo, hi, p_value, d = paired_bootstrap_test(
+        var_best.per_user_ndcg, core_best.per_user_ndcg, n_resamples=n_resamples, alpha=alpha, seed=seed
+    )
+    core_recall, var_recall = candidate_recall(core_cached), candidate_recall(variant_cached)
+    r_diff, r_lo, r_hi, _, _ = paired_bootstrap_test(var_recall, core_recall, n_resamples=n_resamples, alpha=alpha, seed=seed)
+    core_mean = core_best.mean_ndcg
+    return {
+        "n_users": len(core_ids),
+        "core": {**_point_record(core_best), "candidate_recall_at_100": float(core_recall.mean())},
+        "variant": {**_point_record(var_best), "candidate_recall_at_100": float(var_recall.mean())},
+        "ndcg_gain": {
+            "mean_diff": diff,
+            "relative": diff / core_mean if core_mean > 0 else None,
+            "ci": [lo, hi],
+            "p_value": p_value,
+            "cohens_d": d,
+        },
+        "candidate_recall_gain": {"mean_diff": r_diff, "ci": [r_lo, r_hi]},
+        "adopt": bool(lo > 0),
+    }
+
+
 def decide_graph_channel(
     core_points: Sequence[GridPoint],
     v4_points: Sequence[GridPoint],
@@ -480,23 +528,7 @@ def decide_graph_channel(
     Both arms must cover the same tuning authors in the same order. Candidate Recall@100 is reported alongside as the
     mechanism check; it does not enter the decision.
     """
-    from paperfeed.eval.stats import paired_bootstrap_test
-
-    core_ids = [u.author_id for u in core_cached]
-    if core_ids != [u.author_id for u in v4_cached]:
-        raise ValueError("Core and V4 tuning caches must cover the same authors in the same order.")
-    core_best, v4_best = best_grid_point(core_points), best_grid_point(v4_points)
-    if core_best is None or v4_best is None:
-        raise ValueError("Both arms need at least one grid point.")
-    if len(core_best.per_user_ndcg) != len(core_ids) or len(v4_best.per_user_ndcg) != len(core_ids):
-        raise ValueError("Grid points do not match the cached authors.")
-
-    diff, lo, hi, p_value, d = paired_bootstrap_test(
-        v4_best.per_user_ndcg, core_best.per_user_ndcg, n_resamples=n_resamples, alpha=alpha, seed=seed
-    )
-    core_recall, v4_recall = candidate_recall(core_cached), candidate_recall(v4_cached)
-    r_diff, r_lo, r_hi, _, _ = paired_bootstrap_test(v4_recall, core_recall, n_resamples=n_resamples, alpha=alpha, seed=seed)
-    core_mean = core_best.mean_ndcg
+    cmp = _compare_to_core(core_points, v4_points, core_cached, v4_cached, n_resamples, seed, alpha)
     return {
         "rule": {
             "statement": "V4 replaces the Core pool only if the paired-bootstrap 95% CI of its tuning-split mean "
@@ -505,19 +537,106 @@ def decide_graph_channel(
             "alpha": alpha,
             "seed": seed,
         },
-        "n_users": len(core_ids),
-        "core": {**_point_record(core_best), "candidate_recall_at_100": float(core_recall.mean())},
-        "v4": {**_point_record(v4_best), "candidate_recall_at_100": float(v4_recall.mean())},
-        "ndcg_gain": {
-            "mean_diff": diff,
-            "relative": diff / core_mean if core_mean > 0 else None,
-            "ci": [lo, hi],
-            "p_value": p_value,
-            "cohens_d": d,
-        },
-        "candidate_recall_gain": {"mean_diff": r_diff, "ci": [r_lo, r_hi]},
-        "adopt_v4": bool(lo > 0),
+        "n_users": cmp["n_users"],
+        "core": cmp["core"],
+        "v4": cmp["variant"],
+        "ndcg_gain": cmp["ndcg_gain"],
+        "candidate_recall_gain": cmp["candidate_recall_gain"],
+        "adopt_v4": cmp["adopt"],
     }
+
+
+# ---------------------------------------------------------------------------
+# V2 cross-encoder: decision on the tuning split (design §13.8, plan 10.2b-c)
+# ---------------------------------------------------------------------------
+
+V2_GRID = {**DEFAULT_TRACK1_GRID, "w_ce": [0.0, 0.25, 0.5, 1.0]}
+
+
+def with_reranker_scores(
+    cached_data: Sequence[CachedUserCandidateData],
+    resources: RecommenderResources,
+    reranker: Any,
+) -> Tuple[List[CachedUserCandidateData], List[float]]:
+    """Copies of the cached tuning authors with the reranker score on every candidate, and the seconds per feed.
+
+    V2 never changes the pool, so the Core pools and features are reused as they are and only ``ce_score`` is added;
+    this makes the V2 and Core arms rank exactly the same candidates.
+    """
+    from dataclasses import replace as dc_replace
+
+    from paperfeed.rec.rerank import add_reranker_scores, candidate_texts
+
+    out: List[CachedUserCandidateData] = []
+    seconds: List[float] = []
+    for u in cached_data:
+        texts = candidate_texts(resources.db, [f.paper_id for f in u.features])
+        feats, secs = add_reranker_scores(u.features, u.pseudo_query, texts, reranker)
+        out.append(dc_replace(u, features=feats))
+        seconds.append(secs)
+    return out, seconds
+
+
+def latency_summary(seconds: Sequence[float]) -> Dict[str, float]:
+    arr = np.asarray(seconds, dtype=np.float64)
+    if arr.size == 0:
+        return {"mean_s": 0.0, "p95_s": 0.0, "n_feeds": 0}
+    return {"mean_s": float(arr.mean()), "p95_s": float(np.percentile(arr, 95)), "n_feeds": int(arr.size)}
+
+
+def decide_cross_encoder(
+    core_points: Sequence[GridPoint],
+    model_points: Mapping[str, Sequence[GridPoint]],
+    core_cached: Sequence[CachedUserCandidateData],
+    model_cached: Mapping[str, Sequence[CachedUserCandidateData]],
+    n_resamples: int = 10000,
+    seed: int = 42,
+    alpha: float = 0.05,
+) -> Dict[str, Any]:
+    """Pre-registered V2 rule (D§13.8 V2 point 5): the reranker with the higher tuning-split NDCG@10 at its own grid
+    optimum is the V2 candidate (ties: the first listed); it replaces Core only if the paired-bootstrap 95% CI of its
+    NDCG@10 gain over Core lies above zero. An optimum with w_ce = 0 is Core itself and is never adopted."""
+    if not model_points:
+        raise ValueError("At least one reranker is needed.")
+    per_model = {}
+    for name, points in model_points.items():
+        best = best_grid_point(points)
+        if best is None:
+            raise ValueError(f"No grid points for {name}.")
+        per_model[name] = _point_record(best)
+    chosen = max(model_points, key=lambda m: (per_model[m]["mean_ndcg"], -list(model_points).index(m)))
+    cmp = _compare_to_core(core_points, model_points[chosen], core_cached, model_cached[chosen], n_resamples, seed, alpha)
+    uses_reranker = cmp["variant"].get("w_ce", 0.0) > 0
+    return {
+        "rule": {
+            "statement": "The reranker with the higher tuning-split NDCG@10 at its own grid optimum is the V2 "
+            "candidate; it replaces Core only if the paired-bootstrap 95% CI of its NDCG@10 gain over Core lies above "
+            "zero, and never when its optimum has w_ce = 0 (design §13.8, V2 point 5).",
+            "w_ce_grid": V2_GRID["w_ce"],
+            "n_resamples": n_resamples,
+            "alpha": alpha,
+            "seed": seed,
+        },
+        "n_users": cmp["n_users"],
+        "per_model_optimum": per_model,
+        "chosen_model": chosen,
+        "core": cmp["core"],
+        "v2": cmp["variant"],
+        "ndcg_gain": cmp["ndcg_gain"],
+        "adopt_v2": bool(cmp["adopt"] and uses_reranker),
+    }
+
+
+def load_v2_decision(artifacts_dir: Path | str) -> Dict[str, Any]:
+    """The frozen V2 decision (plan 10.2c), required before any --cross-encoder test run or audit."""
+    path = Path(artifacts_dir) / "variant_v2_decision.json"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found: freeze the V2 decision with scripts/decide_cross_encoder.py "
+                                "before the test run (plan 10.2c).")
+    decision = json.loads(path.read_text(encoding="utf-8"))
+    if decision.get("v2", {}).get("w_ce", 0.0) <= 0:
+        raise ValueError("The frozen V2 optimum has w_ce = 0: V2 is the Core system, so there is no V2 run to make.")
+    return decision
 
 
 def signature_hash(signature: Mapping[str, Any]) -> str:

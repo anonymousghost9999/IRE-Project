@@ -17,6 +17,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+from dataclasses import replace
 from collections import Counter
 from datetime import datetime, timezone
 import hashlib
@@ -41,6 +42,7 @@ from paperfeed.eval.report import format_cold_start_table, format_zero_pub_secti
 from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown, slice_by_history_volume
 from paperfeed.eval.stats import H1_METRICS, compare_system_to_baselines, run_track1_hypothesis_tests
 from paperfeed.eval.tuning import (
+    load_v2_decision,
     default_facet_selection_path,
     evaluate_parameter_grid,
     find_tuning_artifact,
@@ -51,6 +53,7 @@ from paperfeed.eval.tuning import (
     tuning_signature,
 )
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
+from paperfeed.rec.rerank import CrossEncoderScorer
 from paperfeed.rec.scoring import ScoringWeights
 
 logger = get_logger("scripts.run_track1_eval")
@@ -76,6 +79,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run the V4 citation-graph channel variant (design §13.8, plan 10.4d); needs the frozen decision from "
         "scripts/decide_graph_channel.py",
+    )
+    parser.add_argument(
+        "--cross-encoder",
+        action="store_true",
+        help="Run the V2 cross-encoder variant (design §13.8, plan 10.2d) with the reranker and weights frozen by "
+        "scripts/decide_cross_encoder.py",
     )
     parser.add_argument("--facet-active", action="store_true", help="Run the facet-active variant frozen by scripts/select_facet_config.py (design §9) instead of the grid optimum")
     parser.add_argument("--skip-zero-pub", action="store_true", help="Skip the Zero-Publication Seed-Only slice (a full extra pass over the test cohort)")
@@ -299,6 +308,7 @@ def main():
         "_filtered" if args.filter_popular is not None else "",
         "_facet_active" if args.facet_active else "",
         "_graph_channel" if args.graph_channel else "",
+        "_cross_encoder" if args.cross_encoder else "",
     ])
     run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
@@ -364,6 +374,19 @@ def run(args, root, cfg, manifest):
             if name.stem.startswith("track1_lfo") and not name.stem.endswith("_graph_channel"):
                 setattr(args, attr, f"{name.stem}_graph_channel{name.suffix}")
 
+    # V2 was tuned and decided for the headline configuration only (plan 10.2b-c)
+    v2_decision = None
+    if args.cross_encoder:
+        if args.enhanced or args.filter_popular is not None or args.facet_active or args.graph_channel:
+            raise ValueError("--cross-encoder was tuned for the headline configuration only; drop --enhanced, "
+                             "--filter-popular, --facet-active and --graph-channel.")
+        v2_decision = load_v2_decision(root / cfg["paths"]["artifacts_dir"])
+        resources = replace(resources, reranker=CrossEncoderScorer(v2_decision["chosen_model"]))
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith("_cross_encoder"):
+                setattr(args, attr, f"{name.stem}_cross_encoder{name.suffix}")
+
     # The facet-active variant writes its own files next to the run it varies
     if args.facet_active:
         for attr in ("report_name", "results_name"):
@@ -395,6 +418,8 @@ def run(args, root, cfg, manifest):
         )
     if args.graph_channel:
         tuned_config = tuned_config.with_overrides(graph_channel=True)  # part of the tuning signature
+    if args.cross_encoder:
+        tuned_config = tuned_config.with_overrides(cross_encoder=v2_decision["chosen_model"])  # in the signature
 
     # 1. Tuning stage
     tuning_sig = tuning_signature(
@@ -409,6 +434,11 @@ def run(args, root, cfg, manifest):
     artifacts_dir = root / cfg["paths"]["artifacts_dir"]
     # One tuning file per configuration (signature); older shared files are reused only on an exact signature match
     tuning_artifact = None if args.skip_tuning else find_tuning_artifact(artifacts_dir, tuning_sig)
+    if args.cross_encoder and (tuning_artifact is None or tuning_artifact.name != v2_decision.get("v2_tuning_file")):
+        raise RuntimeError(
+            f"The V2 test run must use the tuning file frozen with the decision ({v2_decision.get('v2_tuning_file')}), "
+            f"found {tuning_artifact.name if tuning_artifact else 'none'} (--skip-tuning is not allowed either)."
+        )
     if args.graph_channel and (tuning_artifact is None or tuning_artifact.name != v4_decision.get("v4_tuning_file")):
         # The V4 weights were frozen with the decision; re-tuning here would let the test run pick its own
         raise RuntimeError(
@@ -489,6 +519,14 @@ def run(args, root, cfg, manifest):
             + ("adopt V4" if v4_decision.get("adopt_v4") else "keep Core")
         )
         manifest.extra_metadata["v4_decision"] = {k: v4_decision.get(k) for k in ("adopt_v4", "core", "v4", "ndcg_gain")}
+    if args.cross_encoder:
+        variant = (
+            f"V2 cross-encoder feature, {v2_decision['chosen_model']} (design §13.8; exploratory, plan 10.2d); "
+            "tuning-split decision: " + ("adopt V2" if v2_decision.get("adopt_v2") else "keep Core")
+        )
+        manifest.extra_metadata["v2_decision"] = {
+            k: v2_decision.get(k) for k in ("adopt_v2", "chosen_model", "core", "v2", "ndcg_gain", "latency")
+        }
     manifest.extra_metadata["variant"] = variant
 
     # 2. Main LFO evaluation run on test split
@@ -563,7 +601,8 @@ def run(args, root, cfg, manifest):
         f"> - Mode: {'Enhanced (Option 2 & Option 3)' if (tuned_config.weights.w_pop > 0 or (tuned_config.pool_size and tuned_config.pool_size > 100)) else 'Baseline'}\n"
         f"> - Candidate Pool Size (M): {tuned_config.pool_size or 100}\n"
         f"> - Candidate Channels: {'SPECTER2 + BM25s + citation graph (V4)' if tuned_config.graph_channel else 'SPECTER2 + BM25s'}\n"
-        f"> - Channel Depth (M_channel): {tuned_config.channel_depth or 200}\n"
+        + (f"> - Reranker Feature (V2): {tuned_config.cross_encoder}, w_ce={tuned_config.weights.w_ce:.2f}\n" if tuned_config.cross_encoder else "")
+        + f"> - Channel Depth (M_channel): {tuned_config.channel_depth or 200}\n"
         f"> - Popularity Prior Weight (w_pop): {tuned_config.weights.w_pop:.2f}\n"
         f"> - Scoring Weights: w_pers={tuned_config.weights.w_pers:.2f}, w_cite={tuned_config.weights.w_cite:.2f}, "
         f"w_facet={tuned_config.weights.w_facet:.2f}, w_nov={tuned_config.weights.w_nov:.2f}, "

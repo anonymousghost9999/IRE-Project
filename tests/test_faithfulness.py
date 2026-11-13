@@ -499,3 +499,47 @@ def test_audit_graph_channel_uses_the_v4_tuning_file_only(tmp_path):
     for bad in ({"enhanced": True}, {"filter_popular": 200}, {"facet_active": True}, {"skip_tuning": True}):
         with pytest.raises(ValueError, match="graph-channel"):
             script.audit_config(cfg, cohort, SimpleNamespace(**{"enhanced": False, "skip_tuning": False, "graph_channel": True, **bad}), tmp_path)
+
+
+def test_report_states_the_reranker_dominant_share_only_for_v2():
+    per = {"persona": {"n": 10, "grounded": 10, "necessary": 10, "left_top_k": 10, "dropped_gte_3": 0}}
+    core = _result(per, {"persona": 100})
+    assert core.n_reranker_dominant is None and "Reranker (V2)" not in core.to_markdown()
+    v2 = _result(per, {"persona": 100})
+    v2.n_reranker_dominant = 25
+    md = v2.to_markdown()
+    assert "in 25 of 100 Top-10 items (25.0%)" in md and v2.to_dict()["n_reranker_dominant"] == 25
+
+
+def test_v2_decision_loader_refuses_missing_or_core_decisions(tmp_path):
+    from paperfeed.eval.tuning import load_v2_decision
+
+    with pytest.raises(FileNotFoundError, match="decide_cross_encoder"):
+        load_v2_decision(tmp_path)
+    (tmp_path / "variant_v2_decision.json").write_text(json.dumps({"v2": {"w_ce": 0.0}, "chosen_model": "m"}))
+    with pytest.raises(ValueError, match="w_ce = 0"):
+        load_v2_decision(tmp_path)
+    (tmp_path / "variant_v2_decision.json").write_text(json.dumps({"v2": {"w_ce": 0.5}, "chosen_model": "m"}))
+    assert load_v2_decision(tmp_path)["chosen_model"] == "m"
+
+
+def test_audit_cross_encoder_uses_the_v2_tuning_file_and_model(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}]
+    base = RecommendConfig.from_config(cfg)
+    (tmp_path / "variant_v2_decision.json").write_text(json.dumps({"v2": {"w_ce": 0.5}, "chosen_model": "fake-ce"}))
+    args = SimpleNamespace(enhanced=False, skip_tuning=False, cross_encoder=True)
+    with pytest.raises(FileNotFoundError):  # no V2 tuning file yet (the Core one would not match either)
+        script.audit_config(cfg, cohort, args, tmp_path)
+    sig = tuning_signature(base.with_overrides(cross_encoder="fake-ce"), ["A1"])
+    w = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.25, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0, "w_ce": 0.5}
+    tuning_artifact_path(tmp_path, sig).write_text(json.dumps({"config_signature": sig, "best_weights": w, "best_lambda_div": 0.5}))
+    rec_cfg, _ = script.audit_config(cfg, cohort, args, tmp_path)
+    assert rec_cfg.cross_encoder == "fake-ce" and rec_cfg.weights.w_ce == 0.5
+    for bad in ({"enhanced": True}, {"graph_channel": True}, {"span_check": True}, {"skip_tuning": True}):
+        with pytest.raises(ValueError, match="cross-encoder"):
+            script.audit_config(cfg, cohort, SimpleNamespace(**{"enhanced": False, "skip_tuning": False, "cross_encoder": True, **bad}), tmp_path)
