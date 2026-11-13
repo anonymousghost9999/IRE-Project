@@ -405,11 +405,15 @@ Run 30 personas × 5 seeds × 5 arms. Paired bootstrap over persona × seed unit
 
 **Order:** V4 first (no new models; addresses the Core test result), then V2 and V3 (reuse the tuning cache), then V1 (needs re-embedding). Track 2 (Phase 9) follows once the Phase 10 choices are frozen, so its pilot tuning runs on the final pool and scorer.
 
-### 10.1 V1 — Alternative encoders
+### 10.1 V1 — Alternative encoders (D§13.8, specification fixed there)
 - Build a fixed 20k-paper subset containing the tuning authors' neighbourhoods.
 - Embed it with SPECTER2 and with alternatives (SciNCL; a general embedding model such as BGE, E5 or a small Qwen-embedding model), each with its recommended query format.
 - Compare on CSFCube/LitSearch and on Track 1 tuning authors (Dense Centroid and the full system).
 - If one wins on tuning data, re-embed the full corpus with it and re-run the pipeline.
+- **10.1a** Encoders: one interface for SPECTER2, SciNCL, BGE and Qwen3-Embedding-0.6B with the formats of D§13.8 V1 point 2; unit tests on formats and pooling (tiny stand-in models).
+- **10.1b** Retrieval benchmarks: dense and RRF rows for all four encoders on CSFCube and LitSearch (reported, not decisive).
+- **10.1c** Subset and tuning-split comparison: the graph-neighbourhood 20k subset (D§13.8 V1 point 4); SPECTER2, SciNCL and BGE each embedded and grid-tuned on it; decision frozen in `data/artifacts/variant_v1_decision.json`.
+- **10.1d** Full-corpus embedding of the V1 candidate, grid re-tuned on the full tuning split, one Track 1 test run with `--encoder` and its audit.
 
 ### 10.2 V2 — Cross-encoder in feed mode (D§13.8, specification fixed there)
 Profile query text (recent authored titles + top canonical facet terms); rerank the 100 candidates with `bge-reranker-base` and `ms-marco-MiniLM-L-6-v2`; add the reranker score as a feature; tune its weight on the tuning split; record latency per feed.
