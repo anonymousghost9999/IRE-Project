@@ -4,12 +4,13 @@
 > **Evaluation Run Configuration:**
 > - Mode: Baseline
 > - Candidate Pool Size (M): 100
+> - Candidate Channels: SPECTER2 + BM25s
 > - Channel Depth (M_channel): 200
 > - Popularity Prior Weight (w_pop): 0.00
 > - Scoring Weights: w_pers=1.00, w_cite=1.00, w_facet=0.25, w_nov=0.25, lambda_div=0.50
 > - System variant: grid optimum (headline)
 > - Hybrid-Persona baseline: gamma_rec=1.00, n_terms=5
-> - Report: `track1_lfo_filtered_report.md` | Raw JSON: `track1_lfo_filtered_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_filtered_20261113T172154Z/manifest.json`
+> - Report: `track1_lfo_filtered_report.md` | Raw JSON: `track1_lfo_filtered_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_filtered_20261113T212606Z/manifest.json`
 > 
 > **Popularity Filter Active:**
 > - Threshold: citation_count_T >= 200
