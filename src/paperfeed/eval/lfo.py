@@ -150,10 +150,11 @@ def evaluate_author(
     res_full = recommend(resources, profile, session=None, mode="feed", config=cfg)
     _record("Paper Feed (Full)", res_full.paper_ids, res_full.candidate_ids, targets)
 
-    # 2. Ablations (one component changed at a time, same candidate pool)
+    # 2. Ablations (one component changed at a time, same candidate pool). With the V4 graph channel, No-Graph also
+    #    drops the channel (design §13.8 point 5), so it removes every use of the citation graph.
     ablations = {
         "Ablation: No-MMR": cfg.with_overrides(lambda_div=0.0),
-        "Ablation: No-Graph": cfg.with_overrides(weights=cfg.weights.with_overrides(w_cite=0.0)),
+        "Ablation: No-Graph": cfg.with_overrides(weights=cfg.weights.with_overrides(w_cite=0.0), graph_channel=False),
         "Ablation: No-Facets": cfg.with_overrides(weights=cfg.weights.with_overrides(w_facet=0.0, w_nov=0.0)),
     }
     for name, ablation_cfg in ablations.items():

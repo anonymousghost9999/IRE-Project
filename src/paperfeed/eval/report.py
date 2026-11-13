@@ -100,7 +100,7 @@ def format_diagnostic_table(system_aggregates: Mapping[str, Mapping[str, float]]
     return "\n".join(lines)
 
 
-def format_coverage_ceiling_table(system_aggregates: Mapping[str, Mapping[str, float]]) -> str:
+def format_coverage_ceiling_table(system_aggregates: Mapping[str, Mapping[str, float]], graph_channel: bool = False) -> str:
     """Candidate coverage ceiling (plan 6.6): Recall@100 of the first-stage pool bounds what re-ranking can reach."""
     names = [n for n in ("Paper Feed (Full)", "Ablation: No-MMR", "Ablation: No-Graph", "Ablation: No-Facets") if n in system_aggregates]
     if not names:
@@ -116,10 +116,17 @@ def format_coverage_ceiling_table(system_aggregates: Mapping[str, Mapping[str, f
         lines.append(f"| {name} | {ceiling:.4f} | {r10:.4f} | {share} |")
     cit = system_aggregates.get("Baseline: citation_only")
     lines.append("")
-    note = (
-        "*The pool comes from the text channels (BM25 + SPECTER2, RRF); targets outside it cannot be recommended "
-        "whatever the scoring weights."
-    )
+    if graph_channel:
+        note = (
+            "*The pool fuses the text channels (BM25 + SPECTER2) and the V4 citation-graph channel by RRF; the No-Graph "
+            "ablation drops the graph channel too, so its ceiling is the text-only pool. Targets outside the pool cannot "
+            "be recommended whatever the scoring weights."
+        )
+    else:
+        note = (
+            "*The pool comes from the text channels (BM25 + SPECTER2, RRF); targets outside it cannot be recommended "
+            "whatever the scoring weights."
+        )
     if cit:
         note += (
             f" For reference, Citation-only ranks the whole eligible corpus by the graph signal and reaches "
@@ -227,6 +234,7 @@ def generate_full_evaluation_report(
     slice_results: Optional[Mapping[str, Mapping[str, Mapping[str, float]]]] = None,
     run_notes: Optional[str] = None,
     extra_sections: Optional[List[Tuple[str, str]]] = None,
+    graph_channel: bool = False,
 ) -> str:
     """Generate complete markdown report containing all tables and hypothesis results."""
     parts = [
@@ -238,7 +246,7 @@ def generate_full_evaluation_report(
         "## 1. Main Benchmark Results\n",
         format_main_table_markdown(system_aggregates),
     ])
-    coverage = format_coverage_ceiling_table(system_aggregates)
+    coverage = format_coverage_ceiling_table(system_aggregates, graph_channel=graph_channel)
     if coverage:
         parts.extend(["\n### Candidate Coverage Ceiling\n", coverage])
     diagnostic = format_diagnostic_table(system_aggregates)

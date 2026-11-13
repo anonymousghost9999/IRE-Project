@@ -472,3 +472,30 @@ def test_tuning_files_are_per_configuration_and_legacy_files_need_a_matching_sig
     assert find_tuning_artifact(tmp_path, enh_sig) == own
     (tmp_path / "tuning_results_broken.json").write_text("{not json")
     assert find_tuning_artifact(tmp_path, main_sig) is None
+
+
+def test_audit_graph_channel_uses_the_v4_tuning_file_only(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}]
+    base = RecommendConfig.from_config(cfg)
+    core_sig = tuning_signature(base, ["A1"])
+    v4_sig = tuning_signature(base.with_overrides(graph_channel=True), ["A1"])
+    w = {"w_pers": 1.0, "w_cite": 1.0, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    tuning_artifact_path(tmp_path, core_sig).write_text(
+        json.dumps({"config_signature": core_sig, "best_weights": {**w, "w_facet": 0.25}, "best_lambda_div": 0.5}))
+    args = SimpleNamespace(enhanced=False, skip_tuning=False, graph_channel=True)
+
+    with pytest.raises(FileNotFoundError):  # the Core file must not be reused for V4
+        script.audit_config(cfg, cohort, args, tmp_path)
+    v4_file = tuning_artifact_path(tmp_path, v4_sig)
+    v4_file.write_text(json.dumps({"config_signature": v4_sig, "best_weights": {**w, "w_facet": 0.5}, "best_lambda_div": 0.0}))
+    rec_cfg, source = script.audit_config(cfg, cohort, args, tmp_path)
+    assert rec_cfg.graph_channel is True and rec_cfg.weights.w_facet == 0.5 and rec_cfg.lambda_div == 0.0
+    assert v4_file.name in source
+    for bad in ({"enhanced": True}, {"filter_popular": 200}, {"facet_active": True}, {"skip_tuning": True}):
+        with pytest.raises(ValueError, match="graph-channel"):
+            script.audit_config(cfg, cohort, SimpleNamespace(**{"enhanced": False, "skip_tuning": False, "graph_channel": True, **bad}), tmp_path)

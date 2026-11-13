@@ -51,6 +51,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--facet-active", action="store_true", help="Audit the facet-active variant frozen by select_facet_config.py")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Filter popular papers from discovery")
     parser.add_argument(
+        "--graph-channel",
+        action="store_true",
+        help="Audit the V4 citation-graph channel variant (plan 10.4d), with the weights frozen by decide_graph_channel.py",
+    )
+    parser.add_argument(
         "--span-check",
         action="store_true",
         help="Supplementary check: raise w_facet and w_nov to 1.0 so span-quoting explanations appear and their spans "
@@ -84,6 +89,11 @@ def audit_config(cfg, cohort, args, artifacts_dir):
         rec_cfg = rec_cfg.with_overrides(
             pool_size=250, channel_depth=500, weights=rec_cfg.weights.with_overrides(w_pop=0.20)
         )
+    if getattr(args, "graph_channel", False):
+        if getattr(args, "enhanced", False) or filter_popular is not None or facet_active or getattr(args, "skip_tuning", False):
+            raise ValueError("--graph-channel audits the V4 run of the headline configuration with its frozen weights; "
+                             "drop --enhanced, --filter-popular, --facet-active and --skip-tuning.")
+        rec_cfg = rec_cfg.with_overrides(graph_channel=True)  # part of the tuning signature
     if getattr(args, "skip_tuning", False):
         if facet_active:
             raise ValueError("--facet-active audits the frozen selection; it cannot be combined with --skip-tuning.")
@@ -152,6 +162,11 @@ def main() -> int:
     else:
         results_name = "faithfulness_audit_report.json"
 
+    if args.graph_channel:  # the V4 audit gets its own files
+        if not args.report_name:
+            report_name = report_name.replace(".md", "_graph_channel.md")
+        if not args.results_name:
+            results_name = results_name.replace(".json", "_graph_channel.json")
     if args.span_check:  # never overwrite the audit of the evaluated system
         if not args.report_name:
             report_name = report_name.replace(".md", "_span_check.md")

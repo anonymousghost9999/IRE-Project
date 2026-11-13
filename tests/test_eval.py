@@ -887,3 +887,37 @@ def test_v4_decision_refuses_mismatched_tuning_caches():
         decide_graph_channel(core, core, users, other, n_resamples=50)
     with pytest.raises(ValueError, match="do not match"):
         decide_graph_channel(core, [_gp(0.0, w_cite=1.0, ndcgs=[0.2] * 3)], users, users, n_resamples=50)
+
+
+def test_no_graph_ablation_also_drops_the_v4_channel(monkeypatch):
+    from paperfeed.eval import lfo
+    from paperfeed.rec.recommender import RecommendConfig
+
+    seen = {}
+
+    def fake_recommend(resources, profile, session=None, mode="feed", config=None):
+        seen.setdefault("configs", []).append(config)
+        return SimpleNamespace(paper_ids=["p1"], candidate_ids=["p1"])
+
+    monkeypatch.setattr(lfo, "build_user_profile", lambda *a, **k: SimpleNamespace(user_facets=SimpleNamespace(ids=[])))
+    monkeypatch.setattr(lfo, "recommend", fake_recommend)
+    monkeypatch.setattr(lfo, "run_baseline", lambda *a, **k: ["p1"])
+    monkeypatch.setattr(lfo, "per_user_metrics", lambda **k: {"ndcg_at_10": 0.0})
+
+    for graph in (False, True):
+        seen.clear()
+        cfg = RecommendConfig(graph_channel=graph, weights=ScoringWeights(w_cite=1.0))
+        lfo.evaluate_author(None, {"author_id": "A1"}, ["p1"], [], {}, {}, np.zeros((1, 2)), {}, base_config=cfg,
+                            include_anchors=False)
+        full, no_mmr, no_graph, no_facets, diag = seen["configs"]
+        assert full.graph_channel is graph and no_mmr.graph_channel is graph and no_facets.graph_channel is graph
+        assert no_graph.graph_channel is False and no_graph.weights.w_cite == 0.0
+        assert diag.graph_channel is graph
+
+
+def test_coverage_note_names_the_graph_channel_only_when_it_is_on():
+    from paperfeed.eval.report import format_coverage_ceiling_table
+
+    aggs = {"Paper Feed (Full)": {"recall_at_100": 0.08, "recall_at_10": 0.02}}
+    assert "text channels (BM25 + SPECTER2, RRF)" in format_coverage_ceiling_table(aggs)
+    assert "citation-graph channel" in format_coverage_ceiling_table(aggs, graph_channel=True)

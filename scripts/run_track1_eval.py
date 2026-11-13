@@ -71,6 +71,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--results-name", default="track1_lfo_results.json", help="Filename for saved JSON results")
     parser.add_argument("--enhanced", action="store_true", help="Run with Option 2 & 3 enhancements (M=250, M_chan=500, w_pop=0.20, saved to enhanced files)")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Exclude papers with citation_count_T >= THRESHOLD from ground truth targets (popularity-filtered evaluation)")
+    parser.add_argument(
+        "--graph-channel",
+        action="store_true",
+        help="Run the V4 citation-graph channel variant (design §13.8, plan 10.4d); needs the frozen decision from "
+        "scripts/decide_graph_channel.py",
+    )
     parser.add_argument("--facet-active", action="store_true", help="Run the facet-active variant frozen by scripts/select_facet_config.py (design §9) instead of the grid optimum")
     parser.add_argument("--skip-zero-pub", action="store_true", help="Skip the Zero-Publication Seed-Only slice (a full extra pass over the test cohort)")
     return parser.parse_args()
@@ -292,6 +298,7 @@ def main():
         "_enhanced" if args.enhanced else "",
         "_filtered" if args.filter_popular is not None else "",
         "_facet_active" if args.facet_active else "",
+        "_graph_channel" if args.graph_channel else "",
     ])
     run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
@@ -341,6 +348,22 @@ def run(args, root, cfg, manifest):
         elif args.results_name == "track1_lfo_enhanced_results.json":
             args.results_name = "track1_lfo_enhanced_filtered_results.json"
 
+    # V4 was tuned and decided for the headline configuration only (plan 10.4b-c)
+    v4_decision = None
+    if args.graph_channel:
+        if args.enhanced or args.filter_popular is not None or args.facet_active:
+            raise ValueError("--graph-channel was tuned for the headline configuration only; drop --enhanced, "
+                             "--filter-popular and --facet-active.")
+        decision_path = root / cfg["paths"]["artifacts_dir"] / "variant_v4_decision.json"
+        if not decision_path.exists():
+            raise FileNotFoundError(f"{decision_path} not found: freeze the V4 decision with "
+                                    "scripts/decide_graph_channel.py before the test run (plan 10.4c).")
+        v4_decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith("_graph_channel"):
+                setattr(args, attr, f"{name.stem}_graph_channel{name.suffix}")
+
     # The facet-active variant writes its own files next to the run it varies
     if args.facet_active:
         for attr in ("report_name", "results_name"):
@@ -370,6 +393,8 @@ def run(args, root, cfg, manifest):
         tuned_config = tuned_config.with_overrides(
             weights=tuned_config.weights.with_overrides(w_pop=args.w_pop)
         )
+    if args.graph_channel:
+        tuned_config = tuned_config.with_overrides(graph_channel=True)  # part of the tuning signature
 
     # 1. Tuning stage
     tuning_sig = tuning_signature(
@@ -384,6 +409,12 @@ def run(args, root, cfg, manifest):
     artifacts_dir = root / cfg["paths"]["artifacts_dir"]
     # One tuning file per configuration (signature); older shared files are reused only on an exact signature match
     tuning_artifact = None if args.skip_tuning else find_tuning_artifact(artifacts_dir, tuning_sig)
+    if args.graph_channel and (tuning_artifact is None or tuning_artifact.name != v4_decision.get("v4_tuning_file")):
+        # The V4 weights were frozen with the decision; re-tuning here would let the test run pick its own
+        raise RuntimeError(
+            f"The V4 test run must use the tuning file frozen with the decision ({v4_decision.get('v4_tuning_file')}), "
+            f"found {tuning_artifact.name if tuning_artifact else 'none'} (--skip-tuning is not allowed either)."
+        )
     if not args.skip_tuning and tuning_authors:
         loaded_saved = None
         if tuning_artifact is not None:
@@ -452,6 +483,12 @@ def run(args, root, cfg, manifest):
         tuned_config = tuned_config.with_overrides(weights=fa_weights, lambda_div=fa_lambda)
         variant = f"facet-active variant (design §9), frozen in {selection_path.name}"
         logger.info("Running the %s: %s, lambda_div=%.2f", variant, fa_weights, fa_lambda)
+    if args.graph_channel:
+        variant = (
+            "V4 citation-graph channel (design §13.8; exploratory, plan 10.4d); tuning-split decision: "
+            + ("adopt V4" if v4_decision.get("adopt_v4") else "keep Core")
+        )
+        manifest.extra_metadata["v4_decision"] = {k: v4_decision.get(k) for k in ("adopt_v4", "core", "v4", "ndcg_gain")}
     manifest.extra_metadata["variant"] = variant
 
     # 2. Main LFO evaluation run on test split
@@ -525,6 +562,7 @@ def run(args, root, cfg, manifest):
         f"> **Evaluation Run Configuration:**\n"
         f"> - Mode: {'Enhanced (Option 2 & Option 3)' if (tuned_config.weights.w_pop > 0 or (tuned_config.pool_size and tuned_config.pool_size > 100)) else 'Baseline'}\n"
         f"> - Candidate Pool Size (M): {tuned_config.pool_size or 100}\n"
+        f"> - Candidate Channels: {'SPECTER2 + BM25s + citation graph (V4)' if tuned_config.graph_channel else 'SPECTER2 + BM25s'}\n"
         f"> - Channel Depth (M_channel): {tuned_config.channel_depth or 200}\n"
         f"> - Popularity Prior Weight (w_pop): {tuned_config.weights.w_pop:.2f}\n"
         f"> - Scoring Weights: w_pers={tuned_config.weights.w_pers:.2f}, w_cite={tuned_config.weights.w_cite:.2f}, "
@@ -552,6 +590,7 @@ def run(args, root, cfg, manifest):
         slice_results=slice_breakdown,
         run_notes=run_notes,
         extra_sections=extra_sections,
+        graph_channel=tuned_config.graph_channel,
     )
 
     out_dir = root / args.out_dir
