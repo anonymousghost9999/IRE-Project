@@ -80,17 +80,17 @@
       "facet_novelty": 0.9822492033015273
     },
     "Baseline: popularity": {
-      "ndcg_at_10": 0.0,
-      "recall_at_10": 0.0,
-      "hit_rate_at_10": 0.0,
-      "mrr": 0.0,
+      "ndcg_at_10": 0.01294821266578458,
+      "recall_at_10": 0.006237658848400612,
+      "hit_rate_at_10": 0.065625,
+      "mrr": 0.028623511904761905,
       "oracle_at_10": 1.0,
-      "recall_at_100": 0.0,
-      "topic_entropy": 3.265053094887363,
-      "topic_entropy_norm": 0.9828789189966113,
+      "recall_at_100": 0.006237658848400612,
+      "topic_entropy": 1.6891037830904267,
+      "topic_entropy_norm": 0.5084709044997255,
       "n_targets": 15.325,
-      "ild": 0.20750253815203906,
-      "facet_novelty": 0.9822492033015273
+      "ild": 0.1259346330538392,
+      "facet_novelty": 0.9726122400144463
     },
     "Baseline: bm25_author": {
       "ndcg_at_10": 0.008616582031882827,
@@ -238,11 +238,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 15.0,
-          "ild": 0.20390212535858154,
-          "facet_novelty": 0.8878504672897196
+          "ild": 0.1267980933189392,
+          "facet_novelty": 0.9
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -390,11 +390,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 22.0,
-          "ild": 0.21391701698303223,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.958904109589041
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -542,11 +542,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 5.0,
-          "ild": 0.20057052373886108,
-          "facet_novelty": 1.0
+          "ild": 0.13689959049224854,
+          "facet_novelty": 0.9888888888888889
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -688,16 +688,16 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.08514311764162098,
+          "recall_at_10": 0.02857142857142857,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.2,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.02857142857142857,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 35.0,
-          "ild": 0.22153598070144653,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -846,10 +846,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 10.0,
-          "ild": 0.2045499086380005,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -998,10 +998,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 12.0,
-          "ild": 0.20550858974456787,
+          "ild": 0.15661442279815674,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -1150,11 +1150,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 21.0,
-          "ild": 0.23305010795593262,
-          "facet_novelty": 1.0
+          "ild": 0.11718344688415527,
+          "facet_novelty": 0.9655172413793104
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -1302,11 +1302,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 16.0,
-          "ild": 0.21510374546051025,
-          "facet_novelty": 0.9482758620689655
+          "ild": 0.15661442279815674,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -1454,11 +1454,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 7.0,
-          "ild": 0.20838600397109985,
-          "facet_novelty": 1.0
+          "ild": 0.13070350885391235,
+          "facet_novelty": 0.9894736842105263
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -1606,11 +1606,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.4689955935892812,
+          "topic_entropy_norm": 0.14118174150460763,
           "n_targets": 7.0,
-          "ild": 0.2045702338218689,
-          "facet_novelty": 0.9195402298850575
+          "ild": 0.08028656244277954,
+          "facet_novelty": 0.9583333333333334
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -1758,10 +1758,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 23.0,
-          "ild": 0.21925336122512817,
+          "ild": 0.13689959049224854,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -1904,17 +1904,17 @@
           "facet_novelty": 0.9811320754716981
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.4409203293308675,
+          "recall_at_10": 0.12121212121212122,
+          "hit_rate_at_10": 1.0,
+          "mrr": 1.0,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "recall_at_100": 0.12121212121212122,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 33.0,
-          "ild": 0.19964218139648438,
-          "facet_novelty": 0.9811320754716981
+          "ild": 0.061166465282440186,
+          "facet_novelty": 0.9907407407407407
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2062,11 +2062,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 10.0,
-          "ild": 0.2023264765739441,
-          "facet_novelty": 1.0
+          "ild": 0.14259320497512817,
+          "facet_novelty": 0.9854014598540146
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2214,11 +2214,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.2464393446710154,
+          "topic_entropy_norm": 0.6762456261857126,
           "n_targets": 6.0,
-          "ild": 0.20283085107803345,
-          "facet_novelty": 0.928
+          "ild": 0.11398696899414062,
+          "facet_novelty": 0.918918918918919
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2366,11 +2366,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 20.0,
-          "ild": 0.20600271224975586,
-          "facet_novelty": 1.0
+          "ild": 0.13689959049224854,
+          "facet_novelty": 0.9888888888888889
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2518,11 +2518,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.1934325098991394,
-          "facet_novelty": 0.9846153846153847
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.958904109589041
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2670,11 +2670,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3709505944546687,
+          "topic_entropy_norm": 0.4126972515042214,
           "n_targets": 5.0,
-          "ild": 0.19116711616516113,
-          "facet_novelty": 0.9789473684210527
+          "ild": 0.12650936841964722,
+          "facet_novelty": 0.9438202247191011
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2822,11 +2822,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 22.0,
-          "ild": 0.20091509819030762,
-          "facet_novelty": 1.0
+          "ild": 0.13071227073669434,
+          "facet_novelty": 0.9827586206896551
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -2974,11 +2974,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.721928094887362,
+          "topic_entropy_norm": 0.8193820026016112,
           "n_targets": 12.0,
-          "ild": 0.2017008662223816,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.1337505578994751,
+          "facet_novelty": 0.9302325581395349
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -3126,11 +3126,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.21598327159881592,
-          "facet_novelty": 1.0
+          "ild": 0.06305515766143799,
+          "facet_novelty": 0.9907407407407407
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -3278,11 +3278,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.2053823471069336,
-          "facet_novelty": 1.0
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.972972972972973
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -3430,10 +3430,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 6.0,
-          "ild": 0.21994614601135254,
+          "ild": 0.15661442279815674,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -3582,11 +3582,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 8.0,
-          "ild": 0.19130247831344604,
-          "facet_novelty": 0.9830508474576272
+          "ild": 0.13031387329101562,
+          "facet_novelty": 0.9696969696969697
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -3734,11 +3734,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 7.0,
-          "ild": 0.19843292236328125,
-          "facet_novelty": 0.9879518072289156
+          "ild": 0.12186932563781738,
+          "facet_novelty": 0.9905660377358491
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -3886,11 +3886,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1709505944546685,
+          "topic_entropy_norm": 0.6535212480354063,
           "n_targets": 21.0,
-          "ild": 0.20716381072998047,
-          "facet_novelty": 0.9830508474576272
+          "ild": 0.1253862977027893,
+          "facet_novelty": 0.9863945578231292
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4038,11 +4038,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.0,
+          "topic_entropy_norm": 0.3010299956639812,
           "n_targets": 5.0,
-          "ild": 0.19779068231582642,
-          "facet_novelty": 0.9891304347826086
+          "ild": 0.13619273900985718,
+          "facet_novelty": 0.99
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4190,11 +4190,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 15.0,
-          "ild": 0.21568214893341064,
-          "facet_novelty": 1.0
+          "ild": 0.1250132918357849,
+          "facet_novelty": 0.9473684210526315
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4342,10 +4342,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.2129797339439392,
+          "ild": 0.15673041343688965,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -4494,11 +4494,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 8.0,
-          "ild": 0.21303659677505493,
-          "facet_novelty": 0.9733333333333334
+          "ild": 0.1335437297821045,
+          "facet_novelty": 0.9253731343283582
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4646,11 +4646,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 18.0,
-          "ild": 0.21288776397705078,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9863013698630136
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4798,11 +4798,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 8.0,
-          "ild": 0.21192514896392822,
-          "facet_novelty": 0.9791666666666666
+          "ild": 0.1102401614189148,
+          "facet_novelty": 0.984375
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -4950,11 +4950,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 14.0,
-          "ild": 0.19738411903381348,
-          "facet_novelty": 1.0
+          "ild": 0.061309874057769775,
+          "facet_novelty": 0.9912280701754386
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -5102,11 +5102,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 22.0,
-          "ild": 0.21029019355773926,
-          "facet_novelty": 1.0
+          "ild": 0.13176560401916504,
+          "facet_novelty": 0.9538461538461539
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -5254,11 +5254,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 10.0,
-          "ild": 0.2033987045288086,
-          "facet_novelty": 0.989247311827957
+          "ild": 0.12658435106277466,
+          "facet_novelty": 0.9425287356321839
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -5406,11 +5406,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 12.0,
-          "ild": 0.20762741565704346,
-          "facet_novelty": 1.0
+          "ild": 0.13115572929382324,
+          "facet_novelty": 0.9583333333333334
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -5558,11 +5558,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.0464393446710156,
+          "topic_entropy_norm": 0.6160396270529164,
           "n_targets": 58.0,
-          "ild": 0.18961340188980103,
-          "facet_novelty": 0.9431818181818182
+          "ild": 0.1703363060951233,
+          "facet_novelty": 0.9743589743589743
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -5710,10 +5710,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.21088957786560059,
+          "ild": 0.12863940000534058,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -5862,11 +5862,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.721928094887362,
+          "topic_entropy_norm": 0.8193820026016112,
           "n_targets": 16.0,
-          "ild": 0.2047542929649353,
-          "facet_novelty": 0.9882352941176471
+          "ild": 0.12707579135894775,
+          "facet_novelty": 0.9682539682539683
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -6014,10 +6014,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 5.0,
-          "ild": 0.2004760503768921,
+          "ild": 0.1534426212310791,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -6166,11 +6166,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1709505944546685,
+          "topic_entropy_norm": 0.6535212480354063,
           "n_targets": 26.0,
-          "ild": 0.20647567510604858,
-          "facet_novelty": 0.9888888888888889
+          "ild": 0.1253862977027893,
+          "facet_novelty": 0.9659863945578231
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -6318,10 +6318,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.1950005292892456,
+          "ild": 0.15153759717941284,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -6470,11 +6470,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 8.0,
-          "ild": 0.22220832109451294,
-          "facet_novelty": 0.9878048780487805
+          "ild": 0.14181053638458252,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -6622,11 +6622,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 5.0,
-          "ild": 0.2071530818939209,
-          "facet_novelty": 0.9767441860465116
+          "ild": 0.1111178994178772,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -6774,11 +6774,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 25.0,
-          "ild": 0.2098180055618286,
-          "facet_novelty": 1.0
+          "ild": 0.13070350885391235,
+          "facet_novelty": 0.9894736842105263
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -6926,10 +6926,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 5.0,
-          "ild": 0.18877112865447998,
+          "ild": 0.125512957572937,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -7078,11 +7078,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 15.0,
-          "ild": 0.202337384223938,
-          "facet_novelty": 0.9583333333333334
+          "ild": 0.12489062547683716,
+          "facet_novelty": 0.986013986013986
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -7230,11 +7230,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.21219199895858765,
-          "facet_novelty": 0.975609756097561
+          "ild": 0.06574314832687378,
+          "facet_novelty": 0.9279279279279279
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -7382,11 +7382,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 14.0,
-          "ild": 0.19409143924713135,
-          "facet_novelty": 0.9885057471264368
+          "ild": 0.14259320497512817,
+          "facet_novelty": 0.9927007299270073
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -7534,11 +7534,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 43.0,
-          "ild": 0.2237783670425415,
-          "facet_novelty": 0.9859154929577465
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -7686,10 +7686,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 22.0,
-          "ild": 0.2132365107536316,
+          "ild": 0.1721179485321045,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -7838,11 +7838,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 18.0,
-          "ild": 0.19000709056854248,
-          "facet_novelty": 0.979381443298969
+          "ild": 0.16952979564666748,
+          "facet_novelty": 0.9431818181818182
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -7990,11 +7990,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 6.0,
-          "ild": 0.20797771215438843,
-          "facet_novelty": 0.9902912621359223
+          "ild": 0.17359817028045654,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.10086747116627115,
@@ -8142,10 +8142,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 134.0,
-          "ild": 0.19268089532852173,
+          "ild": 0.17465651035308838,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -8294,10 +8294,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9709505944546686,
+          "topic_entropy_norm": 0.29228525323862886,
           "n_targets": 6.0,
-          "ild": 0.20284855365753174,
+          "ild": 0.15109962224960327,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -8446,11 +8446,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 12.0,
-          "ild": 0.2125605344772339,
-          "facet_novelty": 0.9866666666666667
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9807692307692307
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -8598,10 +8598,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 17.0,
-          "ild": 0.21241819858551025,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -8750,11 +8750,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 9.0,
-          "ild": 0.20772314071655273,
-          "facet_novelty": 0.974025974025974
+          "ild": 0.06305515766143799,
+          "facet_novelty": 0.9629629629629629
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -8902,11 +8902,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 21.0,
-          "ild": 0.2087780237197876,
-          "facet_novelty": 0.9893617021276596
+          "ild": 0.07499557733535767,
+          "facet_novelty": 0.9619047619047619
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.3628869103342175,
@@ -9054,11 +9054,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.721928094887362,
+          "topic_entropy_norm": 0.5183520069376301,
           "n_targets": 21.0,
-          "ild": 0.20476996898651123,
-          "facet_novelty": 0.9801980198019802
+          "ild": 0.10454058647155762,
+          "facet_novelty": 0.946524064171123
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9206,11 +9206,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.721928094887362,
+          "topic_entropy_norm": 0.8193820026016112,
           "n_targets": 6.0,
-          "ild": 0.23003363609313965,
-          "facet_novelty": 0.9620253164556962
+          "ild": 0.11898458003997803,
+          "facet_novelty": 0.9473684210526315
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9358,11 +9358,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.19170063734054565,
-          "facet_novelty": 0.98
+          "ild": 0.13970732688903809,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9510,11 +9510,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 5.0,
-          "ild": 0.18438613414764404,
-          "facet_novelty": 0.9896907216494846
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.958904109589041
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9662,11 +9662,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.19513988494873047,
-          "facet_novelty": 0.9125
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9814,11 +9814,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 12.0,
-          "ild": 0.20860505104064941,
-          "facet_novelty": 1.0
+          "ild": 0.17836534976959229,
+          "facet_novelty": 0.9911504424778761
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -9966,11 +9966,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 6.0,
-          "ild": 0.21101737022399902,
-          "facet_novelty": 0.9883720930232558
+          "ild": 0.0689014196395874,
+          "facet_novelty": 0.9905660377358491
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.2987100207034456,
@@ -10118,11 +10118,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 8.0,
-          "ild": 0.2075992226600647,
-          "facet_novelty": 0.9809523809523809
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -10270,11 +10270,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 51.0,
-          "ild": 0.20547699928283691,
-          "facet_novelty": 0.9876543209876543
+          "ild": 0.08272254467010498,
+          "facet_novelty": 0.9895833333333334
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -10422,11 +10422,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 7.0,
-          "ild": 0.20264309644699097,
-          "facet_novelty": 0.9896907216494846
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -10574,11 +10574,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 16.0,
-          "ild": 0.21361196041107178,
-          "facet_novelty": 0.98
+          "ild": 0.1111178994178772,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -10726,10 +10726,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1709505944546685,
+          "topic_entropy_norm": 0.6535212480354063,
           "n_targets": 22.0,
-          "ild": 0.22125262022018433,
+          "ild": 0.1253862977027893,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -10878,10 +10878,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 14.0,
-          "ild": 0.2220393419265747,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -11024,17 +11024,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.09478836436955078,
+          "recall_at_10": 0.05555555555555555,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.25,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.05555555555555555,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 18.0,
-          "ild": 0.2114102840423584,
-          "facet_novelty": 1.0
+          "ild": 0.0982244610786438,
+          "facet_novelty": 0.9504132231404959
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -11182,10 +11182,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 20.0,
-          "ild": 0.21287661790847778,
+          "ild": 0.12263160943984985,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -11334,11 +11334,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 5.0,
-          "ild": 0.21718794107437134,
-          "facet_novelty": 0.9425287356321839
+          "ild": 0.10633212327957153,
+          "facet_novelty": 0.9787234042553191
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -11486,11 +11486,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 8.0,
-          "ild": 0.214058518409729,
-          "facet_novelty": 1.0
+          "ild": 0.1442585587501526,
+          "facet_novelty": 0.975
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -11638,11 +11638,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 19.0,
-          "ild": 0.21722090244293213,
-          "facet_novelty": 1.0
+          "ild": 0.13689959049224854,
+          "facet_novelty": 0.9888888888888889
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -11790,11 +11790,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 12.0,
-          "ild": 0.21309983730316162,
-          "facet_novelty": 0.9253731343283582
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -11942,10 +11942,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 8.0,
-          "ild": 0.21955007314682007,
+          "ild": 0.06174945831298828,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -12094,11 +12094,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 11.0,
-          "ild": 0.22724807262420654,
-          "facet_novelty": 0.975
+          "ild": 0.06492352485656738,
+          "facet_novelty": 0.9375
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -12246,11 +12246,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 13.0,
-          "ild": 0.2040027379989624,
-          "facet_novelty": 0.975
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -12392,17 +12392,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.31488013066763093,
+          "recall_at_10": 0.05714285714285714,
+          "hit_rate_at_10": 1.0,
+          "mrr": 1.0,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.05714285714285714,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 35.0,
-          "ild": 0.20386016368865967,
-          "facet_novelty": 1.0
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9711538461538461
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -12550,10 +12550,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 5.0,
-          "ild": 0.20197612047195435,
+          "ild": 0.12050503492355347,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -12702,11 +12702,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 27.0,
-          "ild": 0.20938509702682495,
-          "facet_novelty": 0.975609756097561
+          "ild": 0.12609106302261353,
+          "facet_novelty": 0.9565217391304348
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -12854,11 +12854,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.19061875343322754,
-          "facet_novelty": 0.9347826086956522
+          "ild": 0.08306717872619629,
+          "facet_novelty": 0.9032258064516129
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13006,11 +13006,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 23.0,
-          "ild": 0.20646768808364868,
-          "facet_novelty": 0.9782608695652174
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13158,11 +13158,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 8.0,
-          "ild": 0.21122217178344727,
-          "facet_novelty": 0.9326923076923077
+          "ild": 0.11580836772918701,
+          "facet_novelty": 0.9066666666666666
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13310,11 +13310,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 19.0,
-          "ild": 0.2148018479347229,
-          "facet_novelty": 0.9857142857142858
+          "ild": 0.1721179485321045,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13462,11 +13462,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 18.0,
-          "ild": 0.1965516209602356,
-          "facet_novelty": 0.989247311827957
+          "ild": 0.13366484642028809,
+          "facet_novelty": 0.9393939393939394
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13608,17 +13608,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.08514311764162098,
+          "recall_at_10": 0.041666666666666664,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.2,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.041666666666666664,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 24.0,
-          "ild": 0.20902997255325317,
-          "facet_novelty": 1.0
+          "ild": 0.11618423461914062,
+          "facet_novelty": 0.9402985074626866
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -13766,10 +13766,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.5219280948873624,
+          "topic_entropy_norm": 0.7591760034688151,
           "n_targets": 13.0,
-          "ild": 0.20284855365753174,
+          "ild": 0.16106116771697998,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -13918,11 +13918,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 7.0,
-          "ild": 0.19357401132583618,
-          "facet_novelty": 0.9629629629629629
+          "ild": 0.1714579463005066,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -14070,11 +14070,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 15.0,
-          "ild": 0.19041621685028076,
-          "facet_novelty": 0.9166666666666666
+          "ild": 0.1261221170425415,
+          "facet_novelty": 0.9761904761904762
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -14222,10 +14222,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 13.0,
-          "ild": 0.2112109661102295,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -14374,11 +14374,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 15.0,
-          "ild": 0.2251303791999817,
-          "facet_novelty": 1.0
+          "ild": 0.10997933149337769,
+          "facet_novelty": 0.9863013698630136
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -14526,10 +14526,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 9.0,
-          "ild": 0.2095467448234558,
+          "ild": 0.06174945831298828,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -14678,11 +14678,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 11.0,
-          "ild": 0.2302808165550232,
-          "facet_novelty": 1.0
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -14830,11 +14830,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 14.0,
-          "ild": 0.19959980249404907,
-          "facet_novelty": 0.981651376146789
+          "ild": 0.15669578313827515,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -14982,11 +14982,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 27.0,
-          "ild": 0.20459187030792236,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9726027397260274
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -15134,11 +15134,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 15.0,
-          "ild": 0.20996028184890747,
-          "facet_novelty": 0.979381443298969
+          "ild": 0.06282323598861694,
+          "facet_novelty": 0.9824561403508771
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -15286,11 +15286,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 22.0,
-          "ild": 0.20917034149169922,
-          "facet_novelty": 0.9866666666666667
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -15438,11 +15438,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 18.0,
-          "ild": 0.19649267196655273,
-          "facet_novelty": 0.9545454545454546
+          "ild": 0.17393219470977783,
+          "facet_novelty": 0.9795918367346939
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -15590,10 +15590,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.21930915117263794,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -15742,11 +15742,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 11.0,
-          "ild": 0.21489369869232178,
-          "facet_novelty": 1.0
+          "ild": 0.09144836664199829,
+          "facet_novelty": 0.9642857142857143
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -15894,11 +15894,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 32.0,
-          "ild": 0.2186177372932434,
-          "facet_novelty": 0.9716981132075472
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9753086419753086
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16040,17 +16040,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.22009176629808017,
+          "recall_at_10": 0.030303030303030304,
+          "hit_rate_at_10": 1.0,
+          "mrr": 1.0,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.030303030303030304,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 33.0,
-          "ild": 0.19683200120925903,
-          "facet_novelty": 1.0
+          "ild": 0.15056002140045166,
+          "facet_novelty": 0.9512195121951219
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16198,11 +16198,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.0464393446710156,
+          "topic_entropy_norm": 0.6160396270529164,
           "n_targets": 7.0,
-          "ild": 0.2054104208946228,
-          "facet_novelty": 0.9795918367346939
+          "ild": 0.11867177486419678,
+          "facet_novelty": 0.9395973154362416
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16344,17 +16344,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.3647442587311445,
+          "recall_at_10": 0.2727272727272727,
+          "hit_rate_at_10": 1.0,
+          "mrr": 1.0,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.2727272727272727,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.20580989122390747,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9863013698630136
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16502,11 +16502,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.20452624559402466,
-          "facet_novelty": 0.9900990099009901
+          "ild": 0.11618423461914062,
+          "facet_novelty": 0.9701492537313433
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16654,11 +16654,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.360964047443681,
+          "topic_entropy_norm": 0.4096910013008056,
           "n_targets": 16.0,
-          "ild": 0.21187752485275269,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.11403381824493408,
+          "facet_novelty": 0.9493670886075949
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16806,11 +16806,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 20.0,
-          "ild": 0.21115732192993164,
-          "facet_novelty": 0.9886363636363636
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.9764705882352941
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -16958,11 +16958,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 5.0,
-          "ild": 0.20391106605529785,
-          "facet_novelty": 0.9830508474576272
+          "ild": 0.1111178994178772,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -17110,10 +17110,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 19.0,
-          "ild": 0.21135812997817993,
+          "ild": 0.10749751329421997,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -17262,11 +17262,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 6.0,
-          "ild": 0.21191245317459106,
-          "facet_novelty": 1.0
+          "ild": 0.07078444957733154,
+          "facet_novelty": 0.990990990990991
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -17414,11 +17414,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 22.0,
-          "ild": 0.21148574352264404,
-          "facet_novelty": 0.9764705882352941
+          "ild": 0.12448656558990479,
+          "facet_novelty": 0.9166666666666666
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -17566,11 +17566,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.3709505944546687,
+          "topic_entropy_norm": 0.7137272471682026,
           "n_targets": 10.0,
-          "ild": 0.20019769668579102,
-          "facet_novelty": 0.9506172839506173
+          "ild": 0.12689411640167236,
+          "facet_novelty": 0.9238095238095239
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -17718,11 +17718,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.19916099309921265,
-          "facet_novelty": 0.9782608695652174
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.8823529411764706
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -17870,11 +17870,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 14.0,
-          "ild": 0.2103121280670166,
-          "facet_novelty": 0.978021978021978
+          "ild": 0.06746447086334229,
+          "facet_novelty": 0.9322033898305084
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18022,11 +18022,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.2080349326133728,
-          "facet_novelty": 1.0
+          "ild": 0.12038427591323853,
+          "facet_novelty": 0.9919354838709677
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18174,11 +18174,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 25.0,
-          "ild": 0.19915133714675903,
-          "facet_novelty": 0.9626168224299065
+          "ild": 0.13031387329101562,
+          "facet_novelty": 0.8939393939393939
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18326,10 +18326,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 10.0,
-          "ild": 0.19513094425201416,
+          "ild": 0.14508384466171265,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -18478,11 +18478,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 5.0,
-          "ild": 0.19396686553955078,
-          "facet_novelty": 0.9759036144578314
+          "ild": 0.14259320497512817,
+          "facet_novelty": 0.9854014598540146
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18630,11 +18630,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 7.0,
-          "ild": 0.2132604718208313,
-          "facet_novelty": 0.9809523809523809
+          "ild": 0.10633212327957153,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18782,11 +18782,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 12.0,
-          "ild": 0.21670186519622803,
-          "facet_novelty": 0.9821428571428571
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.972972972972973
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -18934,11 +18934,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 26.0,
-          "ild": 0.18393051624298096,
-          "facet_novelty": 0.9240506329113924
+          "ild": 0.11847198009490967,
+          "facet_novelty": 0.9080459770114943
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19086,11 +19086,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 6.0,
-          "ild": 0.21967750787734985,
-          "facet_novelty": 0.9367088607594937
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.9594594594594594
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19238,11 +19238,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 6.0,
-          "ild": 0.20433610677719116,
-          "facet_novelty": 1.0
+          "ild": 0.1400238275527954,
+          "facet_novelty": 0.9912280701754386
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19390,11 +19390,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 9.0,
-          "ild": 0.22112733125686646,
-          "facet_novelty": 0.9871794871794872
+          "ild": 0.13223594427108765,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19542,11 +19542,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 18.0,
-          "ild": 0.19141030311584473,
-          "facet_novelty": 0.9240506329113924
+          "ild": 0.15065568685531616,
+          "facet_novelty": 0.9223300970873787
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19694,11 +19694,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.19819867610931396,
-          "facet_novelty": 0.9814814814814815
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -19846,10 +19846,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7609640474436812,
+          "topic_entropy_norm": 0.5301029995663982,
           "n_targets": 14.0,
-          "ild": 0.19353729486465454,
+          "ild": 0.11305475234985352,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -19998,11 +19998,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 14.0,
-          "ild": 0.2158457636833191,
-          "facet_novelty": 0.9120879120879121
+          "ild": 0.14737606048583984,
+          "facet_novelty": 0.9518072289156626
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -20150,11 +20150,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 5.0,
-          "ild": 0.20173460245132446,
-          "facet_novelty": 0.9814814814814815
+          "ild": 0.15333038568496704,
+          "facet_novelty": 0.9066666666666666
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -20302,10 +20302,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 13.0,
-          "ild": 0.2051318883895874,
+          "ild": 0.13115572929382324,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -20454,11 +20454,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 0.7219280948873623,
+          "topic_entropy_norm": 0.2173220112736489,
           "n_targets": 18.0,
-          "ild": 0.20109504461288452,
-          "facet_novelty": 0.9545454545454546
+          "ild": 0.14006280899047852,
+          "facet_novelty": 0.9693877551020408
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -20606,11 +20606,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.8464393446710154,
+          "topic_entropy_norm": 0.55583362792012,
           "n_targets": 5.0,
-          "ild": 0.21377718448638916,
-          "facet_novelty": 0.9210526315789473
+          "ild": 0.16418582201004028,
+          "facet_novelty": 0.963302752293578
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -20752,17 +20752,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.08514311764162098,
+          "recall_at_10": 0.05263157894736842,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.2,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.05263157894736842,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 19.0,
-          "ild": 0.21389847993850708,
-          "facet_novelty": 1.0
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9519230769230769
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -20910,11 +20910,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 13.0,
-          "ild": 0.2009785771369934,
-          "facet_novelty": 0.96
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21062,11 +21062,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 17.0,
-          "ild": 0.19965887069702148,
-          "facet_novelty": 0.9428571428571428
+          "ild": 0.17180675268173218,
+          "facet_novelty": 0.9906542056074766
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21214,11 +21214,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 6.0,
-          "ild": 0.20164787769317627,
-          "facet_novelty": 0.96875
+          "ild": 0.1615949273109436,
+          "facet_novelty": 0.9666666666666667
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21366,11 +21366,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 13.0,
-          "ild": 0.206640362739563,
-          "facet_novelty": 0.9787234042553191
+          "ild": 0.14371001720428467,
+          "facet_novelty": 0.990909090909091
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21518,11 +21518,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.721928094887362,
+          "topic_entropy_norm": 0.5183520069376301,
           "n_targets": 22.0,
-          "ild": 0.20725595951080322,
-          "facet_novelty": 0.9859154929577465
+          "ild": 0.10454058647155762,
+          "facet_novelty": 0.9090909090909091
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21670,11 +21670,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 0.7219280948873623,
+          "topic_entropy_norm": 0.2173220112736489,
           "n_targets": 8.0,
-          "ild": 0.1981210708618164,
-          "facet_novelty": 0.923728813559322
+          "ild": 0.08900445699691772,
+          "facet_novelty": 0.8524590163934426
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -21822,10 +21822,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 11.0,
-          "ild": 0.21204781532287598,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -21974,11 +21974,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 15.0,
-          "ild": 0.19854837656021118,
-          "facet_novelty": 1.0
+          "ild": 0.1274213194847107,
+          "facet_novelty": 0.9827586206896551
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -22126,10 +22126,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.22844088077545166,
+          "ild": 0.10749751329421997,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -22278,11 +22278,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 25.0,
-          "ild": 0.21056509017944336,
-          "facet_novelty": 0.9841269841269841
+          "ild": 0.0689014196395874,
+          "facet_novelty": 0.9622641509433962
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -22430,11 +22430,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 9.0,
-          "ild": 0.18417119979858398,
-          "facet_novelty": 0.9705882352941176
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9852941176470589
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -22582,11 +22582,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 15.0,
-          "ild": 0.2209545373916626,
-          "facet_novelty": 0.9803921568627451
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -22734,11 +22734,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 20.0,
-          "ild": 0.20412486791610718,
-          "facet_novelty": 1.0
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9705882352941176
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -22886,11 +22886,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 9.0,
-          "ild": 0.19290786981582642,
-          "facet_novelty": 0.9888888888888889
+          "ild": 0.06305515766143799,
+          "facet_novelty": 0.9814814814814815
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -23038,11 +23038,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 6.0,
-          "ild": 0.20942091941833496,
-          "facet_novelty": 0.9724770642201835
+          "ild": 0.16767668724060059,
+          "facet_novelty": 0.9326923076923077
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -23190,10 +23190,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 28.0,
-          "ild": 0.2030344009399414,
+          "ild": 0.13366484642028809,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -23342,11 +23342,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 13.0,
-          "ild": 0.2165607213973999,
-          "facet_novelty": 0.9885057471264368
+          "ild": 0.07080382108688354,
+          "facet_novelty": 0.9574468085106383
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -23494,11 +23494,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.22007215023040771,
-          "facet_novelty": 0.9910714285714286
+          "ild": 0.12863940000534058,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -23640,17 +23640,17 @@
           "facet_novelty": 0.9428571428571428
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.21726071285222986,
+          "recall_at_10": 0.08695652173913043,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.5,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.08695652173913043,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 23.0,
-          "ild": 0.2183881402015686,
-          "facet_novelty": 0.9428571428571428
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9711538461538461
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -23798,10 +23798,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.1933194398880005,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -23950,11 +23950,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.5219280948873624,
+          "topic_entropy_norm": 0.7591760034688151,
           "n_targets": 9.0,
-          "ild": 0.20730996131896973,
-          "facet_novelty": 0.9727272727272728
+          "ild": 0.12432116270065308,
+          "facet_novelty": 0.890625
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -24096,17 +24096,17 @@
           "facet_novelty": 0.99
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.07839826897867533,
+          "recall_at_10": 0.06666666666666667,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.16666666666666666,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "recall_at_100": 0.06666666666666667,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 15.0,
-          "ild": 0.19972974061965942,
-          "facet_novelty": 0.99
+          "ild": 0.14181053638458252,
+          "facet_novelty": 0.9711538461538461
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -24254,10 +24254,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 52.0,
-          "ild": 0.206406831741333,
+          "ild": 0.15661442279815674,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -24406,11 +24406,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 12.0,
-          "ild": 0.21582871675491333,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9863013698630136
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -24558,11 +24558,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 22.0,
-          "ild": 0.2073717713356018,
-          "facet_novelty": 0.9746835443037974
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.972972972972973
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -24710,11 +24710,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.5219280948873624,
+          "topic_entropy_norm": 0.7591760034688151,
           "n_targets": 28.0,
-          "ild": 0.2099391222000122,
-          "facet_novelty": 0.967741935483871
+          "ild": 0.12909042835235596,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -24862,11 +24862,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 6.0,
-          "ild": 0.21347671747207642,
-          "facet_novelty": 0.9719626168224299
+          "ild": 0.16761016845703125,
+          "facet_novelty": 0.98989898989899
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25014,11 +25014,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.19973570108413696,
-          "facet_novelty": 0.9789473684210527
+          "ild": 0.059156715869903564,
+          "facet_novelty": 0.9642857142857143
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25166,11 +25166,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 8.0,
-          "ild": 0.19655990600585938,
-          "facet_novelty": 0.9814814814814815
+          "ild": 0.12330466508865356,
+          "facet_novelty": 0.9736842105263158
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25318,11 +25318,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 40.0,
-          "ild": 0.20376747846603394,
-          "facet_novelty": 0.9302325581395349
+          "ild": 0.13689959049224854,
+          "facet_novelty": 0.9777777777777777
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25470,11 +25470,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.16359513998031616,
-          "facet_novelty": 1.0
+          "ild": 0.12733179330825806,
+          "facet_novelty": 0.9166666666666666
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25622,11 +25622,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 8.0,
-          "ild": 0.21813207864761353,
-          "facet_novelty": 0.9111111111111111
+          "ild": 0.1129082441329956,
+          "facet_novelty": 0.897196261682243
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25774,11 +25774,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 6.0,
-          "ild": 0.20951521396636963,
-          "facet_novelty": 0.9647058823529412
+          "ild": 0.15114110708236694,
+          "facet_novelty": 0.9732142857142857
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -25926,11 +25926,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 29.0,
-          "ild": 0.2155628800392151,
-          "facet_novelty": 0.963855421686747
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26078,11 +26078,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.8464393446710154,
+          "topic_entropy_norm": 0.55583362792012,
           "n_targets": 7.0,
-          "ild": 0.20171695947647095,
-          "facet_novelty": 1.0
+          "ild": 0.13526195287704468,
+          "facet_novelty": 0.9883720930232558
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26230,10 +26230,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 28.0,
-          "ild": 0.22484064102172852,
+          "ild": 0.10749751329421997,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -26382,11 +26382,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.1567796494470395,
+          "topic_entropy_norm": 0.348225372857224,
           "n_targets": 5.0,
-          "ild": 0.22174400091171265,
-          "facet_novelty": 0.975609756097561
+          "ild": 0.09471797943115234,
+          "facet_novelty": 0.9925373134328358
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26528,17 +26528,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.06625422345438903,
+          "recall_at_10": 0.05555555555555555,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.1111111111111111,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.05555555555555555,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 18.0,
-          "ild": 0.21074551343917847,
-          "facet_novelty": 1.0
+          "ild": 0.12050503492355347,
+          "facet_novelty": 0.9080459770114943
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26686,11 +26686,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 6.0,
-          "ild": 0.2043696641921997,
-          "facet_novelty": 1.0
+          "ild": 0.09144836664199829,
+          "facet_novelty": 0.9732142857142857
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26838,11 +26838,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 21.0,
-          "ild": 0.2131885290145874,
-          "facet_novelty": 0.9230769230769231
+          "ild": 0.09504896402359009,
+          "facet_novelty": 0.944954128440367
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -26990,11 +26990,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 12.0,
-          "ild": 0.2202615737915039,
-          "facet_novelty": 0.987012987012987
+          "ild": 0.09967106580734253,
+          "facet_novelty": 0.9351851851851852
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -27142,11 +27142,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.1988910436630249,
-          "facet_novelty": 0.9876543209876543
+          "ild": 0.17436617612838745,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -27294,11 +27294,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 19.0,
-          "ild": 0.21585744619369507,
-          "facet_novelty": 1.0
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -27446,11 +27446,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.7219280948873623,
+          "topic_entropy_norm": 0.2173220112736489,
           "n_targets": 13.0,
-          "ild": 0.21197110414505005,
-          "facet_novelty": 0.9883720930232558
+          "ild": 0.09166401624679565,
+          "facet_novelty": 0.9369369369369369
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -27598,10 +27598,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 27.0,
-          "ild": 0.19887197017669678,
+          "ild": 0.12263160943984985,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -27750,11 +27750,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 1.7609640474436812,
+          "topic_entropy_norm": 0.5301029995663982,
           "n_targets": 8.0,
-          "ild": 0.19323265552520752,
-          "facet_novelty": 0.968
+          "ild": 0.15047818422317505,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -27902,11 +27902,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 5.0,
-          "ild": 0.20995593070983887,
-          "facet_novelty": 1.0
+          "ild": 0.13366484642028809,
+          "facet_novelty": 0.9848484848484849
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28054,10 +28054,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 25.0,
-          "ild": 0.21333634853363037,
+          "ild": 0.14497095346450806,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -28206,11 +28206,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 42.0,
-          "ild": 0.21923285722732544,
-          "facet_novelty": 0.9753086419753086
+          "ild": 0.12139755487442017,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28352,17 +28352,17 @@
           "facet_novelty": 0.9306930693069307
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.3436966913921454,
+          "recall_at_10": 0.04918032786885246,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.5,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.04918032786885246,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 61.0,
-          "ild": 0.1931130290031433,
-          "facet_novelty": 0.9306930693069307
+          "ild": 0.1330438256263733,
+          "facet_novelty": 0.8333333333333334
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28504,17 +28504,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.2180164145324244,
+          "recall_at_10": 0.08823529411764706,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.16666666666666666,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.08823529411764706,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 34.0,
-          "ild": 0.19785445928573608,
-          "facet_novelty": 1.0
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28662,11 +28662,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 20.0,
-          "ild": 0.19800633192062378,
-          "facet_novelty": 0.990990990990991
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9264705882352942
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28814,11 +28814,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 31.0,
-          "ild": 0.20525819063186646,
-          "facet_novelty": 1.0
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.9882352941176471
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -28966,11 +28966,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 6.0,
-          "ild": 0.21056663990020752,
-          "facet_novelty": 0.9848484848484849
+          "ild": 0.12404859066009521,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29118,11 +29118,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.4689955935892812,
+          "topic_entropy_norm": 0.14118174150460763,
           "n_targets": 7.0,
-          "ild": 0.21259468793869019,
-          "facet_novelty": 0.9666666666666667
+          "ild": 0.08464354276657104,
+          "facet_novelty": 0.9142857142857143
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29270,11 +29270,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 6.0,
-          "ild": 0.2092757225036621,
-          "facet_novelty": 0.9732142857142857
+          "ild": 0.12718826532363892,
+          "facet_novelty": 0.9753086419753086
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29422,11 +29422,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 14.0,
-          "ild": 0.20861172676086426,
-          "facet_novelty": 0.9620253164556962
+          "ild": 0.07707470655441284,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29574,11 +29574,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 19.0,
-          "ild": 0.18469476699829102,
-          "facet_novelty": 0.9545454545454546
+          "ild": 0.14541208744049072,
+          "facet_novelty": 0.8961038961038961
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29726,11 +29726,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 5.0,
-          "ild": 0.2004760503768921,
-          "facet_novelty": 0.9887640449438202
+          "ild": 0.13175219297409058,
+          "facet_novelty": 0.975
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -29878,10 +29878,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 14.0,
-          "ild": 0.22420448064804077,
+          "ild": 0.07783645391464233,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -30030,11 +30030,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 16.0,
-          "ild": 0.1962907314300537,
-          "facet_novelty": 0.9803921568627451
+          "ild": 0.13561153411865234,
+          "facet_novelty": 0.9705882352941176
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30182,11 +30182,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 16.0,
-          "ild": 0.20803916454315186,
-          "facet_novelty": 0.9746835443037974
+          "ild": 0.11618423461914062,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30328,17 +30328,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.13886244387355454,
+          "recall_at_10": 0.05263157894736842,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.5,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.05263157894736842,
+          "topic_entropy": 1.360964047443681,
+          "topic_entropy_norm": 0.4096910013008056,
           "n_targets": 19.0,
-          "ild": 0.1965266466140747,
-          "facet_novelty": 1.0
+          "ild": 0.11403381824493408,
+          "facet_novelty": 0.9873417721518988
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30486,11 +30486,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 21.0,
-          "ild": 0.20340794324874878,
-          "facet_novelty": 0.9795918367346939
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30638,11 +30638,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 8.0,
-          "ild": 0.20274275541305542,
-          "facet_novelty": 0.9878048780487805
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30790,11 +30790,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5219280948873621,
+          "topic_entropy_norm": 0.45814600780483383,
           "n_targets": 11.0,
-          "ild": 0.21119695901870728,
-          "facet_novelty": 1.0
+          "ild": 0.1352604627609253,
+          "facet_novelty": 0.9818181818181818
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -30942,10 +30942,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 16.0,
-          "ild": 0.21850985288619995,
+          "ild": 0.10749751329421997,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -31088,17 +31088,17 @@
           "facet_novelty": 0.9896907216494846
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.06625422345438903,
+          "recall_at_10": 0.02564102564102564,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.1111111111111111,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "recall_at_100": 0.02564102564102564,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 39.0,
-          "ild": 0.2009754776954651,
-          "facet_novelty": 0.9896907216494846
+          "ild": 0.061309874057769775,
+          "facet_novelty": 0.9912280701754386
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -31246,11 +31246,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 11.0,
-          "ild": 0.20379704236984253,
-          "facet_novelty": 0.9868421052631579
+          "ild": 0.13063335418701172,
+          "facet_novelty": 0.9782608695652174
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -31398,10 +31398,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.4464393446710155,
+          "topic_entropy_norm": 0.7364516253185088,
           "n_targets": 31.0,
-          "ild": 0.2109120488166809,
+          "ild": 0.12698578834533691,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -31550,11 +31550,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9709505944546686,
+          "topic_entropy_norm": 0.29228525323862886,
           "n_targets": 11.0,
-          "ild": 0.20361483097076416,
-          "facet_novelty": 0.9456521739130435
+          "ild": 0.163443922996521,
+          "facet_novelty": 0.963302752293578
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -31702,11 +31702,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.5219280948873624,
+          "topic_entropy_norm": 0.7591760034688151,
           "n_targets": 10.0,
-          "ild": 0.20929491519927979,
-          "facet_novelty": 0.971830985915493
+          "ild": 0.1383984088897705,
+          "facet_novelty": 0.945054945054945
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -31854,11 +31854,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 9.0,
-          "ild": 0.2123556137084961,
-          "facet_novelty": 0.9487179487179487
+          "ild": 0.06611347198486328,
+          "facet_novelty": 0.883495145631068
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -32006,10 +32006,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 26.0,
-          "ild": 0.2129797339439392,
+          "ild": 0.1721179485321045,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -32158,10 +32158,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 6.0,
-          "ild": 0.19392573833465576,
+          "ild": 0.06174945831298828,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -32310,11 +32310,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 8.0,
-          "ild": 0.19788908958435059,
-          "facet_novelty": 0.9818181818181818
+          "ild": 0.15056002140045166,
+          "facet_novelty": 0.9512195121951219
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -32462,11 +32462,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 5.0,
-          "ild": 0.20123505592346191,
-          "facet_novelty": 0.9433962264150944
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -32614,10 +32614,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.8464393446710154,
+          "topic_entropy_norm": 0.55583362792012,
           "n_targets": 34.0,
-          "ild": 0.20869988203048706,
+          "ild": 0.14141005277633667,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -32766,11 +32766,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 17.0,
-          "ild": 0.20235425233840942,
-          "facet_novelty": 0.9829059829059829
+          "ild": 0.14737606048583984,
+          "facet_novelty": 0.963855421686747
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -32912,17 +32912,17 @@
           "facet_novelty": 0.9506172839506173
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.5541432109622958,
+          "recall_at_10": 0.0425531914893617,
+          "hit_rate_at_10": 1.0,
+          "mrr": 1.0,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.0425531914893617,
+          "topic_entropy": 0.4689955935892812,
+          "topic_entropy_norm": 0.14118174150460763,
           "n_targets": 94.0,
-          "ild": 0.20084679126739502,
-          "facet_novelty": 0.9506172839506173
+          "ild": 0.08316302299499512,
+          "facet_novelty": 0.8938053097345132
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33070,11 +33070,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 14.0,
-          "ild": 0.19844454526901245,
-          "facet_novelty": 0.978494623655914
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33222,11 +33222,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 14.0,
-          "ild": 0.21058636903762817,
-          "facet_novelty": 0.9770114942528736
+          "ild": 0.15645182132720947,
+          "facet_novelty": 0.952755905511811
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33374,11 +33374,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 19.0,
-          "ild": 0.20402246713638306,
-          "facet_novelty": 0.9882352941176471
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33526,11 +33526,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 8.0,
-          "ild": 0.20440948009490967,
-          "facet_novelty": 0.9826086956521739
+          "ild": 0.13070350885391235,
+          "facet_novelty": 0.9578947368421052
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33678,11 +33678,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.21306121349334717,
-          "facet_novelty": 0.9770114942528736
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33830,11 +33830,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 8.0,
-          "ild": 0.20654243230819702,
-          "facet_novelty": 0.9587628865979382
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.9459459459459459
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -33982,11 +33982,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 23.0,
-          "ild": 0.21136713027954102,
-          "facet_novelty": 1.0
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.9764705882352941
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -34134,10 +34134,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.20095181465148926,
+          "ild": 0.06174945831298828,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -34286,11 +34286,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 16.0,
-          "ild": 0.2117595076560974,
-          "facet_novelty": 0.971830985915493
+          "ild": 0.17747622728347778,
+          "facet_novelty": 0.9880952380952381
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -34438,11 +34438,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 28.0,
-          "ild": 0.19944357872009277,
-          "facet_novelty": 0.9484536082474226
+          "ild": 0.12322914600372314,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -34590,11 +34590,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 7.0,
-          "ild": 0.18374431133270264,
-          "facet_novelty": 0.9866666666666667
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -34742,10 +34742,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 6.0,
-          "ild": 0.19371771812438965,
+          "ild": 0.1721179485321045,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -34894,11 +34894,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.4689955935892812,
+          "topic_entropy_norm": 0.14118174150460763,
           "n_targets": 37.0,
-          "ild": 0.20579630136489868,
-          "facet_novelty": 1.0
+          "ild": 0.13902360200881958,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.6843830725976618,
@@ -35046,11 +35046,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 9.0,
-          "ild": 0.19847381114959717,
-          "facet_novelty": 1.0
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9852941176470589
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -35198,11 +35198,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.2464393446710154,
+          "topic_entropy_norm": 0.6762456261857126,
           "n_targets": 24.0,
-          "ild": 0.2179155945777893,
-          "facet_novelty": 0.9444444444444444
+          "ild": 0.11844956874847412,
+          "facet_novelty": 0.9054054054054054
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -35350,11 +35350,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1709505944546685,
+          "topic_entropy_norm": 0.6535212480354063,
           "n_targets": 25.0,
-          "ild": 0.1922287940979004,
-          "facet_novelty": 1.0
+          "ild": 0.12798649072647095,
+          "facet_novelty": 0.9932885906040269
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -35502,11 +35502,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 10.0,
-          "ild": 0.21913564205169678,
-          "facet_novelty": 1.0
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9411764705882353
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -35654,10 +35654,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 10.0,
-          "ild": 0.2000001072883606,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -35806,11 +35806,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.20478159189224243,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9726027397260274
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -35958,10 +35958,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 27.0,
-          "ild": 0.2336416244506836,
+          "ild": 0.10633212327957153,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -36110,11 +36110,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 16.0,
-          "ild": 0.2156333327293396,
-          "facet_novelty": 0.9894736842105263
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9315068493150684
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -36262,10 +36262,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 10.0,
-          "ild": 0.21241819858551025,
+          "ild": 0.13175219297409058,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -36414,10 +36414,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 10.0,
-          "ild": 0.21647363901138306,
+          "ild": 0.10510009527206421,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -36566,10 +36566,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 7.0,
-          "ild": 0.21241819858551025,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -36718,11 +36718,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 8.0,
-          "ild": 0.20877760648727417,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9726027397260274
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -36864,16 +36864,16 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.16220310073808747,
+          "recall_at_10": 0.2857142857142857,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.1111111111111111,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.2857142857142857,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 7.0,
-          "ild": 0.21275770664215088,
+          "ild": 0.06189781427383423,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -37016,17 +37016,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.17630010660342912,
+          "recall_at_10": 0.06451612903225806,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.3333333333333333,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.06451612903225806,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 31.0,
-          "ild": 0.20341897010803223,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9863013698630136
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -37174,11 +37174,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.8812908992306927,
+          "topic_entropy_norm": 0.2652949955741215,
           "n_targets": 6.0,
-          "ild": 0.20888060331344604,
-          "facet_novelty": 1.0
+          "ild": 0.14303570985794067,
+          "facet_novelty": 0.9690721649484536
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -37326,10 +37326,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 18.0,
-          "ild": 0.20108318328857422,
+          "ild": 0.06282323598861694,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -37478,10 +37478,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 21.0,
-          "ild": 0.2121669054031372,
+          "ild": 0.11741012334823608,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -37630,11 +37630,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 7.0,
-          "ild": 0.20579630136489868,
-          "facet_novelty": 1.0
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.9864864864864865
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -37782,11 +37782,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 17.0,
-          "ild": 0.2104913592338562,
-          "facet_novelty": 1.0
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.9882352941176471
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -37934,11 +37934,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 17.0,
-          "ild": 0.21436834335327148,
-          "facet_novelty": 0.9518072289156626
+          "ild": 0.10753154754638672,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38086,10 +38086,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 12.0,
-          "ild": 0.2129797339439392,
+          "ild": 0.10749751329421997,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -38238,11 +38238,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.20902246236801147,
-          "facet_novelty": 0.9724770642201835
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.958904109589041
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38390,11 +38390,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 8.0,
-          "ild": 0.22472137212753296,
-          "facet_novelty": 0.97
+          "ild": 0.11605066061019897,
+          "facet_novelty": 0.9029126213592233
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38542,11 +38542,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 5.0,
-          "ild": 0.20451253652572632,
-          "facet_novelty": 0.972972972972973
+          "ild": 0.12597250938415527,
+          "facet_novelty": 0.9912280701754386
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38694,11 +38694,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.0,
+          "topic_entropy_norm": 0.3010299956639812,
           "n_targets": 11.0,
-          "ild": 0.2017437219619751,
-          "facet_novelty": 0.9516129032258065
+          "ild": 0.1019735336303711,
+          "facet_novelty": 0.8455284552845529
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38846,11 +38846,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 11.0,
-          "ild": 0.19053876399993896,
-          "facet_novelty": 0.9705882352941176
+          "ild": 0.10187053680419922,
+          "facet_novelty": 0.9736842105263158
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -38998,11 +38998,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 7.0,
-          "ild": 0.20724248886108398,
-          "facet_novelty": 0.9090909090909091
+          "ild": 0.17068225145339966,
+          "facet_novelty": 0.9375
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39150,11 +39150,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9709505944546686,
+          "topic_entropy_norm": 0.29228525323862886,
           "n_targets": 7.0,
-          "ild": 0.21925628185272217,
-          "facet_novelty": 0.984375
+          "ild": 0.09154635667800903,
+          "facet_novelty": 0.9453125
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39302,11 +39302,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 7.0,
-          "ild": 0.19170963764190674,
-          "facet_novelty": 0.9618320610687023
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39454,11 +39454,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 14.0,
-          "ild": 0.2122131586074829,
-          "facet_novelty": 0.9333333333333333
+          "ild": 0.15661442279815674,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39606,11 +39606,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 39.0,
-          "ild": 0.20634043216705322,
-          "facet_novelty": 0.9032258064516129
+          "ild": 0.13459718227386475,
+          "facet_novelty": 0.927536231884058
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39758,11 +39758,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 21.0,
-          "ild": 0.20394933223724365,
-          "facet_novelty": 0.9917355371900827
+          "ild": 0.12753039598464966,
+          "facet_novelty": 0.9578947368421052
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -39910,11 +39910,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 5.0,
-          "ild": 0.201729416847229,
-          "facet_novelty": 0.9767441860465116
+          "ild": 0.10698038339614868,
+          "facet_novelty": 0.9705882352941176
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40062,11 +40062,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 27.0,
-          "ild": 0.21076959371566772,
-          "facet_novelty": 0.992
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40208,17 +40208,17 @@
           "facet_novelty": 0.9354838709677419
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.11004588314904008,
+          "recall_at_10": 0.07692307692307693,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.3333333333333333,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.07692307692307693,
+          "topic_entropy": 1.1567796494470395,
+          "topic_entropy_norm": 0.348225372857224,
           "n_targets": 13.0,
-          "ild": 0.1904129981994629,
-          "facet_novelty": 0.9354838709677419
+          "ild": 0.12295758724212646,
+          "facet_novelty": 0.8865979381443299
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40360,17 +40360,17 @@
           "facet_novelty": 0.9873417721518988
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.11004588314904008,
+          "recall_at_10": 0.041666666666666664,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.3333333333333333,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "recall_at_100": 0.041666666666666664,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 24.0,
-          "ild": 0.203871488571167,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9452054794520548
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40518,11 +40518,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3567796494470397,
+          "topic_entropy_norm": 0.4084313719900203,
           "n_targets": 23.0,
-          "ild": 0.20710718631744385,
-          "facet_novelty": 0.9291338582677166
+          "ild": 0.12521284818649292,
+          "facet_novelty": 0.8992248062015504
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40670,11 +40670,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.1567796494470395,
+          "topic_entropy_norm": 0.348225372857224,
           "n_targets": 12.0,
-          "ild": 0.20148825645446777,
-          "facet_novelty": 0.9875
+          "ild": 0.12964648008346558,
+          "facet_novelty": 0.8543689320388349
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -40822,11 +40822,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.20095229148864746,
-          "facet_novelty": 1.0
+          "ild": 0.12774521112442017,
+          "facet_novelty": 0.9726027397260274
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.09109240322345807,
@@ -40974,11 +40974,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 22.0,
-          "ild": 0.20765942335128784,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.13269799947738647,
+          "facet_novelty": 0.9375
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41126,11 +41126,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 42.0,
-          "ild": 0.19810307025909424,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.13070350885391235,
+          "facet_novelty": 0.9473684210526315
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41278,11 +41278,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.4689955935892812,
+          "topic_entropy_norm": 0.14118174150460763,
           "n_targets": 21.0,
-          "ild": 0.2247442603111267,
-          "facet_novelty": 1.0
+          "ild": 0.11937940120697021,
+          "facet_novelty": 0.9868421052631579
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41430,11 +41430,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 12.0,
-          "ild": 0.20861798524856567,
-          "facet_novelty": 0.990909090909091
+          "ild": 0.13223594427108765,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41582,11 +41582,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 19.0,
-          "ild": 0.20590627193450928,
-          "facet_novelty": 0.9824561403508771
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41734,11 +41734,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 10.0,
-          "ild": 0.18799728155136108,
-          "facet_novelty": 0.9879518072289156
+          "ild": 0.06393849849700928,
+          "facet_novelty": 0.9814814814814815
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -41886,11 +41886,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.721928094887362,
+          "topic_entropy_norm": 0.8193820026016112,
           "n_targets": 6.0,
-          "ild": 0.2192276120185852,
-          "facet_novelty": 0.9818181818181818
+          "ild": 0.12453436851501465,
+          "facet_novelty": 0.9494949494949495
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42038,11 +42038,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 17.0,
-          "ild": 0.21303844451904297,
-          "facet_novelty": 0.9911504424778761
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9705882352941176
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42190,11 +42190,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 10.0,
-          "ild": 0.2084178328514099,
-          "facet_novelty": 0.9873417721518988
+          "ild": 0.1339792013168335,
+          "facet_novelty": 0.953125
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42342,11 +42342,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.0,
+          "topic_entropy_norm": 0.3010299956639812,
           "n_targets": 5.0,
-          "ild": 0.2296985387802124,
-          "facet_novelty": 0.9855072463768116
+          "ild": 0.13619273900985718,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42494,11 +42494,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 11.0,
-          "ild": 0.22642332315444946,
-          "facet_novelty": 0.9896907216494846
+          "ild": 0.1721179485321045,
+          "facet_novelty": 0.9876543209876543
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42646,11 +42646,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 7.0,
-          "ild": 0.21340805292129517,
-          "facet_novelty": 1.0
+          "ild": 0.0759475827217102,
+          "facet_novelty": 0.9537037037037037
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42798,11 +42798,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.3709505944546687,
+          "topic_entropy_norm": 0.7137272471682026,
           "n_targets": 6.0,
-          "ild": 0.19791609048843384,
-          "facet_novelty": 1.0
+          "ild": 0.1750171184539795,
+          "facet_novelty": 0.9594594594594594
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -42950,11 +42950,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 16.0,
-          "ild": 0.21422481536865234,
-          "facet_novelty": 1.0
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.9864864864864865
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -43102,11 +43102,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 23.0,
-          "ild": 0.2113543152809143,
-          "facet_novelty": 0.9878048780487805
+          "ild": 0.12330466508865356,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -43254,11 +43254,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9219280948873623,
+          "topic_entropy_norm": 0.27752801040644515,
           "n_targets": 22.0,
-          "ild": 0.2149488925933838,
-          "facet_novelty": 0.9864864864864865
+          "ild": 0.14259320497512817,
+          "facet_novelty": 0.9854014598540146
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -43406,11 +43406,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.6854752972273344,
+          "topic_entropy_norm": 0.5073786214160919,
           "n_targets": 6.0,
-          "ild": 0.2038162350654602,
-          "facet_novelty": 0.9021739130434783
+          "ild": 0.1299155354499817,
+          "facet_novelty": 0.8976377952755905
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -43558,10 +43558,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 20.0,
-          "ild": 0.21241819858551025,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -43710,11 +43710,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 7.0,
-          "ild": 0.21897560358047485,
-          "facet_novelty": 0.968421052631579
+          "ild": 0.06322234869003296,
+          "facet_novelty": 0.9823008849557522
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -43862,11 +43862,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 19.0,
-          "ild": 0.2152695655822754,
-          "facet_novelty": 0.9666666666666667
+          "ild": 0.09144836664199829,
+          "facet_novelty": 0.9464285714285714
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44014,11 +44014,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.3709505944546687,
+          "topic_entropy_norm": 0.4126972515042214,
           "n_targets": 6.0,
-          "ild": 0.21296310424804688,
-          "facet_novelty": 1.0
+          "ild": 0.12594759464263916,
+          "facet_novelty": 0.9789473684210527
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44166,11 +44166,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.2194882035255432,
-          "facet_novelty": 0.9636363636363636
+          "ild": 0.14379262924194336,
+          "facet_novelty": 0.9294117647058824
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44318,10 +44318,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 9.0,
-          "ild": 0.1971798539161682,
+          "ild": 0.06174945831298828,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -44470,11 +44470,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 19.0,
-          "ild": 0.23400884866714478,
-          "facet_novelty": 0.9512195121951219
+          "ild": 0.07361817359924316,
+          "facet_novelty": 0.9702970297029703
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44622,11 +44622,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 3.1219280948873624,
+          "topic_entropy_norm": 0.9397940008672039,
           "n_targets": 9.0,
-          "ild": 0.20990276336669922,
-          "facet_novelty": 0.9885057471264368
+          "ild": 0.13689959049224854,
+          "facet_novelty": 0.9888888888888889
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44774,11 +44774,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 14.0,
-          "ild": 0.19603371620178223,
-          "facet_novelty": 0.9904761904761905
+          "ild": 0.1374884843826294,
+          "facet_novelty": 0.9864864864864865
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -44926,10 +44926,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 2.9219280948873623,
-          "topic_entropy_norm": 0.8795880017344075,
+          "topic_entropy": 1.1567796494470395,
+          "topic_entropy_norm": 0.348225372857224,
           "n_targets": 19.0,
-          "ild": 0.20231342315673828,
+          "ild": 0.12938690185546875,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -45078,11 +45078,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 13.0,
-          "ild": 0.21524107456207275,
-          "facet_novelty": 1.0
+          "ild": 0.12263160943984985,
+          "facet_novelty": 0.9852941176470589
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -45230,11 +45230,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 6.0,
-          "ild": 0.20516365766525269,
-          "facet_novelty": 0.975
+          "ild": 0.17359817028045654,
+          "facet_novelty": 0.9459459459459459
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -45382,10 +45382,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 11.0,
-          "ild": 0.2094959020614624,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -45534,11 +45534,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 11.0,
-          "ild": 0.2156863808631897,
-          "facet_novelty": 0.9882352941176471
+          "ild": 0.10749751329421997,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -45686,11 +45686,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9709505944546686,
+          "topic_entropy_norm": 0.29228525323862886,
           "n_targets": 13.0,
-          "ild": 0.2004760503768921,
-          "facet_novelty": 1.0
+          "ild": 0.09154635667800903,
+          "facet_novelty": 0.9765625
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -45838,10 +45838,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 12.0,
-          "ild": 0.205682635307312,
+          "ild": 0.10868197679519653,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -45990,11 +45990,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 30.0,
-          "ild": 0.22692149877548218,
-          "facet_novelty": 1.0
+          "ild": 0.06174945831298828,
+          "facet_novelty": 0.9903846153846154
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -46142,11 +46142,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 0.9709505944546686,
+          "topic_entropy_norm": 0.29228525323862886,
           "n_targets": 25.0,
-          "ild": 0.1888008713722229,
-          "facet_novelty": 0.9891304347826086
+          "ild": 0.15427231788635254,
+          "facet_novelty": 0.9658119658119658
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -46294,10 +46294,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 5.0,
-          "ild": 0.21241819858551025,
+          "ild": 0.12330466508865356,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -46446,10 +46446,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 13.0,
-          "ild": 0.21514511108398438,
+          "ild": 0.15661442279815674,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -46598,10 +46598,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 14.0,
-          "ild": 0.21429848670959473,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -46750,11 +46750,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.9609640474436811,
+          "topic_entropy_norm": 0.5903089986991944,
           "n_targets": 13.0,
-          "ild": 0.21955007314682007,
-          "facet_novelty": 0.9885057471264368
+          "ild": 0.12330466508865356,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -46902,10 +46902,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 6.0,
-          "ild": 0.22412651777267456,
+          "ild": 0.15673041343688965,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -47054,11 +47054,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.6464393446710157,
+          "topic_entropy_norm": 0.7966576244513052,
           "n_targets": 13.0,
-          "ild": 0.20762276649475098,
-          "facet_novelty": 0.9857142857142858
+          "ild": 0.15333038568496704,
+          "facet_novelty": 0.9466666666666667
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -47200,17 +47200,17 @@
           "facet_novelty": 1.0
         },
         "Baseline: popularity": {
-          "ndcg_at_10": 0.0,
-          "recall_at_10": 0.0,
-          "hit_rate_at_10": 0.0,
-          "mrr": 0.0,
+          "ndcg_at_10": 0.21109268758922906,
+          "recall_at_10": 0.4,
+          "hit_rate_at_10": 1.0,
+          "mrr": 0.14285714285714285,
           "oracle_at_10": 1.0,
-          "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "recall_at_100": 0.4,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 5.0,
-          "ild": 0.21983391046524048,
-          "facet_novelty": 1.0
+          "ild": 0.06305515766143799,
+          "facet_novelty": 0.9629629629629629
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -47358,11 +47358,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.295461844238322,
+          "topic_entropy_norm": 0.3899728733539151,
           "n_targets": 56.0,
-          "ild": 0.21244531869888306,
-          "facet_novelty": 1.0
+          "ild": 0.1419873833656311,
+          "facet_novelty": 0.9823008849557522
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.11004588314904008,
@@ -47510,11 +47510,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.1609640474436813,
+          "topic_entropy_norm": 0.6505149978319906,
           "n_targets": 10.0,
-          "ild": 0.22599124908447266,
-          "facet_novelty": 0.967032967032967
+          "ild": 0.13070350885391235,
+          "facet_novelty": 0.9578947368421052
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -47662,11 +47662,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 20.0,
-          "ild": 0.21911698579788208,
-          "facet_novelty": 0.9411764705882353
+          "ild": 0.11558753252029419,
+          "facet_novelty": 0.9827586206896551
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -47814,11 +47814,11 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 1.5709505944546687,
+          "topic_entropy_norm": 0.4729032506370176,
           "n_targets": 5.0,
-          "ild": 0.20343196392059326,
-          "facet_novelty": 0.9879518072289156
+          "ild": 0.10868197679519653,
+          "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
           "ndcg_at_10": 0.0,
@@ -47966,10 +47966,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": -0.0,
+          "topic_entropy_norm": -0.0,
           "n_targets": 27.0,
-          "ild": 0.21522843837738037,
+          "ild": 0.06949979066848755,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -48118,10 +48118,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 10.0,
-          "ild": 0.2129797339439392,
+          "ild": 0.17359817028045654,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -48270,10 +48270,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 1.7709505944546686,
+          "topic_entropy_norm": 0.5331092497698139,
           "n_targets": 18.0,
-          "ild": 0.2004760503768921,
+          "ild": 0.15661442279815674,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -48422,10 +48422,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.9219280948873623,
+          "topic_entropy_norm": 0.8795880017344075,
           "n_targets": 5.0,
-          "ild": 0.2004760503768921,
+          "ild": 0.1721179485321045,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -48574,10 +48574,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.1219280948873624,
-          "topic_entropy_norm": 0.9397940008672039,
+          "topic_entropy": 2.321928094887362,
+          "topic_entropy_norm": 0.6989700043360187,
           "n_targets": 8.0,
-          "ild": 0.2073095440864563,
+          "ild": 0.1759433150291443,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
@@ -48726,10 +48726,10 @@
           "mrr": 0.0,
           "oracle_at_10": 1.0,
           "recall_at_100": 0.0,
-          "topic_entropy": 3.3219280948873626,
-          "topic_entropy_norm": 1.0000000000000002,
+          "topic_entropy": 2.1219280948873624,
+          "topic_entropy_norm": 0.6387640052032226,
           "n_targets": 9.0,
-          "ild": 0.22755610942840576,
+          "ild": 0.12774521112442017,
           "facet_novelty": 1.0
         },
         "Baseline: bm25_author": {
