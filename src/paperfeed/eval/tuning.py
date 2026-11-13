@@ -157,6 +157,69 @@ def precompute_tuning_cache(
     return cached
 
 
+@dataclass
+class GridPoint:
+    """One grid configuration and its per-user Discovery NDCG@k on the tuning authors (in ``cached_data`` order)."""
+
+    params: Dict[str, float]  # w_cite, w_facet, w_nov, w_pop, lambda_div
+    weights: ScoringWeights
+    lambda_div: float
+    per_user_ndcg: np.ndarray
+
+    @property
+    def mean_ndcg(self) -> float:
+        return float(np.mean(self.per_user_ndcg)) if self.per_user_ndcg.size else 0.0
+
+
+def _ranked_ids(user_data: CachedUserCandidateData, resources: RecommenderResources, weights: ScoringWeights,
+                lambda_div: float, k: int, adaptive_graph: bool):
+    scored = score_candidates(user_data.features, effective_weights(weights, adaptive_graph, user_data.profile))
+    return scored, select_top_k(scored, resources.store, k=k, lambda_div=lambda_div)
+
+
+def grid_per_user_ndcg(
+    cached_data: Sequence[CachedUserCandidateData],
+    resources: RecommenderResources,
+    grid: Optional[Mapping[str, Sequence[float]]] = None,
+    k: int = 10,
+    adaptive_graph: bool = True,
+    base_weights: Optional[ScoringWeights] = None,
+) -> List[GridPoint]:
+    """Score every grid point on every cached tuning author, in grid order.
+
+    Weights that are not on the grid (w_pers, w_sess, lambda_neg and, unless the grid lists it, w_pop) come from
+    ``base_weights``: the run's configured weights, so the grid is tuned with the same scoring rule it is evaluated with.
+    """
+    base = base_weights or ScoringWeights()
+    g = dict(grid or DEFAULT_TRACK1_GRID)
+    combos = itertools.product(
+        list(g.get("w_cite", [0.5])), list(g.get("w_facet", [0.5])), list(g.get("w_nov", [0.5])),
+        list(g.get("w_pop", [base.w_pop])), list(g.get("lambda_div", [0.2])),
+    )
+    points: List[GridPoint] = []
+    for w_cite, w_facet, w_nov, w_pop, lam in combos:
+        weights = base.with_overrides(w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
+        ndcgs = []
+        for user_data in cached_data:
+            if not user_data.features:
+                ndcgs.append(0.0)
+                continue
+            _, picks = _ranked_ids(user_data, resources, weights, lam, k, adaptive_graph)
+            ndcgs.append(ndcg_at_k([p.paper_id for p in picks], user_data.targets, k=k))
+        params = {"w_cite": w_cite, "w_facet": w_facet, "w_nov": w_nov, "w_pop": w_pop, "lambda_div": lam}
+        points.append(GridPoint(params, weights, lam, np.asarray(ndcgs, dtype=np.float64)))
+    return points
+
+
+def best_grid_point(points: Sequence[GridPoint]) -> Optional[GridPoint]:
+    """The grid optimum: highest mean NDCG, ties going to the earlier grid point."""
+    best: Optional[GridPoint] = None
+    for pt in points:
+        if best is None or pt.mean_ndcg > best.mean_ndcg:
+            best = pt
+    return best
+
+
 def evaluate_parameter_grid(
     cached_data: Sequence[CachedUserCandidateData],
     resources: RecommenderResources,
@@ -166,72 +229,137 @@ def evaluate_parameter_grid(
     config_signature: Optional[Dict[str, Any]] = None,
     base_weights: Optional[ScoringWeights] = None,
 ) -> TuningResult:
-    """Evaluate grid search in memory across all cached tuning authors.
-
-    Weights that are not on the grid (w_pers, w_sess, lambda_neg and, unless the grid lists it, w_pop) come from
-    ``base_weights``: the run's configured weights, so the grid is tuned with the same scoring rule it is evaluated with.
-    """
-    base = base_weights or ScoringWeights()
-    g = dict(grid or DEFAULT_TRACK1_GRID)
-    w_cites = list(g.get("w_cite", [0.5]))
-    w_facets = list(g.get("w_facet", [0.5]))
-    w_novs = list(g.get("w_nov", [0.5]))
-    w_pops = list(g.get("w_pop", [base.w_pop]))
-    lambdas = list(g.get("lambda_div", [0.2]))
-
-    combinations = list(itertools.product(w_cites, w_facets, w_novs, w_pops, lambdas))
-    results: List[Dict[str, Any]] = []
-
-    best_mean_ndcg = -1.0
-    best_combo = None
-
-    for w_cite, w_facet, w_nov, w_pop, lam in combinations:
-        weights = base.with_overrides(w_cite=w_cite, w_facet=w_facet, w_nov=w_nov, w_pop=w_pop)
-        ndcgs: List[float] = []
-
-        for user_data in cached_data:
-            if not user_data.features:
-                ndcgs.append(0.0)
-                continue
-
-            scored = score_candidates(user_data.features, effective_weights(weights, adaptive_graph, user_data.profile))
-            picks = select_top_k(scored, resources.store, k=k, lambda_div=lam)
-            recommended_ids = [p.paper_id for p in picks]
-            score = ndcg_at_k(recommended_ids, user_data.targets, k=k)
-            ndcgs.append(score)
-
-        mean_ndcg = float(np.mean(ndcgs)) if ndcgs else 0.0
-        record = {
-            "w_cite": w_cite,
-            "w_facet": w_facet,
-            "w_nov": w_nov,
-            "w_pop": w_pop,
-            "lambda_div": lam,
-            "mean_ndcg": mean_ndcg,
-        }
-        results.append(record)
-
-        if mean_ndcg > best_mean_ndcg:
-            best_mean_ndcg = mean_ndcg
-            best_combo = (weights, lam)
-
-    results.sort(key=lambda x: x["mean_ndcg"], reverse=True)
-
-    if best_combo is None:
-        best_weights = base
-        best_lam = 0.2
-    else:
-        best_weights, best_lam = best_combo
-
+    """Evaluate grid search in memory across all cached tuning authors (see ``grid_per_user_ndcg``)."""
+    points = grid_per_user_ndcg(cached_data, resources, grid, k, adaptive_graph, base_weights)
+    best = best_grid_point(points)
+    records = sorted(({**pt.params, "mean_ndcg": pt.mean_ndcg} for pt in points), key=lambda x: x["mean_ndcg"], reverse=True)
     return TuningResult(
-        best_weights=best_weights,
-        best_lambda_div=best_lam,
-        best_mean_ndcg=best_mean_ndcg,
-        grid_size=len(combinations),
+        best_weights=best.weights if best else (base_weights or ScoringWeights()),
+        best_lambda_div=best.lambda_div if best else 0.2,
+        best_mean_ndcg=best.mean_ndcg if best else -1.0,
+        grid_size=len(points),
         n_users=len(cached_data),
-        top_configurations=results[:10],
+        top_configurations=records[:10],
         config_signature=config_signature,
     )
+
+
+# ---------------------------------------------------------------------------
+# Facet-active variant (design §9: selection rule fixed before any test run)
+# ---------------------------------------------------------------------------
+
+FACET_TEMPLATES = ("facet", "new_method")
+
+
+def relative_loss_ci(
+    best: np.ndarray,
+    candidate: np.ndarray,
+    n_resamples: int = 10000,
+    seed: int = 42,
+    alpha: float = 0.05,
+) -> Tuple[float, float, float]:
+    """Relative mean loss of ``candidate`` against ``best`` with a paired percentile-bootstrap CI over users.
+
+    loss = (mean(best) - mean(candidate)) / mean(best); each resample draws the same users for both systems.
+    """
+    best, candidate = np.asarray(best, dtype=np.float64), np.asarray(candidate, dtype=np.float64)
+    if best.shape != candidate.shape or best.size == 0:
+        raise ValueError("relative_loss_ci needs two non-empty per-user arrays of the same length.")
+    if best.mean() <= 0:
+        raise ValueError("The best configuration has zero mean NDCG; a relative loss is undefined.")
+    point = float((best.mean() - candidate.mean()) / best.mean())
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, best.size, size=(n_resamples, best.size))
+    b, c = best[idx].mean(axis=1), candidate[idx].mean(axis=1)
+    losses = np.where(b > 0, (b - c) / np.where(b > 0, b, 1.0), 0.0)
+    return point, float(np.percentile(losses, 100 * alpha / 2)), float(np.percentile(losses, 100 * (1 - alpha / 2)))
+
+
+def explanation_template_shares(
+    cached_data: Sequence[CachedUserCandidateData],
+    resources: RecommenderResources,
+    weights: ScoringWeights,
+    lambda_div: float,
+    k: int = 10,
+    adaptive_graph: bool = True,
+) -> Dict[str, float]:
+    """Share of the tuning authors' Top-k items by dominant explainable feature (the template the explainer would
+    show; ``none`` when nothing contributes positively). Grounding is not checked here: it needs the abstracts."""
+    from paperfeed.rec.explain import dominant_feature
+
+    counts: Dict[str, int] = {}
+    total = 0
+    for user_data in cached_data:
+        if not user_data.features:
+            continue
+        scored, picks = _ranked_ids(user_data, resources, weights, lambda_div, k, adaptive_graph)
+        by_id = {s.paper_id: s for s in scored}
+        for p in picks:
+            key = dominant_feature(by_id[p.paper_id].contributions) or "none"
+            counts[key] = counts.get(key, 0) + 1
+            total += 1
+    return {key: n / total for key, n in sorted(counts.items())} if total else {}
+
+
+def select_facet_active_config(
+    points: Sequence[GridPoint],
+    cached_data: Sequence[CachedUserCandidateData],
+    resources: RecommenderResources,
+    k: int = 10,
+    adaptive_graph: bool = True,
+    max_relative_loss: float = 0.05,
+    min_facet_share: float = 0.10,
+    n_candidates: int = 10,
+    n_resamples: int = 10000,
+    seed: int = 42,
+) -> Dict[str, Any]:
+    """Apply the facet-active selection rule of design §9 on the tuning split.
+
+    Candidates are the grid points with w_facet > 0 in order of mean NDCG (at most ``n_candidates`` are examined).
+    The first one whose relative-loss CI upper end is <= ``max_relative_loss`` and whose facet/new-method share of
+    Top-k items is >= ``min_facet_share`` is selected; ``selected`` is None when no candidate qualifies.
+    """
+    best = best_grid_point(points)
+    if best is None:
+        raise ValueError("No grid points to select from.")
+    candidates = sorted((pt for pt in points if pt.params["w_facet"] > 0), key=lambda pt: -pt.mean_ndcg)[:n_candidates]
+    examined: List[Dict[str, Any]] = []
+    selected: Optional[Dict[str, Any]] = None
+    for pt in candidates:
+        loss, lo, hi = relative_loss_ci(best.per_user_ndcg, pt.per_user_ndcg, n_resamples, seed)
+        shares = explanation_template_shares(cached_data, resources, pt.weights, pt.lambda_div, k, adaptive_graph)
+        facet_share = sum(shares.get(t, 0.0) for t in FACET_TEMPLATES)
+        record = {
+            **pt.params,
+            "weights": asdict(pt.weights),
+            "mean_ndcg": pt.mean_ndcg,
+            "relative_loss": loss,
+            "relative_loss_ci": [lo, hi],
+            "non_inferior": hi <= max_relative_loss,
+            "template_shares": shares,
+            "facet_share": facet_share,
+            "enough_facet_explanations": facet_share >= min_facet_share,
+        }
+        record["accepted"] = record["non_inferior"] and record["enough_facet_explanations"]
+        examined.append(record)
+        if record["accepted"] and selected is None:
+            selected = record
+    return {
+        "rule": {
+            "max_relative_loss": max_relative_loss,
+            "min_facet_share": min_facet_share,
+            "facet_templates": list(FACET_TEMPLATES),
+            "n_candidates": n_candidates,
+            "n_resamples": n_resamples,
+            "seed": seed,
+            "k": k,
+        },
+        "best": {**best.params, "weights": asdict(best.weights), "mean_ndcg": best.mean_ndcg,
+                 "template_shares": explanation_template_shares(cached_data, resources, best.weights, best.lambda_div, k, adaptive_graph)},
+        "n_users": len(cached_data),
+        "candidates": examined,
+        "selected": selected,
+    }
 
 
 DEFAULT_HYBRID_GRID = {
@@ -292,3 +420,25 @@ def tuning_signature(
         "tuning_version": TUNING_VERSION,
         "tuning_authors": sorted(clean_id(a) for a in tuning_author_ids),
     }
+
+
+def default_facet_selection_path(artifacts_dir: Path | str, enhanced: bool = False) -> Path:
+    """Where the frozen facet-active selection lives (one file per Track 1 configuration)."""
+    return Path(artifacts_dir) / ("facet_config_selection_enhanced.json" if enhanced else "facet_config_selection.json")
+
+
+def load_facet_selection(path: Path | str, expected_signature: Mapping[str, Any]) -> Tuple[ScoringWeights, float]:
+    """The facet-active variant's weights and lambda_div, only from a selection made for this exact configuration."""
+    p = Path(path)
+    if not p.exists():
+        raise FileNotFoundError(f"{p} not found: run scripts/select_facet_config.py with the same options first.")
+    saved = json.loads(p.read_text(encoding="utf-8"))
+    if saved.get("config_signature") != dict(expected_signature):
+        raise ValueError(
+            f"{p} was selected for a different configuration ({saved.get('config_signature')} != {dict(expected_signature)})."
+        )
+    chosen = saved.get("selected")
+    if not chosen:
+        raise ValueError(f"{p}: no grid point met the facet-active rule, so there is no facet-active variant to run.")
+    weights = ScoringWeights(**{k: v for k, v in chosen["weights"].items() if k in ScoringWeights.__dataclass_fields__})
+    return weights, float(chosen["lambda_div"])

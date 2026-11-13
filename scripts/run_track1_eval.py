@@ -40,7 +40,14 @@ from paperfeed.eval.lfo import ZERO_PUB_BASELINES, run_lfo_evaluation, run_zero_
 from paperfeed.eval.report import format_cold_start_table, format_zero_pub_section, generate_full_evaluation_report
 from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown, slice_by_history_volume
 from paperfeed.eval.stats import H1_METRICS, compare_system_to_baselines, run_track1_hypothesis_tests
-from paperfeed.eval.tuning import evaluate_parameter_grid, precompute_tuning_cache, tune_hybrid_persona, tuning_signature
+from paperfeed.eval.tuning import (
+    default_facet_selection_path,
+    evaluate_parameter_grid,
+    load_facet_selection,
+    precompute_tuning_cache,
+    tune_hybrid_persona,
+    tuning_signature,
+)
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
 from paperfeed.rec.scoring import ScoringWeights
 
@@ -62,6 +69,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--results-name", default="track1_lfo_results.json", help="Filename for saved JSON results")
     parser.add_argument("--enhanced", action="store_true", help="Run with Option 2 & 3 enhancements (M=250, M_chan=500, w_pop=0.20, saved to enhanced files)")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Exclude papers with citation_count_T >= THRESHOLD from ground truth targets (popularity-filtered evaluation)")
+    parser.add_argument("--facet-active", action="store_true", help="Run the facet-active variant frozen by scripts/select_facet_config.py (design §9) instead of the grid optimum")
     parser.add_argument("--skip-zero-pub", action="store_true", help="Skip the Zero-Publication Seed-Only slice (a full extra pass over the test cohort)")
     return parser.parse_args()
 
@@ -325,6 +333,13 @@ def run(args, root, cfg, manifest):
         elif args.results_name == "track1_lfo_enhanced_results.json":
             args.results_name = "track1_lfo_enhanced_filtered_results.json"
 
+    # The facet-active variant writes its own files next to the run it varies
+    if args.facet_active:
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith("_facet_active"):
+                setattr(args, attr, f"{name.stem}_facet_active{name.suffix}")
+
     tuning_authors = [a for a in cohort if a.get("split") == "tuning"]
     test_authors = [a for a in cohort if a.get("split") == "test"]
 
@@ -389,6 +404,8 @@ def run(args, root, cfg, manifest):
             logger.info("Running hyperparameter tuning on %d tuning authors...", len(tuning_authors))
             t0 = time.time()
             cached = precompute_tuning_cache(resources, tuning_authors, discovery_map, tuned_config)
+            if len(cached) != len(tuning_authors):  # precompute logs and skips failures; tuning must not shrink silently
+                raise RuntimeError(f"Tuning cache built for only {len(cached)} of {len(tuning_authors)} tuning authors.")
             t_res = evaluate_parameter_grid(
                 cached,
                 resources,
@@ -419,6 +436,15 @@ def run(args, root, cfg, manifest):
             tuned_config = tuned_config.with_overrides(
                 weights=tuned_weights, lambda_div=t_res.best_lambda_div
             )
+
+    variant = "grid optimum (headline)"
+    if args.facet_active:
+        selection_path = default_facet_selection_path(root / cfg["paths"]["artifacts_dir"], args.enhanced)
+        fa_weights, fa_lambda = load_facet_selection(selection_path, tuning_sig)
+        tuned_config = tuned_config.with_overrides(weights=fa_weights, lambda_div=fa_lambda)
+        variant = f"facet-active variant (design §9), frozen in {selection_path.name}"
+        logger.info("Running the %s: %s, lambda_div=%.2f", variant, fa_weights, fa_lambda)
+    manifest.extra_metadata["variant"] = variant
 
     # 2. Main LFO evaluation run on test split
     logger.info("Running Track 1 LFO evaluation across %d test authors...", len(test_authors))
@@ -496,6 +522,7 @@ def run(args, root, cfg, manifest):
         f"> - Scoring Weights: w_pers={tuned_config.weights.w_pers:.2f}, w_cite={tuned_config.weights.w_cite:.2f}, "
         f"w_facet={tuned_config.weights.w_facet:.2f}, w_nov={tuned_config.weights.w_nov:.2f}, "
         f"lambda_div={tuned_config.lambda_div:.2f}\n"
+        f"> - System variant: {variant}\n"
         f"> - Hybrid-Persona baseline: gamma_rec={hybrid_params['gamma_rec']:.2f}, n_terms={hybrid_params['n_terms']}\n"
         f"> - Report: `{args.report_name}` | Raw JSON: `{args.results_name}` | Run manifest: `results/runs/{manifest.run_id}/manifest.json`"
     )

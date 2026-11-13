@@ -657,3 +657,105 @@ def test_report_sections_render():
     assert "| Baseline: popularity | recall_at_10 |" in table and "| 0.0400 |" in table
     section = format_zero_pub_section({"Paper Feed (Full)": {"ndcg_at_10": 0.1}}, [comp], n_authors=320)
     assert "n = 320" in section and "Citation-only is not applicable" in section
+
+
+# ---------------------------------------------------------------------------
+# Facet-active variant selection (design §9)
+# ---------------------------------------------------------------------------
+
+import json as _json
+
+from paperfeed.eval.tuning import (
+    GridPoint,
+    best_grid_point,
+    default_facet_selection_path,
+    explanation_template_shares,
+    load_facet_selection,
+    relative_loss_ci,
+    select_facet_active_config,
+    tuning_signature,
+)
+from paperfeed.rec.recommender import RecommendConfig
+
+
+def _gp(w_facet, ndcgs, w_cite=1.0, lam=0.0):
+    params = {"w_cite": w_cite, "w_facet": w_facet, "w_nov": 0.0, "w_pop": 0.0, "lambda_div": lam}
+    return GridPoint(params, ScoringWeights(w_cite=w_cite, w_facet=w_facet, w_nov=0.0), lam, np.asarray(ndcgs, dtype=float))
+
+
+def test_relative_loss_ci():
+    best = np.array([0.2, 0.4, 0.6, 0.8])
+    assert relative_loss_ci(best, best, n_resamples=500) == (0.0, 0.0, 0.0)
+    point, lo, hi = relative_loss_ci(best, best / 2, n_resamples=500)
+    assert point == pytest.approx(0.5) and lo == pytest.approx(0.5) and hi == pytest.approx(0.5)  # same ratio per user
+    point, lo, hi = relative_loss_ci(np.array([0.1, 0.5, 0.3, 0.9, 0.2] * 10), np.array([0.2, 0.3, 0.3, 0.7, 0.2] * 10), n_resamples=2000)
+    assert lo < point < hi
+    with pytest.raises(ValueError):
+        relative_loss_ci(np.zeros(3), np.zeros(3))
+    with pytest.raises(ValueError):
+        relative_loss_ci(best, best[:2])
+
+
+def test_best_grid_point_breaks_ties_by_grid_order():
+    first, second = _gp(0.0, [0.5, 0.5]), _gp(0.5, [0.5, 0.5])
+    assert best_grid_point([first, second]) is first
+    assert best_grid_point([]) is None
+
+
+def test_facet_active_rule_needs_both_non_inferiority_and_facet_explanations(monkeypatch):
+    import paperfeed.eval.tuning as tuning
+
+    rng = np.random.default_rng(0)
+    base = rng.uniform(0.2, 0.8, size=80)
+    points = [
+        _gp(0.0, base),                      # grid optimum, no facets
+        _gp(0.5, base * 0.995, lam=0.1),     # non-inferior but its explanations are not facet ones
+        _gp(1.0, base * 0.80, lam=0.2),      # many facet explanations but 20% worse
+        _gp(0.25, base * 0.99, lam=0.3),     # non-inferior and explains with facets -> selected
+    ]
+    shares = {0.1: {"persona": 0.97, "facet": 0.03}, 0.2: {"facet": 0.5, "persona": 0.5}, 0.3: {"facet": 0.12, "persona": 0.88},
+              0.0: {"persona": 1.0}}
+    monkeypatch.setattr(tuning, "explanation_template_shares", lambda cached, res, w, lam, k, ag: shares[lam])
+    sel = select_facet_active_config(points, cached_data=[], resources=None, n_resamples=500)
+    assert [c["w_facet"] for c in sel["candidates"]] == [0.5, 0.25, 1.0]  # w_facet > 0, by NDCG
+    by_facet = {c["w_facet"]: c for c in sel["candidates"]}
+    assert by_facet[0.5]["non_inferior"] and not by_facet[0.5]["enough_facet_explanations"]
+    assert not by_facet[1.0]["non_inferior"] and by_facet[1.0]["enough_facet_explanations"]
+    assert sel["selected"]["w_facet"] == 0.25 and sel["selected"]["accepted"]
+    assert sel["best"]["w_facet"] == 0.0 and sel["rule"]["max_relative_loss"] == 0.05
+
+    monkeypatch.setattr(tuning, "explanation_template_shares", lambda *a: {"persona": 1.0})
+    assert select_facet_active_config(points, [], None, n_resamples=200)["selected"] is None  # reported as "none"
+
+
+def test_explanation_template_shares_count_dominant_features():
+    from paperfeed.rec.features import CitationSignal, FacetMatch, NewMethod
+
+    feats = [
+        CandidateFeatures("p1", 0.1, None, CitationSignal(), FacetMatch(s_task=1.0, s_dataset=1.0), NewMethod(), 0.0),
+        CandidateFeatures("p2", 0.9, None, CitationSignal(), FacetMatch(), NewMethod(), 0.0),
+    ]
+    user = CachedUserCandidateData("A1", SimpleNamespace(authored_papers=[{}] * 5, zero_pub=False), ["p1", "p2"], feats, [])
+    store = MagicMock()
+    store.select.side_effect = lambda pids: np.eye(2, dtype=np.float32)[: len(pids)]
+    shares = explanation_template_shares([user], SimpleNamespace(store=store), ScoringWeights(w_facet=2.0), 0.0, k=2)
+    assert shares == {"facet": 0.5, "persona": 0.5}
+
+
+def test_load_facet_selection_checks_the_configuration(tmp_path):
+    sig = tuning_signature(RecommendConfig(pool_size=100, channel_depth=200), ["A1"])
+    path = default_facet_selection_path(tmp_path)
+    assert path.name == "facet_config_selection.json"
+    assert default_facet_selection_path(tmp_path, enhanced=True).name == "facet_config_selection_enhanced.json"
+    with pytest.raises(FileNotFoundError):
+        load_facet_selection(path, sig)
+    chosen = {"weights": {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.25, "w_nov": 0.0, "w_sess": 1.0, "lambda_neg": 0.5, "w_pop": 0.0},
+              "lambda_div": 0.3}
+    path.write_text(_json.dumps({"config_signature": sig, "selected": chosen}))
+    weights, lam = load_facet_selection(path, sig)
+    assert weights.w_facet == 0.25 and lam == 0.3
+    with pytest.raises(ValueError, match="different configuration"):
+        load_facet_selection(path, {**sig, "pool_size": 250})
+    path.write_text(_json.dumps({"config_signature": sig, "selected": None}))
+    with pytest.raises(ValueError, match="no grid point met"):
+        load_facet_selection(path, sig)

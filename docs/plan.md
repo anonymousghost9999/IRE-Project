@@ -311,6 +311,7 @@ Small fixture corpus: filters remove excluded and future papers; scaling handles
 - Grid: $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}} \in \{0, 0.25, 0.5, 1\}$, $\lambda_{\text{div}} \in \{0, 0.1, 0.2, 0.3, 0.5\}$. Objective: mean Discovery NDCG@10.
 - Hybrid-Persona baseline: tune $\gamma_{\text{rec}}$ and pseudo-query length with the same budget.
 - Freeze the chosen values in a config file before touching the test split.
+- Facet-active variant (D§9): on the tuning split only, `scripts/select_facet_config.py` takes the grid points with $w_{\text{facet}} > 0$ in NDCG order and selects the first whose relative NDCG@10 loss against the optimum has a paired-bootstrap 95% CI upper end $\le 5\%$ and whose Top-10 items have $\ge 10\%$ facet or new-method explanations. Its result (selected or "none") is frozen in `data/artifacts/facet_config_selection.json` before the test split is touched; if selected, it gets its own Track 1 run and audit (`--facet-active`), reported as secondary.
 
 ### 6.4 Test runs (test split, once)
 - Full system and baselines 1–6, anchors.

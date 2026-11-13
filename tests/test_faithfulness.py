@@ -408,3 +408,28 @@ def test_audit_uses_tuned_weights_only_from_a_matching_cache(tmp_path):
     rec_cfg, source = script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=True), artifact)
     assert rec_cfg.pool_size == 250 and rec_cfg.weights.w_pop == 0.2 and rec_cfg.weights.w_cite == 0.5
     assert "--skip-tuning" in source
+
+
+def test_audit_facet_active_uses_only_a_matching_frozen_selection(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}]
+    expected = tuning_signature(RecommendConfig.from_config(cfg), ["A1"])
+    tuned = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.0, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    artifact = tmp_path / "tuning_results.json"
+    artifact.write_text(json.dumps({"config_signature": expected, "best_weights": tuned, "best_lambda_div": 0.0}))
+    args = SimpleNamespace(enhanced=False, skip_tuning=False, facet_active=True)
+
+    with pytest.raises(FileNotFoundError):
+        script.audit_config(cfg, cohort, args, artifact)
+    (tmp_path / "facet_config_selection.json").write_text(json.dumps({
+        "config_signature": expected,
+        "selected": {"weights": {**tuned, "w_facet": 0.5}, "lambda_div": 0.1},
+    }))
+    rec_cfg, source = script.audit_config(cfg, cohort, args, artifact)
+    assert rec_cfg.weights.w_facet == 0.5 and rec_cfg.lambda_div == 0.1 and "facet-active" in source
+    with pytest.raises(ValueError, match="skip-tuning"):
+        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=False, skip_tuning=True, facet_active=True), artifact)

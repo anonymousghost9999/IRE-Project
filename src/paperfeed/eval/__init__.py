@@ -66,6 +66,11 @@ from paperfeed.eval.tuning import (
     precompute_tuning_cache,
     tune_hybrid_persona,
     tuning_signature,
+    GridPoint,
+    grid_per_user_ndcg,
+    relative_loss_ci,
+    explanation_template_shares,
+    select_facet_active_config,
 )
 
 __all__ = [
@@ -99,6 +104,11 @@ __all__ = [
     "evaluate_parameter_grid",
     "tune_hybrid_persona",
     "tuning_signature",
+    "GridPoint",
+    "grid_per_user_ndcg",
+    "relative_loss_ci",
+    "explanation_template_shares",
+    "select_facet_active_config",
     # LFO
     "UserEvaluationRow",
     "LFOEvaluationResult",

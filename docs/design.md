@@ -240,6 +240,14 @@ $$\text{Score}(p) = w_{\text{pers}}\,\text{mm}\!\big[\cos(\mathbf{e}_p,\mathbf{v
 
 **Tuned parameters.** Track 1 tuning split (80 authors): $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$ via a coarse grid. Track 2 pilot personas (about 10, disjoint from the 30 evaluation personas): $\alpha_{\text{sess}}, \rho, w_{\text{sess}}, \lambda_{\text{neg}}, \gamma_{\text{pivot}}$; Track 2 reuses the Track 1 values of $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$. Everything else is fixed at the defaults in §2.
 
+**Facet-active variant (selection rule fixed before any test run).** The headline system is the unconstrained grid optimum above. Because the facet and new-method terms are what make span-grounded explanations possible (§11), a secondary *facet-active* configuration is also defined, chosen on the tuning split only:
+1. Candidates: grid points with $w_{	ext{facet}} > 0$ (and $w_{	ext{pers}} = 1$, as everywhere), taken in order of tuning-split mean Discovery NDCG@10.
+2. *Non-inferiority:* the paired-bootstrap 95% CI (over the 80 tuning authors) of its relative NDCG@10 loss against the grid optimum has an upper end of at most 5%.
+3. *Explainability:* at least 10% of the tuning authors' Top-10 items have a facet or new-method dominant contribution (the feature their explanation would show).
+4. The first candidate meeting both is the facet-active variant. If none does, there is no facet-active variant and that is reported, with the explainability cost or accuracy cost that ruled each candidate out.
+
+It is reported as a labelled secondary system next to the headline (Track 1 tables, faithfulness audit), never in place of it.
+
 ### 9.1 Extended: learned ranker (V3)
 A small **gradient-boosted learning-to-rank model** (LightGBM LambdaMART) over the same min-max-scaled features as the linear score (persona, session, citation, facet match, new-method, penalty, plus the RRF rank of each channel). It is light training, not deep learning, and is the only trained component in the project.
 - **Training data:** the Track 1 **tuning split only** (80 authors; candidates labelled 1 if in-corpus $\text{Discovery}(B\mid u)$, else 0). Because 80 queries is small, use a shallow model, strong regularization and 5-fold cross-validation **inside the tuning split**; compare with the linear scorer on the same folds.

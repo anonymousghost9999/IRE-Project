@@ -34,7 +34,7 @@ from paperfeed.common.config import find_project_root, load_config
 from paperfeed.common.logger import get_logger
 from paperfeed.common.manifest import RunManifest
 from paperfeed.eval.faithfulness import run_faithfulness_audit
-from paperfeed.eval.tuning import tuning_signature
+from paperfeed.eval.tuning import default_facet_selection_path, load_facet_selection, tuning_signature
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
 from paperfeed.rec.scoring import ScoringWeights
 
@@ -48,6 +48,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--enhanced", action="store_true", help="Use Track 1 enhanced parameters (M=250, M_channel=500, w_pop=0.20)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for sampling (default: 42)")
     parser.add_argument("--skip-tuning", action="store_true", help="Use the configured weights instead of the Track 1 tuned ones")
+    parser.add_argument("--facet-active", action="store_true", help="Audit the facet-active variant frozen by scripts/select_facet_config.py")
     parser.add_argument("--report-name", default="faithfulness_audit_report.md", help="Markdown report filename")
     parser.add_argument("--results-name", default="faithfulness_audit_report.json", help="JSON output filename")
     parser.add_argument("--out-dir", default="results", help="Output directory (default: results)")
@@ -62,6 +63,12 @@ def main() -> int:
     out_dir = root / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
+    # Audits of different Track 1 configurations must not overwrite each other
+    suffix = ("_enhanced" if args.enhanced else "") + ("_facet_active" if args.facet_active else "")
+    for attr in ("report_name", "results_name"):
+        name = Path(getattr(args, attr))
+        if suffix and name.stem == "faithfulness_audit_report":
+            setattr(args, attr, f"{name.stem}{suffix}{name.suffix}")
     report_path = out_dir / args.report_name
     results_path = out_dir / args.results_name
 
@@ -86,6 +93,8 @@ def audit_config(cfg, cohort, args, artifact_path):
             pool_size=250, channel_depth=500, weights=rec_cfg.weights.with_overrides(w_pop=0.20)
         )
     if args.skip_tuning:
+        if getattr(args, "facet_active", False):
+            raise ValueError("--facet-active audits the frozen selection; it cannot be combined with --skip-tuning.")
         return rec_cfg, "configured weights (--skip-tuning)"
     if not artifact_path.exists():
         raise FileNotFoundError(
@@ -102,6 +111,10 @@ def audit_config(cfg, cohort, args, artifact_path):
     if args.enhanced:
         tuned = tuned.with_overrides(w_pop=0.20)  # as run_track1_eval.py applies --enhanced after tuning
     rec_cfg = rec_cfg.with_overrides(weights=tuned, lambda_div=saved.get("best_lambda_div", rec_cfg.lambda_div))
+    if getattr(args, "facet_active", False):
+        selection = default_facet_selection_path(artifact_path.parent, args.enhanced)
+        fa_weights, fa_lambda = load_facet_selection(selection, expected)
+        return rec_cfg.with_overrides(weights=fa_weights, lambda_div=fa_lambda), f"facet-active variant from {selection.name} (signature matched)"
     return rec_cfg, f"tuned weights from {artifact_path.name} (signature matched)"
 
 
