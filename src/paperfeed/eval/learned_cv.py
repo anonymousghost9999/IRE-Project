@@ -168,6 +168,10 @@ def load_v3_decision(artifacts_dir) -> Dict[str, Any]:
     if not decision.get("model_file") or not model_path.is_file():
         raise FileNotFoundError(f"The V3 model file {model_path} frozen with the decision is missing.")
     if hashlib.sha256(model_path.read_bytes()).hexdigest() != decision.get("model_sha256"):
-        raise ValueError(f"{model_path} is not the model frozen with the decision (SHA-256 differs).")
+        raise ValueError(
+            f"{model_path} is not the model frozen with the decision (SHA-256 differs). If it was committed from "
+            "another machine, git may have converted its line endings: .gitattributes marks data/artifacts/*.txt as "
+            "-text so the exact bytes are stored; re-add the original file there."
+        )
     decision["model_path"] = str(model_path)
     return decision

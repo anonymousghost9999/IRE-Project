@@ -1,0 +1,3 @@
+# Frozen model files are verified by SHA-256 (variant_v3_decision.json). Git must store them byte for byte:
+# no line-ending conversion on Windows (core.autocrlf) or anywhere else.
+data/artifacts/*.txt -text
