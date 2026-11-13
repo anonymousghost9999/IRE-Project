@@ -57,6 +57,8 @@ class HypothesisTestReport:
     h2_supported: bool  # True if MMR increases entropy without >3% relative NDCG loss
     n_resamples: int
     n_authors: int
+    # False when Full and No-MMR produce identical per-user results (tuned lambda_div = 0): H2 cannot be tested.
+    h2_testable: bool = True
 
 
 def paired_cohens_d(x: Sequence[float], y: Sequence[float]) -> float:
@@ -294,7 +296,12 @@ def run_track1_hypothesis_tests(
         mde=bootstrap_mde(pf_ndcg, no_mmr_ndcg, n_resamples=n_resamples, seed=seed),
     )
 
-    h2_supported = bool(h2_entropy.significant_at_05 and h2_retention.significant_at_05)
+    # With a tuned lambda_div of 0 the No-MMR ablation is the full system: there is no MMR effect to test.
+    h2_testable = not (
+        np.array_equal(np.asarray(pf_ndcg, dtype=float), np.asarray(no_mmr_ndcg, dtype=float))
+        and np.array_equal(np.asarray(pf_entropy, dtype=float), np.asarray(no_mmr_entropy, dtype=float))
+    )
+    h2_supported = bool(h2_testable and h2_entropy.significant_at_05 and h2_retention.significant_at_05)
 
     return HypothesisTestReport(
         h1_comparisons=h1_comparisons,
@@ -304,5 +311,6 @@ def run_track1_hypothesis_tests(
         h2_supported=h2_supported,
         n_resamples=n_resamples,
         n_authors=n_authors,
+        h2_testable=h2_testable,
     )
 

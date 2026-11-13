@@ -285,7 +285,13 @@ def main():
     with open(root / args.config, "r", encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
 
-    run_id = f"track1_{Path(args.report_name).stem}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    # The report name is suffixed later (in run()), so tag the variant here to keep the run directories apart
+    variant = "".join([
+        "_enhanced" if args.enhanced else "",
+        "_filtered" if args.filter_popular is not None else "",
+        "_facet_active" if args.facet_active else "",
+    ])
+    run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
     manifest.extra_metadata["arguments"] = vars(args)
     try:

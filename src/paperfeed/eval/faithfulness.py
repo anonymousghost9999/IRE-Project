@@ -194,10 +194,15 @@ class FaithfulnessAuditResult:
             f"{self.n_span_explanations} of the {self.n_sampled} audited explanations quote spans.",
         ]
         if self.n_span_explanations == 0:
+            n_span_population = sum(self.population_template_distribution.get(t, 0) for t in ("facet", "new_method"))
+            why = (
+                f"span templates were only {n_span_population} of the covered Top-10 items, too rare to be sampled"
+                if n_span_population
+                else "the facet and new-method terms never dominated a Top-10 score, so no span explanation was shown"
+            )
             notes.append(
                 "- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation "
-                "edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the tuned weights "
-                "(e.g. w_facet = 0) the system produced no facet explanations to audit."
+                f"edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the audited weights {why}."
             )
         notes.append(
             "- Zeroing the dominant term removes the largest part of a paper's score, so a high drop-out rate is expected "

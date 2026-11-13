@@ -351,6 +351,55 @@ def test_reporting_formatting():
     assert "No-MMR" in abl_tbl
 
 
+def _h2_data(no_mmr_ndcg, no_mmr_entropy):
+    data = {
+        "Paper Feed (Full)": {"ndcg_at_10": [0.5, 0.6, 0.7, 0.8], "topic_entropy": [1.5, 1.6, 1.7, 1.8]},
+        "Ablation: No-MMR": {"ndcg_at_10": no_mmr_ndcg, "topic_entropy": no_mmr_entropy},
+    }
+    for b in ("popularity", "citation_only", "bm25_author", "dense_centroid", "hybrid_persona"):
+        data[f"Baseline: {b}"] = {"ndcg_at_10": [0.1] * 4}
+    for series in data.values():
+        series["recall_at_10"] = list(series["ndcg_at_10"])
+    return data
+
+
+def test_h2_is_not_testable_when_mmr_is_off():
+    """Tuned lambda_div = 0 makes No-MMR identical to the full system: H2 is untestable, not rejected."""
+    from paperfeed.eval.report import format_hypothesis_markdown
+
+    rep = run_track1_hypothesis_tests(_h2_data([0.5, 0.6, 0.7, 0.8], [1.5, 1.6, 1.7, 1.8]), n_resamples=200)
+    assert rep.h2_testable is False and rep.h2_supported is False
+    md = format_hypothesis_markdown(rep)
+    assert "NOT TESTABLE" in md and "REJECTED" not in md.split("Hypothesis H2")[1]
+
+
+def test_h2_report_shows_the_sign_of_the_ndcg_change():
+    """MMR that raises NDCG must not be printed as a loss (the old report showed abs())."""
+    from paperfeed.eval.report import format_hypothesis_markdown
+
+    rep = run_track1_hypothesis_tests(_h2_data([0.49, 0.59, 0.69, 0.79], [1.0, 1.1, 1.2, 1.3]), n_resamples=200)
+    assert rep.h2_testable is True
+    h2 = format_hypothesis_markdown(rep).split("Hypothesis H2")[1]
+    assert "NDCG@10 change with MMR = +" in h2
+    assert "worst-case relative loss from the CI = 0.00%" in h2
+
+
+def test_report_keeps_diagnostic_out_of_main_table_and_shows_coverage_ceiling():
+    from paperfeed.eval.report import generate_full_evaluation_report
+
+    aggs = {
+        "Paper Feed (Full)": {"ndcg_at_10": 0.02, "recall_at_10": 0.015, "recall_at_100": 0.05},
+        "Diagnostic: Re-Citation": {"ndcg_at_10": 0.04, "recall_at_10": 0.04, "recall_at_100": 0.08},
+        "Baseline: citation_only": {"ndcg_at_10": 0.03, "recall_at_10": 0.027},
+    }
+    rep = run_track1_hypothesis_tests(_h2_data([0.49, 0.59, 0.69, 0.79], [1.0, 1.1, 1.2, 1.3]), n_resamples=100)
+    md = generate_full_evaluation_report(aggs, rep)
+    main = md.split("## 1. Main Benchmark Results")[1].split("###")[0]
+    assert "Re-Citation" not in main
+    assert "### Diagnostic: Re-Citation" in md
+    assert "| Paper Feed (Full) | 0.0500 | 0.0150 | 30.0% |" in md
+
+
 # ---------------------------------------------------------------------------
 # Baseline set, no silent fallbacks, Citation-only, tuning with the configured weights
 # ---------------------------------------------------------------------------

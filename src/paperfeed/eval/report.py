@@ -28,6 +28,8 @@ def format_main_table_markdown(system_aggregates: Mapping[str, Mapping[str, floa
         oracle_ndcg = 1.0
 
     for name, m in system_aggregates.items():
+        if name.startswith("Diagnostic:"):
+            continue  # different ground truth (own past references): reported in its own table
         ndcg = m.get("ndcg_at_10", 0.0)
         pct_oracle = (ndcg / oracle_ndcg) * 100.0
         rec = m.get("recall_at_10", 0.0)
@@ -76,6 +78,57 @@ def format_ablation_table_markdown(system_aggregates: Mapping[str, Mapping[str, 
     return "\n".join(lines)
 
 
+def format_diagnostic_table(system_aggregates: Mapping[str, Mapping[str, float]]) -> str:
+    """Diagnostic re-citation run (plan 6.4): scored on ReCitation targets, so never compared with Discovery rows."""
+    rows = [(n, m) for n, m in system_aggregates.items() if n.startswith("Diagnostic:")]
+    if not rows:
+        return ""
+    lines = [
+        "| Run | Ground truth | Recall@10 | NDCG@10 | HitRate@10 | Candidate Recall@100 |",
+        "| :--- | :--- | :---: | :---: | :---: | :---: |",
+    ]
+    for name, m in rows:
+        lines.append(
+            f"| {name} | ReCitation (own past references cited again after T) | {m.get('recall_at_10', 0.0):.4f} | "
+            f"{m.get('ndcg_at_10', 0.0):.4f} | {m.get('hit_rate_at_10', 0.0):.4f} | {m.get('recall_at_100', 0.0):.4f} |"
+        )
+    lines.append("")
+    lines.append(
+        "*Citations(u, <= T) are removed from the exclusion set, so the feed may re-recommend the author's own past "
+        "references. Different ground truth from every other table: not comparable with the Discovery numbers.*"
+    )
+    return "\n".join(lines)
+
+
+def format_coverage_ceiling_table(system_aggregates: Mapping[str, Mapping[str, float]]) -> str:
+    """Candidate coverage ceiling (plan 6.6): Recall@100 of the first-stage pool bounds what re-ranking can reach."""
+    names = [n for n in ("Paper Feed (Full)", "Ablation: No-MMR", "Ablation: No-Graph", "Ablation: No-Facets") if n in system_aggregates]
+    if not names:
+        return ""
+    lines = [
+        "| System | Candidate pool Recall@100 (ceiling) | Recall@10 | Share of ceiling reached |",
+        "| :--- | :---: | :---: | :---: |",
+    ]
+    for name in names:
+        m = system_aggregates[name]
+        ceiling, r10 = m.get("recall_at_100", 0.0), m.get("recall_at_10", 0.0)
+        share = f"{r10 / ceiling * 100.0:.1f}%" if ceiling > 1e-9 else "-"
+        lines.append(f"| {name} | {ceiling:.4f} | {r10:.4f} | {share} |")
+    cit = system_aggregates.get("Baseline: citation_only")
+    lines.append("")
+    note = (
+        "*The pool comes from the text channels (BM25 + SPECTER2, RRF); targets outside it cannot be recommended "
+        "whatever the scoring weights."
+    )
+    if cit:
+        note += (
+            f" For reference, Citation-only ranks the whole eligible corpus by the graph signal and reaches "
+            f"Recall@10 = {cit.get('recall_at_10', 0.0):.4f}."
+        )
+    lines.append(note + "*")
+    return "\n".join(lines)
+
+
 def format_hypothesis_markdown(report: HypothesisTestReport) -> str:
     """Format hypothesis findings (H1 and H2)."""
     lines = [
@@ -91,16 +144,26 @@ def format_hypothesis_markdown(report: HypothesisTestReport) -> str:
     ]
 
     lines.append("\n#### Hypothesis H2: MMR Diversity with Non-Inferiority")
-    lines.append(f"**Verdict:** {'ACCEPTED (Supported by empirical data)' if report.h2_supported else 'REJECTED / INCONCLUSIVE'}\n")
     ent = report.h2_mmr_entropy
     ndcg = report.h2_mmr_ndcg_retention
+    if not getattr(report, "h2_testable", True):
+        lines.append(
+            "**Verdict:** NOT TESTABLE: the tuned lambda_div is 0, so the full system and the No-MMR ablation are "
+            "identical and there is no MMR effect to measure.\n"
+        )
+        return "\n".join(lines)
+    lines.append(f"**Verdict:** {'ACCEPTED (Supported by empirical data)' if report.h2_supported else 'REJECTED / INCONCLUSIVE'}\n")
     lines.append(
         f"- **Entropy Increase (one-sided):** Delta = {ent.mean_diff:+.4f} ({ent.relative_gain_percent:+.2f}%), "
         f"95% CI = [{ent.ci_lower:+.4f}, {ent.ci_upper:+.4f}], p = {ent.p_value:.4e}, MDE = {ent.mde:.4f} (Significant: {ent.significant_at_05})"
     )
+    # Difference is Full - No-MMR, so the CI lower end is the largest plausible NDCG loss caused by MMR.
+    worst_loss = (max(0.0, -ndcg.ci_lower) / ndcg.mean_baseline * 100.0) if ndcg.mean_baseline > 1e-9 else 0.0
     lines.append(
-        f"- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = {abs(ndcg.relative_gain_percent):.2f}%, "
-        f"95% CI = [{ndcg.ci_lower:+.4f}, {ndcg.ci_upper:+.4f}], p = {ndcg.p_value:.4e}, MDE = {ndcg.mde:.4f} (Non-inferior: {ndcg.significant_at_05})"
+        f"- **NDCG Retention (non-inferiority: relative loss <= 3%):** NDCG@10 change with MMR = "
+        f"{ndcg.relative_gain_percent:+.2f}% (Delta = {ndcg.mean_diff:+.4f}, 95% CI = [{ndcg.ci_lower:+.4f}, "
+        f"{ndcg.ci_upper:+.4f}]); worst-case relative loss from the CI = {worst_loss:.2f}%, MDE = {ndcg.mde:.4f} "
+        f"(Non-inferior: {ndcg.significant_at_05})"
     )
 
     return "\n".join(lines)
@@ -174,6 +237,14 @@ def generate_full_evaluation_report(
     parts.extend([
         "## 1. Main Benchmark Results\n",
         format_main_table_markdown(system_aggregates),
+    ])
+    coverage = format_coverage_ceiling_table(system_aggregates)
+    if coverage:
+        parts.extend(["\n### Candidate Coverage Ceiling\n", coverage])
+    diagnostic = format_diagnostic_table(system_aggregates)
+    if diagnostic:
+        parts.extend(["\n### Diagnostic: Re-Citation\n", diagnostic])
+    parts.extend([
         "\n## 2. Component Ablations\n",
         format_ablation_table_markdown(system_aggregates),
         "\n## 3. Statistical Hypothesis Testing\n",
