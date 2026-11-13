@@ -240,6 +240,16 @@ def evaluate_parameter_grid(
 ) -> TuningResult:
     """Evaluate grid search in memory across all cached tuning authors (see ``grid_per_user_ndcg``)."""
     points = grid_per_user_ndcg(cached_data, resources, grid, k, adaptive_graph, base_weights)
+    return tuning_result_from_points(points, len(cached_data), config_signature, base_weights)
+
+
+def tuning_result_from_points(
+    points: Sequence[GridPoint],
+    n_users: int,
+    config_signature: Optional[Dict[str, Any]] = None,
+    base_weights: Optional[ScoringWeights] = None,
+) -> TuningResult:
+    """The TuningResult (the saved tuning file) for an already evaluated grid."""
     best = best_grid_point(points)
     records = sorted(({**pt.params, "mean_ndcg": pt.mean_ndcg} for pt in points), key=lambda x: x["mean_ndcg"], reverse=True)
     return TuningResult(
@@ -247,7 +257,7 @@ def evaluate_parameter_grid(
         best_lambda_div=best.lambda_div if best else 0.2,
         best_mean_ndcg=best.mean_ndcg if best else -1.0,
         grid_size=len(points),
-        n_users=len(cached_data),
+        n_users=n_users,
         top_configurations=records[:10],
         config_signature=config_signature,
     )
@@ -433,6 +443,77 @@ def tuning_signature(
     if config.graph_channel:
         signature["graph_channel"] = True
     return signature
+
+
+# ---------------------------------------------------------------------------
+# V4 citation-graph channel: decision on the tuning split (design §13.8, plan 10.4c)
+# ---------------------------------------------------------------------------
+
+def candidate_recall(cached_data: Sequence[CachedUserCandidateData]) -> np.ndarray:
+    """Per-user share of the in-corpus Discovery targets that reach the candidate pool (the Recall@100 ceiling)."""
+    return np.array(
+        [len(set(u.targets) & set(u.candidate_ids)) / len(u.targets) if u.targets else 0.0 for u in cached_data],
+        dtype=np.float64,
+    )
+
+
+def _point_record(pt: GridPoint) -> Dict[str, Any]:
+    return {**pt.params, "mean_ndcg": pt.mean_ndcg}
+
+
+def decide_graph_channel(
+    core_points: Sequence[GridPoint],
+    v4_points: Sequence[GridPoint],
+    core_cached: Sequence[CachedUserCandidateData],
+    v4_cached: Sequence[CachedUserCandidateData],
+    n_resamples: int = 10000,
+    seed: int = 42,
+    alpha: float = 0.05,
+) -> Dict[str, Any]:
+    """Pre-registered V4 rule (D§13.8 point 4): V4 replaces the Core pool only if the paired-bootstrap 95% CI of its
+    tuning-split mean NDCG@10 gain over Core, each at its own grid optimum, lies above zero.
+
+    Both arms must cover the same tuning authors in the same order. Candidate Recall@100 is reported alongside as the
+    mechanism check; it does not enter the decision.
+    """
+    from paperfeed.eval.stats import paired_bootstrap_test
+
+    core_ids = [u.author_id for u in core_cached]
+    if core_ids != [u.author_id for u in v4_cached]:
+        raise ValueError("Core and V4 tuning caches must cover the same authors in the same order.")
+    core_best, v4_best = best_grid_point(core_points), best_grid_point(v4_points)
+    if core_best is None or v4_best is None:
+        raise ValueError("Both arms need at least one grid point.")
+    if len(core_best.per_user_ndcg) != len(core_ids) or len(v4_best.per_user_ndcg) != len(core_ids):
+        raise ValueError("Grid points do not match the cached authors.")
+
+    diff, lo, hi, p_value, d = paired_bootstrap_test(
+        v4_best.per_user_ndcg, core_best.per_user_ndcg, n_resamples=n_resamples, alpha=alpha, seed=seed
+    )
+    core_recall, v4_recall = candidate_recall(core_cached), candidate_recall(v4_cached)
+    r_diff, r_lo, r_hi, _, _ = paired_bootstrap_test(v4_recall, core_recall, n_resamples=n_resamples, alpha=alpha, seed=seed)
+    core_mean = core_best.mean_ndcg
+    return {
+        "rule": {
+            "statement": "V4 replaces the Core pool only if the paired-bootstrap 95% CI of its tuning-split mean "
+            "NDCG@10 gain over Core (each at its own grid optimum) lies above zero (design §13.8).",
+            "n_resamples": n_resamples,
+            "alpha": alpha,
+            "seed": seed,
+        },
+        "n_users": len(core_ids),
+        "core": {**_point_record(core_best), "candidate_recall_at_100": float(core_recall.mean())},
+        "v4": {**_point_record(v4_best), "candidate_recall_at_100": float(v4_recall.mean())},
+        "ndcg_gain": {
+            "mean_diff": diff,
+            "relative": diff / core_mean if core_mean > 0 else None,
+            "ci": [lo, hi],
+            "p_value": p_value,
+            "cohens_d": d,
+        },
+        "candidate_recall_gain": {"mean_diff": r_diff, "ci": [r_lo, r_hi]},
+        "adopt_v4": bool(lo > 0),
+    }
 
 
 def signature_hash(signature: Mapping[str, Any]) -> str:

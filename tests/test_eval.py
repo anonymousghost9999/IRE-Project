@@ -844,3 +844,46 @@ def test_tuning_signature_marks_the_graph_channel_without_changing_core_signatur
     v4 = tuning_signature(RecommendConfig(pool_size=100, channel_depth=200, graph_channel=True), ["A1"])
     assert "graph_channel" not in core  # existing Core tuning files keep matching
     assert v4 == {**core, "graph_channel": True} and v4 != core
+
+
+def _v4_users(n, pools):
+    from paperfeed.eval.tuning import CachedUserCandidateData
+
+    return [
+        CachedUserCandidateData(author_id=f"A{i}", profile=MagicMock(), candidate_ids=pools[i], features=[], targets=["t1", "t2"])
+        for i in range(n)
+    ]
+
+
+def test_v4_adopted_only_when_the_ndcg_gain_ci_is_above_zero():
+    from paperfeed.eval.tuning import decide_graph_channel
+
+    n = 40
+    core_users = _v4_users(n, [["t1"]] * n)
+    v4_users = _v4_users(n, [["t1", "t2"]] * n)
+    core = [_gp(0.0, w_cite=1.0, ndcgs=[0.2] * n), _gp(0.0, w_cite=0.5, ndcgs=[0.1] * n)]
+    better = [_gp(0.0, w_cite=1.0, ndcgs=[0.3 + 0.01 * (i % 3) for i in range(n)])]
+    d = decide_graph_channel(core, better, core_users, v4_users, n_resamples=500)
+    assert d["adopt_v4"] is True and d["ndcg_gain"]["ci"][0] > 0
+    assert d["core"]["mean_ndcg"] == pytest.approx(0.2)  # each arm at its own optimum
+    assert d["core"]["candidate_recall_at_100"] == pytest.approx(0.5)
+    assert d["v4"]["candidate_recall_at_100"] == pytest.approx(1.0)
+    assert d["candidate_recall_gain"]["mean_diff"] == pytest.approx(0.5)
+
+    # a higher mean that is not reliably above zero is not enough
+    noisy = [_gp(0.0, w_cite=1.0, ndcgs=[0.9 if i == 0 else 0.19 for i in range(n)])]
+    d = decide_graph_channel(core, noisy, core_users, v4_users, n_resamples=500)
+    assert d["v4"]["mean_ndcg"] > d["core"]["mean_ndcg"] and d["ndcg_gain"]["ci"][0] <= 0
+    assert d["adopt_v4"] is False
+
+
+def test_v4_decision_refuses_mismatched_tuning_caches():
+    from paperfeed.eval.tuning import decide_graph_channel
+
+    core = [_gp(0.0, w_cite=1.0, ndcgs=[0.2, 0.2])]
+    users = _v4_users(2, [["t1"], ["t1"]])
+    other = list(reversed(users))
+    with pytest.raises(ValueError, match="same authors"):
+        decide_graph_channel(core, core, users, other, n_resamples=50)
+    with pytest.raises(ValueError, match="do not match"):
+        decide_graph_channel(core, [_gp(0.0, w_cite=1.0, ndcgs=[0.2] * 3)], users, users, n_resamples=50)
