@@ -1,0 +1,2553 @@
+{
+  "n_sampled": 100,
+  "n_users_in_sample": 93,
+  "total_evaluated_recommendations": 3200,
+  "total_covered_recommendations": 3200,
+  "explanation_coverage": 1.0,
+  "extractive_grounding_rate": 1.0,
+  "counterfactual_dropout_rate": 0.98,
+  "left_top_k_count": 92,
+  "dropped_gte_3_count": 6,
+  "retained_near_rank_count": 2,
+  "mean_rank_drop": 4.49,
+  "median_rank_drop": 4.0,
+  "template_distribution": {
+    "persona": 34,
+    "new_method": 29,
+    "facet": 19,
+    "citation": 18
+  },
+  "template_proportions": {
+    "persona": 0.34,
+    "new_method": 0.29,
+    "facet": 0.19,
+    "citation": 0.18
+  },
+  "per_template": {
+    "persona": {
+      "n": 34,
+      "grounded": 34,
+      "necessary": 34,
+      "left_top_k": 34,
+      "dropped_gte_3": 0
+    },
+    "new_method": {
+      "n": 29,
+      "grounded": 29,
+      "necessary": 29,
+      "left_top_k": 28,
+      "dropped_gte_3": 1
+    },
+    "facet": {
+      "n": 19,
+      "grounded": 19,
+      "necessary": 17,
+      "left_top_k": 12,
+      "dropped_gte_3": 5
+    },
+    "citation": {
+      "n": 18,
+      "grounded": 18,
+      "necessary": 18,
+      "left_top_k": 18,
+      "dropped_gte_3": 0
+    }
+  },
+  "population_template_distribution": {
+    "facet": 565,
+    "new_method": 961,
+    "citation": 527,
+    "persona": 1147
+  },
+  "n_span_explanations_audited": 48,
+  "audited_explanations": [
+    {
+      "author_id": "A5111756734",
+      "paper_id": "W4403676123",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9095471501350403
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9095471501350403
+      }
+    },
+    {
+      "author_id": "A5037493401",
+      "paper_id": "W3048886990",
+      "original_rank": 10,
+      "template": "new_method",
+      "text": "Proposes **deep transfer learning techniques**, which is new to your work, for **testing** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_d0bb589d0603",
+          "span": "deep transfer learning techniques",
+          "start_char": 828,
+          "end_char": 861,
+          "evidence_sentence": "METHODS: Due to the scarcity of the COVID-19 benchmark dataset, we have employed deep transfer learning techniques, where we examined 15 different pre-trained CNN models to find the most suitable one for this task."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_cf80cd8aed48",
+          "span": "testing",
+          "start_char": 1230,
+          "end_char": 1237,
+          "evidence_sentence": "RESULTS: A total of 860 images (260 COVID-19 cases, 300 healthy and 300 pneumonia cases) have been employed to investigate the performance of the proposed algorithm, where 70% images of each class are accepted for training, 15% is used for validation, and rest is for testing."
+        }
+      }
+    },
+    {
+      "author_id": "A5083549838",
+      "paper_id": "W4285259820",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9270774126052856
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9270774126052856
+      }
+    },
+    {
+      "author_id": "A5113880986",
+      "paper_id": "W4380995531",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Addresses **classification problem**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 4,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_9f0c8aa52657",
+        "span": "classification problem",
+        "start_char": 1090,
+        "end_char": 1112,
+        "evidence_sentence": "The ensemble approaches were evaluated using the evaluation metrics and compared for their efficacy on this classification problem."
+      }
+    },
+    {
+      "author_id": "A5007729521",
+      "paper_id": "W4319300975",
+      "original_rank": 7,
+      "template": "facet",
+      "text": "Evaluates on **CNN**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_4aa08612a8f6",
+        "span": "CNN",
+        "start_char": 576,
+        "end_char": 579,
+        "evidence_sentence": "In this paper, we propose HiFormer, a novel method that efficiently bridges a CNN and a transformer for medical image segmentation."
+      }
+    },
+    {
+      "author_id": "A5101831987",
+      "paper_id": "W2610352123",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9447512626647949
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9447512626647949
+      }
+    },
+    {
+      "author_id": "A5100307907",
+      "paper_id": "W4296624876",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9270674586296082
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9270674586296082
+      }
+    },
+    {
+      "author_id": "A5065193592",
+      "paper_id": "W4400111632",
+      "original_rank": 2,
+      "template": "facet",
+      "text": "Addresses **challenge**, studied in 9 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 9,
+        "facet_type": "task",
+        "canonical_id": "canon_task_2dd00bd77e02",
+        "span": "challenge",
+        "start_char": 366,
+        "end_char": 375,
+        "evidence_sentence": "To address this challenge, we propose a novel Dual-Granularity Cooperative Diffusion Model (DCDiff) for the precise classification of WSIs."
+      }
+    },
+    {
+      "author_id": "A5090650251",
+      "paper_id": "W2996075766",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9481370449066162
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9481370449066162
+      }
+    },
+    {
+      "author_id": "A5100432232",
+      "paper_id": "W2499240546",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **10** references with your paper *Common Variants at 9p21 and 8q22 Are Associated with Increased Susceptibility to Optic Nerve Degeneration in Glaucoma*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 10,
+        "actual_refs": 10
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2151459533",
+        "title": "Common Variants at 9p21 and 8q22 Are Associated with Increased Susceptibility to Optic Nerve Degeneration in Glaucoma",
+        "shared_references": 10
+      }
+    },
+    {
+      "author_id": "A5016669171",
+      "paper_id": "W2754960012",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Cognitive Enhancement \u2013 A Critical Look at the Recent Debate*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W156163629",
+        "title": "Cognitive Enhancement \u2013 A Critical Look at the Recent Debate",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5037974949",
+      "paper_id": "W4390278281",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9527024030685425
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9527024030685425
+      }
+    },
+    {
+      "author_id": "A5037551885",
+      "paper_id": "W4386838102",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9422368407249451
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9422368407249451
+      }
+    },
+    {
+      "author_id": "A5116548271",
+      "paper_id": "W3083572825",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9604514837265015
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9604514837265015
+      }
+    },
+    {
+      "author_id": "A5068400798",
+      "paper_id": "W4291891037",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Automatic Recognition of Mexican Sign Language Using a Depth Camera and Recurrent Neural Networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4281967493",
+        "title": "Automatic Recognition of Mexican Sign Language Using a Depth Camera and Recurrent Neural Networks",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5001991004",
+      "paper_id": "W4401069859",
+      "original_rank": 2,
+      "template": "facet",
+      "text": "Addresses **challenge**, studied in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 4,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "task",
+        "canonical_id": "canon_task_2dd00bd77e02",
+        "span": "challenge",
+        "start_char": 80,
+        "end_char": 89,
+        "evidence_sentence": "Surveillance videos are crucial for crime prevention and public safety, yet the challenge of defining abnormal events hinders their effectiveness, limiting the applicability of supervised methods."
+      }
+    },
+    {
+      "author_id": "A5073397453",
+      "paper_id": "W4312497550",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9543235301971436
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9543235301971436
+      }
+    },
+    {
+      "author_id": "A5017764143",
+      "paper_id": "W3155657938",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9166596531867981
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9166596531867981
+      }
+    },
+    {
+      "author_id": "A5083093046",
+      "paper_id": "W4410341035",
+      "original_rank": 9,
+      "template": "new_method",
+      "text": "Proposes **Adversarial training**, which is new to your work, for **single picture dehazing** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_013290529c38",
+          "span": "Adversarial training",
+          "start_char": 268,
+          "end_char": 288,
+          "evidence_sentence": "Adversarial training is used to enhance the quality of the dehazing images while the attention mechanism focuses on the hazy areas of the image and the multi-scale feature extraction captures both detail and overall scene."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_d9feec053bb9",
+          "span": "single picture dehazing",
+          "start_char": 133,
+          "end_char": 156,
+          "evidence_sentence": "For single picture dehazing, this research introduces a new multi-stage deep learning architecture of a GAN, CNN, and attention mechanism."
+        }
+      }
+    },
+    {
+      "author_id": "A5042758860",
+      "paper_id": "W4307436719",
+      "original_rank": 8,
+      "template": "new_method",
+      "text": "Proposes **project-based learning**, which is new to your work, for **project** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_7c76368ecb65",
+          "span": "project-based learning",
+          "start_char": 1148,
+          "end_char": 1170,
+          "evidence_sentence": "By conducting a systematic literature analysis of research on problem-based learning, project-based learning, and challenge-based learning, the present paper aims to shed more light on the different steps of instructional design in implementing the three methods."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_244210e48437",
+          "span": "project",
+          "start_char": 365,
+          "end_char": 372,
+          "evidence_sentence": "Teachers at higher education institutions are expected and encouraged to introduce their students to active learning experiences, such as problem-, project-, and more recently, challenge-based learning."
+        }
+      }
+    },
+    {
+      "author_id": "A5046533689",
+      "paper_id": "W4386753220",
+      "original_rank": 5,
+      "template": "new_method",
+      "text": "Proposes **Feature extraction methods**, which is new to your work, for **diagnosis** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_ddbf0bf4e48e",
+          "span": "Feature extraction methods",
+          "start_char": 474,
+          "end_char": 500,
+          "evidence_sentence": "Feature extraction methods play a crucial role in transforming raw image data into meaningful representations for analysis, facilitating the characterization of tissue structures, cellular properties, and pathological patterns."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_b54e2b152c21",
+          "span": "diagnosis",
+          "start_char": 815,
+          "end_char": 824,
+          "evidence_sentence": "These features have diverse applications in several digital pathology applications, such as cancer prognosis and diagnosis."
+        }
+      }
+    },
+    {
+      "author_id": "A5113259589",
+      "paper_id": "W4281784047",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9376686215400696
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9376686215400696
+      }
+    },
+    {
+      "author_id": "A5043120571",
+      "paper_id": "W4396535948",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Cancer Incidence, Mortality, Years of Life Lost, Years Lived With Disability, and Disability-Adjusted Life Years for 29 Cancer Groups From 2010 to 2019*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4200584507",
+        "title": "Cancer Incidence, Mortality, Years of Life Lost, Years Lived With Disability, and Disability-Adjusted Life Years for 29 Cancer Groups From 2010 to 2019",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5093049266",
+      "paper_id": "W3092024150",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9422645568847656
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9422645568847656
+      }
+    },
+    {
+      "author_id": "A5025448575",
+      "paper_id": "W4390549045",
+      "original_rank": 10,
+      "template": "new_method",
+      "text": "Proposes **Automated classification**, which is new to your work, for **classification task** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_9f0c8aa52657",
+          "span": "Automated classification",
+          "start_char": 644,
+          "end_char": 668,
+          "evidence_sentence": "Automated classification driven by these advancements has the potential to facilitate the early identification of skin cancer."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification task",
+          "start_char": 1989,
+          "end_char": 2008,
+          "evidence_sentence": "This involved augmenting the dataset and resizing the images to align them with the specific requirements of each model used in our research; finally, building deep learning models to enable them to perform the classification task."
+        }
+      }
+    },
+    {
+      "author_id": "A5113515275",
+      "paper_id": "W4377864793",
+      "original_rank": 7,
+      "template": "new_method",
+      "text": "Proposes **precise diagnostic methods**, which is new to your work, for **precise and timely diagnosis** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_00364c53aa98",
+          "span": "precise diagnostic methods",
+          "start_char": 234,
+          "end_char": 260,
+          "evidence_sentence": "Inaccurate identification of brain tumors can significantly diminish life expectancy, underscoring the critical need for precise diagnostic methods."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_b54e2b152c21",
+          "span": "precise and timely diagnosis",
+          "start_char": 59,
+          "end_char": 87,
+          "evidence_sentence": "Brain tumors present a grave risk to human life, demanding precise and timely diagnosis for effective treatment."
+        }
+      }
+    },
+    {
+      "author_id": "A5078245368",
+      "paper_id": "W2997371405",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9583494067192078
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9583494067192078
+      }
+    },
+    {
+      "author_id": "A5034682935",
+      "paper_id": "W4317496742",
+      "original_rank": 8,
+      "template": "new_method",
+      "text": "Proposes **Recent successful methods**, which is new to your work, for **Image restoration** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_979b517a9b84",
+          "span": "Recent successful methods",
+          "start_char": 126,
+          "end_char": 151,
+          "evidence_sentence": "Recent successful methods rely on the current progress in deep neural network architectural designs (e.g., with vision transformers)."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_56bc05d781fd",
+          "span": "Image restoration",
+          "start_char": 0,
+          "end_char": 17,
+          "evidence_sentence": "Image restoration under adverse weather conditions has been of significant interest for various computer vision applications."
+        }
+      }
+    },
+    {
+      "author_id": "A5101968458",
+      "paper_id": "W3134357108",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9387824535369873
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9387824535369873
+      }
+    },
+    {
+      "author_id": "A5017530250",
+      "paper_id": "W3010521003",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9502472281455994
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9502472281455994
+      }
+    },
+    {
+      "author_id": "A5036925558",
+      "paper_id": "W4394684782",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Enhancing Decision Support Systems for the Energy Sector with Sustainable Artificial Intelligence Solutions*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4394939777",
+        "title": "Enhancing Decision Support Systems for the Energy Sector with Sustainable Artificial Intelligence Solutions",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5091224174",
+      "paper_id": "W4390751057",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *Modeling AI-assisted writing: How self-regulated learning influences writing outcomes*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4405302078",
+        "title": "Modeling AI-assisted writing: How self-regulated learning influences writing outcomes",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5024185234",
+      "paper_id": "W3034305775",
+      "original_rank": 2,
+      "template": "facet",
+      "text": "Evaluates on **Fermatean fuzzy sets**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_a327c6bb3d95",
+        "span": "Fermatean fuzzy sets",
+        "start_char": 996,
+        "end_char": 1016,
+        "evidence_sentence": "Properties of proposed operators were presented, and operators were defined on Fermatean fuzzy sets."
+      }
+    },
+    {
+      "author_id": "A5116288016",
+      "paper_id": "W4404841020",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9497843384742737
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9497843384742737
+      }
+    },
+    {
+      "author_id": "A5000628690",
+      "paper_id": "W2945934224",
+      "original_rank": 9,
+      "template": "new_method",
+      "text": "Proposes **two-step strategy**, which is new to your work, for **classification tasks** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_6fa34c5cff73",
+          "span": "two-step strategy",
+          "start_char": 325,
+          "end_char": 342,
+          "evidence_sentence": "Thus, this two-step strategy may not be able to obtain the most discriminant information for classification tasks."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification tasks",
+          "start_char": 407,
+          "end_char": 427,
+          "evidence_sentence": "Thus, this two-step strategy may not be able to obtain the most discriminant information for classification tasks."
+        }
+      }
+    },
+    {
+      "author_id": "A5092471388",
+      "paper_id": "W4401056823",
+      "original_rank": 7,
+      "template": "facet",
+      "text": "Addresses **EFL learning engagement**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 10,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_b2d1ef9e4b56",
+        "span": "EFL learning engagement",
+        "start_char": 589,
+        "end_char": 612,
+        "evidence_sentence": "This study aims to explored the potential mediating effects of emotion regulation strategies (cognitive reappraisal and emotion suppression) on the associations between perceived EFL teacher social support, peer social support and EFL learning engagement among Chinese adolescents."
+      }
+    },
+    {
+      "author_id": "A5009919157",
+      "paper_id": "W3190772738",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.943760871887207
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.943760871887207
+      }
+    },
+    {
+      "author_id": "A5093315589",
+      "paper_id": "W4396858733",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9369857907295227
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9369857907295227
+      }
+    },
+    {
+      "author_id": "A5002858009",
+      "paper_id": "W2515024916",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Evaluates on **currently published to-date medical biofilm literature**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_16502118e713",
+        "span": "currently published to-date medical biofilm literature",
+        "start_char": 589,
+        "end_char": 643,
+        "evidence_sentence": "METHODS: We performed a nonsystematic review of the currently published to-date medical biofilm literature."
+      }
+    },
+    {
+      "author_id": "A5034090688",
+      "paper_id": "W4220774974",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9583046436309814
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9583046436309814
+      }
+    },
+    {
+      "author_id": "A5062565743",
+      "paper_id": "W4404979227",
+      "original_rank": 9,
+      "template": "new_method",
+      "text": "Proposes **chaotic map**, which is new to your work, for **classification** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_7f03b8740cac",
+          "span": "chaotic map",
+          "start_char": 601,
+          "end_char": 612,
+          "evidence_sentence": "This paper proposes an accurate approach for ID in the network and WSN using ML methods including chaotic map, Nomadic People Optimizer (NPO), and Support Vector Machine (SVM)."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification",
+          "start_char": 786,
+          "end_char": 800,
+          "evidence_sentence": "The proposed approach has five main stages which are: data collection, pre-processing, feature selection, classification, and evaluation."
+        }
+      }
+    },
+    {
+      "author_id": "A5006995271",
+      "paper_id": "W4398243313",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9511295557022095
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9511295557022095
+      }
+    },
+    {
+      "author_id": "A5004310412",
+      "paper_id": "W255556494",
+      "original_rank": 7,
+      "template": "facet",
+      "text": "Evaluates on **all kinds of data**, used in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_3a6eb0790f39",
+        "span": "all kinds of data",
+        "start_char": 178,
+        "end_char": 195,
+        "evidence_sentence": "The fundamental algorithms in data mining and analysis form the basis for the emerging field of data science, which includes automated methods to analyze patterns and models for all kinds of data, with applications ranging from scientific discovery to business intelligence and analytics."
+      }
+    },
+    {
+      "author_id": "A5040070511",
+      "paper_id": "W1496777766",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Addresses **problems**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_47a493567208",
+        "span": "problems",
+        "start_char": 600,
+        "end_char": 608,
+        "evidence_sentence": "Includes many worked examples, examples illustrating all aspects of the theory, and problems."
+      }
+    },
+    {
+      "author_id": "A5001991004",
+      "paper_id": "W3128634608",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9318143129348755
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9318143129348755
+      }
+    },
+    {
+      "author_id": "A5007776562",
+      "paper_id": "W3134626437",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *Reservoir computing model of two-dimensional turbulent convection*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3003246529",
+        "title": "Reservoir computing model of two-dimensional turbulent convection",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5037551885",
+      "paper_id": "W4405764876",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Visual clustering network-based intelligent power lines inspection system*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4389506426",
+        "title": "Visual clustering network-based intelligent power lines inspection system",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5070869667",
+      "paper_id": "W4391185504",
+      "original_rank": 10,
+      "template": "new_method",
+      "text": "Proposes **SIFT**, which is new to your work, for **classification tasks** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_cda9593e0f0c",
+          "span": "SIFT",
+          "start_char": 1258,
+          "end_char": 1262,
+          "evidence_sentence": "In this research paper, different types of videos will be used and the important features will be extracted using SIFT, after that we use the deep learning(CNN) process will be performed."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification tasks",
+          "start_char": 1122,
+          "end_char": 1142,
+          "evidence_sentence": "This work present a method uses the extracted features with convolutional neural network (CNN) for classification tasks."
+        }
+      }
+    },
+    {
+      "author_id": "A5082345605",
+      "paper_id": "W4313890738",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *Recent progress in Monte Carlo simulation on gold nanoparticle radiosensitization*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2896314475",
+        "title": "Recent progress in Monte Carlo simulation on gold nanoparticle radiosensitization",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5103049899",
+      "paper_id": "W4382398496",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **12** references with your paper *LSNet: Lightweight Spatial Boosting Network for Detecting Salient Objects in RGB-Thermal Images*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 12,
+        "actual_refs": 12
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4319879007",
+        "title": "LSNet: Lightweight Spatial Boosting Network for Detecting Salient Objects in RGB-Thermal Images",
+        "shared_references": 12
+      }
+    },
+    {
+      "author_id": "A5007776562",
+      "paper_id": "W3128803576",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Evaluates on **data reflecting the evolution dynamics of turbulence**, used in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 7,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_17d34dcfbe98",
+        "span": "data reflecting the evolution dynamics of turbulence",
+        "start_char": 700,
+        "end_char": 752,
+        "evidence_sentence": "At each phase of model development, data reflecting the evolution dynamics of turbulence and domain knowledge representing prior physical considerations are converted into modeling knowledge."
+      }
+    },
+    {
+      "author_id": "A5084617577",
+      "paper_id": "W4399593275",
+      "original_rank": 10,
+      "template": "new_method",
+      "text": "Proposes **AI-driven drug repurposing**, which is new to your work, for **optimizing drugs for repurposing** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_62be5abb57e4",
+          "span": "AI-driven drug repurposing",
+          "start_char": 1074,
+          "end_char": 1100,
+          "evidence_sentence": "Real-world examples highlight the potential of AI-driven drug repurposing in discovering new treatments for infectious diseases."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9ae8639a94e0",
+          "span": "optimizing drugs for repurposing",
+          "start_char": 796,
+          "end_char": 828,
+          "evidence_sentence": "Finally, AI can help mitigate limitations by predicting and minimizing side effects, optimizing drugs for repurposing, and navigating intellectual property hurdles."
+        }
+      }
+    },
+    {
+      "author_id": "A5084221816",
+      "paper_id": "W4321787018",
+      "original_rank": 2,
+      "template": "facet",
+      "text": "Addresses **learning activities**, studied in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "task",
+        "canonical_id": "canon_task_49f50eed8c34",
+        "span": "learning activities",
+        "start_char": 295,
+        "end_char": 314,
+        "evidence_sentence": "One of the most considerable challenges faced by educators was keeping students motivated toward learning activities."
+      }
+    },
+    {
+      "author_id": "A5082007071",
+      "paper_id": "W3010981366",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9525532126426697
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9525532126426697
+      }
+    },
+    {
+      "author_id": "A5114654154",
+      "paper_id": "W4398239044",
+      "original_rank": 6,
+      "template": "facet",
+      "text": "Addresses **automated vulnerability detection**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_b34bf2ee50e3",
+        "span": "automated vulnerability detection",
+        "start_char": 172,
+        "end_char": 205,
+        "evidence_sentence": "Enormous efforts have been devoted into automated vulnerability detection, among which deep learning (DL)-based approaches have proven to be the most effective."
+      }
+    },
+    {
+      "author_id": "A5045291334",
+      "paper_id": "W4402408990",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9139840006828308
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9139840006828308
+      }
+    },
+    {
+      "author_id": "A5047770079",
+      "paper_id": "W4205221517",
+      "original_rank": 7,
+      "template": "new_method",
+      "text": "Proposes **kernel density estimation**, which is new to your work, for **segmentation experiment** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_dff3082dab46",
+          "span": "kernel density estimation",
+          "start_char": 1114,
+          "end_char": 1139,
+          "evidence_sentence": "Second, appropriate spectral indices were selected, and the kernel density estimation was used to generate spectral-index marker images based on the analysis of spectral indices."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_fba586be3b6f",
+          "span": "segmentation experiment",
+          "start_char": 1457,
+          "end_char": 1480,
+          "evidence_sentence": "In a segmentation experiment, an optimal threshold for the spectral-index-marker generation method was identified."
+        }
+      }
+    },
+    {
+      "author_id": "A5035127563",
+      "paper_id": "W4292136409",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.963654637336731
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.963654637336731
+      }
+    },
+    {
+      "author_id": "A5088680310",
+      "paper_id": "W4402809096",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Addresses **key generation**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 1,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_05f5cf50f75f",
+        "span": "key generation",
+        "start_char": 713,
+        "end_char": 727,
+        "evidence_sentence": "Our scheme contains six polynomial-time algorithms to handle the system setup, key generation, and message signing and verification processes."
+      }
+    },
+    {
+      "author_id": "A5021494379",
+      "paper_id": "W3157770576",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Payload-Byte: A Tool for Extracting and Labeling Packet Capture Files of Modern Network Intrusion Detection Datasets*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4294091459",
+        "title": "Payload-Byte: A Tool for Extracting and Labeling Packet Capture Files of Modern Network Intrusion Detection Datasets",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5077173629",
+      "paper_id": "W4408565002",
+      "original_rank": 4,
+      "template": "new_method",
+      "text": "Proposes **multi-dimensional modeling**, which is new to your work, for **decision-making** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_6d2a9d0adc41",
+          "span": "multi-dimensional modeling",
+          "start_char": 428,
+          "end_char": 454,
+          "evidence_sentence": "Such techniques include but are not limited to machine learning applications, effective data models, and multi-dimensional modeling leveraging historical, meteorological, and economic data."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_8de65c884945",
+          "span": "decision-making",
+          "start_char": 923,
+          "end_char": 938,
+          "evidence_sentence": "We illustrate how new trends relate to future developments of predictive models about supporting the decision-making in operating power systems and improving the reliability and sustainability of energy systems."
+        }
+      }
+    },
+    {
+      "author_id": "A5101794413",
+      "paper_id": "W4391435714",
+      "original_rank": 2,
+      "template": "new_method",
+      "text": "Proposes **virtual screening**, which is new to your work, for **Protein-ligand binding affinity prediction** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_794b5b07edbe",
+          "span": "virtual screening",
+          "start_char": 1364,
+          "end_char": 1381,
+          "evidence_sentence": "Results show a significant improvement in the performance and generalization power, especially for virtual screening and suggest promise for the future of ML protein-ligand affinity prediction with a greater emphasis on training using datasets that capture the rich details of the affinity landscape."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_471d060bffcb",
+          "span": "Protein-ligand binding affinity prediction",
+          "start_char": 9,
+          "end_char": 51,
+          "evidence_sentence": "Abstract Protein-ligand binding affinity prediction is one of the major challenges in computational assisted drug discovery."
+        }
+      }
+    },
+    {
+      "author_id": "A5022441246",
+      "paper_id": "W3081047736",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9395923018455505
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9395923018455505
+      }
+    },
+    {
+      "author_id": "A5052892856",
+      "paper_id": "W4386942258",
+      "original_rank": 5,
+      "template": "new_method",
+      "text": "Proposes **HIEST**, which is new to your work, for **traffic forecasting** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_cfc3a3de6359",
+          "span": "HIEST",
+          "start_char": 1236,
+          "end_char": 1241,
+          "evidence_sentence": "In a nutshell, we propose a Hierarchical Information Enhanced Spatio-Temporal prediction method, HIEST, to create and utilize the regional dependency and common spatio-temporal patterns."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_37ccedeed987",
+          "span": "traffic forecasting",
+          "start_char": 39,
+          "end_char": 58,
+          "evidence_sentence": "With the acceleration of urbanization, traffic forecasting has become an essential role in smart city construction."
+        }
+      }
+    },
+    {
+      "author_id": "A5046498081",
+      "paper_id": "W4403732717",
+      "original_rank": 9,
+      "template": "facet",
+      "text": "Evaluates on **data**, used in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_3a6eb0790f39",
+        "span": "data",
+        "start_char": 260,
+        "end_char": 264,
+        "evidence_sentence": "With screen capture technology to observe students\u2019 interactions with ChatGPT during writing process and semi-structured interviews, the data were analysed using a collaborative reflective thematic analysis."
+      }
+    },
+    {
+      "author_id": "A5028481810",
+      "paper_id": "W255556494",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Feature selection methods for big data bioinformatics: A survey from the search perspective*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2516938563",
+        "title": "Feature selection methods for big data bioinformatics: A survey from the search perspective",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5101968458",
+      "paper_id": "W2623412349",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Frequently cited together with your paper *Experimental Method to Simulate Coal Fines Migration and Coal Fines Aggregation Prevention in the Hydraulic Fracture*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_citers": 10,
+        "actual_citers": 10
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "co_citation",
+        "authored_paper_id": "W2082681953",
+        "title": "Experimental Method to Simulate Coal Fines Migration and Coal Fines Aggregation Prevention in the Hydraulic Fracture",
+        "co_citing_papers": 10
+      }
+    },
+    {
+      "author_id": "A5028481810",
+      "paper_id": "W4387402974",
+      "original_rank": 3,
+      "template": "new_method",
+      "text": "Proposes **RS-CLIP method**, which is new to your work, for **classification** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_d5d742763715",
+          "span": "RS-CLIP method",
+          "start_char": 1350,
+          "end_char": 1364,
+          "evidence_sentence": "The proposed RS-CLIP method achieved a zero-shot classification accuracy of 95.94%, 95.97%, 85.76%, and 87.52% on the novel classes of UCM-21, WHU-RS19, NWPU-RESISC45, and AID-30 datasets respectively."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification",
+          "start_char": 428,
+          "end_char": 442,
+          "evidence_sentence": "Existing methods mostly use shallow networks for visual and semantic feature learning, and the semantic encoder networks are usually fixed during the zero-shot learning process, thus failing to capture powerful feature representations for classification."
+        }
+      }
+    },
+    {
+      "author_id": "A5002622547",
+      "paper_id": "W4313289642",
+      "original_rank": 9,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *A realistic named data networking architecture for the Internet of things*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W7148852039",
+        "title": "A realistic named data networking architecture for the Internet of things",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5058751960",
+      "paper_id": "W4403915833",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9306244254112244
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9306244254112244
+      }
+    },
+    {
+      "author_id": "A5085879249",
+      "paper_id": "W4388328346",
+      "original_rank": 6,
+      "template": "new_method",
+      "text": "Proposes **Existing data balancing techniques**, which is new to your work, for **Classification** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_168550171a0b",
+          "span": "Existing data balancing techniques",
+          "start_char": 580,
+          "end_char": 614,
+          "evidence_sentence": "Existing data balancing techniques perform the whole dataset at a time that sometimes causes overfitting and underfitting."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "Classification",
+          "start_char": 0,
+          "end_char": 14,
+          "evidence_sentence": "Classification is a predictive modelling task in machine learning (ML), where the class label is determined for a specific example of predefined features."
+        }
+      }
+    },
+    {
+      "author_id": "A5049169545",
+      "paper_id": "W4323338839",
+      "original_rank": 4,
+      "template": "new_method",
+      "text": "Proposes **trust techniques**, which is new to your work, for **classification** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_1f868b8fc055",
+          "span": "trust techniques",
+          "start_char": 827,
+          "end_char": 843,
+          "evidence_sentence": "In addition, this paper considers the trust techniques used for mitigating different security aspects in IoT networks, which play a crucial part in regulating the new era of communication."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification",
+          "start_char": 692,
+          "end_char": 706,
+          "evidence_sentence": "Then, this paper offers ML benchmarking along with a taxonomy that categorizes the ML models into linear and non-linear ones depending on the problem type (classification or regression)."
+        }
+      }
+    },
+    {
+      "author_id": "A5047501656",
+      "paper_id": "W4404024201",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9564709663391113
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9564709663391113
+      }
+    },
+    {
+      "author_id": "A5042091255",
+      "paper_id": "W2940928832",
+      "original_rank": 5,
+      "template": "new_method",
+      "text": "Proposes **part-based representation**, which is new to your work, for **tracking tasks** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_5febfb2a1e00",
+          "span": "part-based representation",
+          "start_char": 632,
+          "end_char": 657,
+          "evidence_sentence": "The tracker is robust in handling partial occlusion because of the use of part-based representation."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_5a95db2aa8e5",
+          "span": "tracking tasks",
+          "start_char": 56,
+          "end_char": 70,
+          "evidence_sentence": "Correlation filters (CFs) have been extensively used in tracking tasks due to their high efficiency although most of them regard the tracked target as a whole and are minimally effective in handling partial occlusion."
+        }
+      }
+    },
+    {
+      "author_id": "A5036932232",
+      "paper_id": "W4310213180",
+      "original_rank": 10,
+      "template": "new_method",
+      "text": "Proposes **computational models**, which is new to your work, for **prediction** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_0c100d029995",
+          "span": "computational models",
+          "start_char": 474,
+          "end_char": 494,
+          "evidence_sentence": "By using molecular profiles of cancer cell lines available from Cancer Cell Line Encyclopedia (CCLE) and anticancer drug responses available in the Genomics of Drug Sensitivity in Cancer (GDSC), we will build computational models to predict anticancer drug responses from molecular features."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_70ad7b8f9a1c",
+          "span": "prediction",
+          "start_char": 953,
+          "end_char": 963,
+          "evidence_sentence": "We employ a novel graph embedding layer that incorporates interactome data as prior information for prediction."
+        }
+      }
+    },
+    {
+      "author_id": "A5028634636",
+      "paper_id": "W4391526995",
+      "original_rank": 4,
+      "template": "new_method",
+      "text": "Proposes **Boosting algorithms**, which is new to your work, for **Intrusion Detection Systems problem** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_0b64f6aee680",
+          "span": "Boosting algorithms",
+          "start_char": 526,
+          "end_char": 545,
+          "evidence_sentence": "In particular, Boosting algorithms stand out with their high classification performance."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_809f2c0bb465",
+          "span": "Intrusion Detection Systems problem",
+          "start_char": 753,
+          "end_char": 788,
+          "evidence_sentence": "It has been observed that the Gradient Boosting algorithm provides remarkable classification performance when compared to other methods proposed for the Intrusion Detection Systems problem."
+        }
+      }
+    },
+    {
+      "author_id": "A5017764143",
+      "paper_id": "W4282970521",
+      "original_rank": 9,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *A GNN-based indoor localization method using mobile RFID platform*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4292388282",
+        "title": "A GNN-based indoor localization method using mobile RFID platform",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5005867621",
+      "paper_id": "W4405180344",
+      "original_rank": 8,
+      "template": "new_method",
+      "text": "Proposes **single-task learning approach**, which is new to your work, for **segmentation tasks** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_b6c3cb2c93f7",
+          "span": "single-task learning approach",
+          "start_char": 1175,
+          "end_char": 1204,
+          "evidence_sentence": "We also compared the outcomes of multitasking learning with the single-task learning approach."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_fba586be3b6f",
+          "span": "segmentation tasks",
+          "start_char": 478,
+          "end_char": 496,
+          "evidence_sentence": "This was designed by using a depth-shared encoder to extract useful features in-depth during down-sampling operations and having a segmentation decoder with long skip connections through additive layers that were introduced in ResNet, from the corresponding encoder spatial levels to do the segmentation tasks."
+        }
+      }
+    },
+    {
+      "author_id": "A5077133876",
+      "paper_id": "W3165277223",
+      "original_rank": 2,
+      "template": "new_method",
+      "text": "Proposes **multi-stream method**, which is new to your work, for **Tracking objects** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_ae454dbad7d1",
+          "span": "multi-stream method",
+          "start_char": 1435,
+          "end_char": 1454,
+          "evidence_sentence": "The presented pipeline achieved state-of-the-art performance, confirming that the proposed multi-stream method can correctly emulate the robust multi-scale image analysis paradigm."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_5a95db2aa8e5",
+          "span": "Tracking objects",
+          "start_char": 0,
+          "end_char": 16,
+          "evidence_sentence": "Tracking objects across multiple video frames is a challenging task due to several difficult issues such as occlusions, background clutter, lighting as well as object and camera view-point variations, which directly affect the object detection."
+        }
+      }
+    },
+    {
+      "author_id": "A5019483041",
+      "paper_id": "W3145004415",
+      "original_rank": 5,
+      "template": "facet",
+      "text": "Evaluates on **all kinds of data**, used in 4 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 4,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_3a6eb0790f39",
+        "span": "all kinds of data",
+        "start_char": 178,
+        "end_char": 195,
+        "evidence_sentence": "The fundamental algorithms in data mining and analysis form the basis for the emerging field of data science, which includes automated methods to analyze patterns and models for all kinds of data, with applications ranging from scientific discovery to business intelligence and analytics."
+      }
+    },
+    {
+      "author_id": "A5047752981",
+      "paper_id": "W3215470628",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Evaluates on **scRNA-seq data**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_40c8a2c17a9b",
+        "span": "scRNA-seq data",
+        "start_char": 678,
+        "end_char": 692,
+        "evidence_sentence": "Moreover, the future perspectives and challenges of deep-learning techniques regarding the appropriate analysis and interpretation of scRNA-seq data were investigated."
+      }
+    },
+    {
+      "author_id": "A5053036601",
+      "paper_id": "W4399898043",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Evaluates on **data**, used in 5 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 5,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_3a6eb0790f39",
+        "span": "data",
+        "start_char": 602,
+        "end_char": 606,
+        "evidence_sentence": "Considering the limitations of a single analysis technique, we use two methods to analyze the data."
+      }
+    },
+    {
+      "author_id": "A5061699251",
+      "paper_id": "W4384304728",
+      "original_rank": 1,
+      "template": "new_method",
+      "text": "Proposes **Automated program repair**, which is new to your work, for **code completion** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_2d5b74e8b825",
+          "span": "Automated program repair",
+          "start_char": 0,
+          "end_char": 24,
+          "evidence_sentence": "Automated program repair (APR) aims to help developers improve software reliability by generating patches for buggy programs."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_e8398b673b78",
+          "span": "code completion",
+          "start_char": 226,
+          "end_char": 241,
+          "evidence_sentence": "Although many code language models (CLM) are developed and effective in many software tasks such as code completion, there has been little comprehensive, in-depth work to evaluate CLMs' fixing capabilities and to fine-tune CLMs for the APR task."
+        }
+      }
+    },
+    {
+      "author_id": "A5001978884",
+      "paper_id": "W3206087679",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9693504571914673
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9693504571914673
+      }
+    },
+    {
+      "author_id": "A5084221816",
+      "paper_id": "W3178549001",
+      "original_rank": 9,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *Modeling Educational Strategies in Augmented Reality Learning Using Fuzzy Weights*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4403919269",
+        "title": "Modeling Educational Strategies in Augmented Reality Learning Using Fuzzy Weights",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5112867666",
+      "paper_id": "W4313438406",
+      "original_rank": 2,
+      "template": "new_method",
+      "text": "Proposes **hyper-heuristic algorithms**, which is new to your work, for **pest detection** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_fb6ce3ef96be",
+          "span": "hyper-heuristic algorithms",
+          "start_char": 1065,
+          "end_char": 1091,
+          "evidence_sentence": "Despite the promising applications, the adoption of hyper-heuristic algorithms in agriculture remained low."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_65fd6b34e66a",
+          "span": "pest detection",
+          "start_char": 780,
+          "end_char": 794,
+          "evidence_sentence": "For example, the Ant Colony Optimization Algorithm and genetic algorithm were best suited for farm machinery path optimization and pest detection, among other applications."
+        }
+      }
+    },
+    {
+      "author_id": "A5100417416",
+      "paper_id": "W4389252700",
+      "original_rank": 7,
+      "template": "new_method",
+      "text": "Proposes **DRL-based method**, which is new to your work, for **tasks** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_a7f9dd71f1d0",
+          "span": "DRL-based method",
+          "start_char": 964,
+          "end_char": 980,
+          "evidence_sentence": "Firstly, accurate modelling of the CETCN, which is difficult to obtain for real-world applications, is not required for the DRL-based method."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_085154084c74",
+          "span": "tasks",
+          "start_char": 1279,
+          "end_char": 1284,
+          "evidence_sentence": "Thirdly, due to the complexity of tasks and the differences in resource supply among different vendors, collaboration is required between different vendors to complete tasks."
+        }
+      }
+    },
+    {
+      "author_id": "A5079298414",
+      "paper_id": "W4308605894",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **13** references with your paper *An Effective Ensemble Learning-Based Real-Time Intrusion Detection Scheme for an In-Vehicle Network*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 13,
+        "actual_refs": 13
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4392272022",
+        "title": "An Effective Ensemble Learning-Based Real-Time Intrusion Detection Scheme for an In-Vehicle Network",
+        "shared_references": 13
+      }
+    },
+    {
+      "author_id": "A5072558771",
+      "paper_id": "W2776782656",
+      "original_rank": 8,
+      "template": "new_method",
+      "text": "Proposes **video-based recognition approach**, which is new to your work, for **sign language recognition task** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_350ca7fb91a5",
+          "span": "video-based recognition approach",
+          "start_char": 151,
+          "end_char": 183,
+          "evidence_sentence": "This paper presents a novel video-based recognition approach using CNN for Chinese Sign Language (CSL)."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_e2473529ae5d",
+          "span": "sign language recognition task",
+          "start_char": 636,
+          "end_char": 666,
+          "evidence_sentence": "We evaluate the method on our self-built dataset includes 40 daily vocabularies, and show that the proposed approach has good performance on sign language recognition task, with accuracy reaching to 99%."
+        }
+      }
+    },
+    {
+      "author_id": "A5023755979",
+      "paper_id": "W4392389779",
+      "original_rank": 3,
+      "template": "new_method",
+      "text": "Proposes **machine learning**, which is new to your work, for **decision-making** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_dcaa8e5ecb8d",
+          "span": "machine learning",
+          "start_char": 649,
+          "end_char": 665,
+          "evidence_sentence": "Currently, terms like digital marketing, decision-making, Industry 4.0, and business digital transformation are associated with concepts like neural networks, machine learning, or deep learning."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_8de65c884945",
+          "span": "decision-making",
+          "start_char": 531,
+          "end_char": 546,
+          "evidence_sentence": "Currently, terms like digital marketing, decision-making, Industry 4.0, and business digital transformation are associated with concepts like neural networks, machine learning, or deep learning."
+        }
+      }
+    },
+    {
+      "author_id": "A5060345555",
+      "paper_id": "W3115978137",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Evaluates on **OTOC**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 7,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_90e7d9a756b0",
+        "span": "OTOC",
+        "start_char": 483,
+        "end_char": 487,
+        "evidence_sentence": "This ``open bipartite OTOC'' can be treated in an exact analytical fashion and is shown to amount to a distance between two quantum channels."
+      }
+    },
+    {
+      "author_id": "A5040252691",
+      "paper_id": "W4293048708",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9394102692604065
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9394102692604065
+      }
+    },
+    {
+      "author_id": "A5034166240",
+      "paper_id": "W4309306284",
+      "original_rank": 1,
+      "template": "new_method",
+      "text": "Proposes **VirtualTaste models**, which is new to your work, for **modern drug discovery** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 4,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_744ddb6f1c05",
+          "span": "VirtualTaste models",
+          "start_char": 1327,
+          "end_char": 1346,
+          "evidence_sentence": "The possible taste profile of the natural compounds was predicted using our published VirtualTaste models."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_f1ce5fcd0612",
+          "span": "modern drug discovery",
+          "start_char": 347,
+          "end_char": 368,
+          "evidence_sentence": "Natural products have played a key role in modern drug discovery for several diseases."
+        }
+      }
+    },
+    {
+      "author_id": "A5003311970",
+      "paper_id": "W4399261686",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9530521631240845
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9530521631240845
+      }
+    },
+    {
+      "author_id": "A5100748058",
+      "paper_id": "W4200261401",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **15** references with your paper *Modulation of three key innate immune pathways for the most common retinal degenerative diseases*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 15,
+        "actual_refs": 15
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2890436731",
+        "title": "Modulation of three key innate immune pathways for the most common retinal degenerative diseases",
+        "shared_references": 15
+      }
+    },
+    {
+      "author_id": "A5034613739",
+      "paper_id": "W4309263982",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9439113140106201
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9439113140106201
+      }
+    },
+    {
+      "author_id": "A5054577790",
+      "paper_id": "W4405196935",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9456051588058472
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9456051588058472
+      }
+    },
+    {
+      "author_id": "A5100404991",
+      "paper_id": "W4402761239",
+      "original_rank": 10,
+      "template": "facet",
+      "text": "Evaluates on **30 benchmark functions**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_182f842919f6",
+        "span": "30 benchmark functions",
+        "start_char": 967,
+        "end_char": 989,
+        "evidence_sentence": "Our proposed FAMBWO was compared with 11 state-of-the-art swarm intelligence optimization algorithms on 30 benchmark functions, and the results showed that our improved algorithm had faster convergence speed and better solutions on almost all benchmark functions."
+      }
+    },
+    {
+      "author_id": "A5080357202",
+      "paper_id": "W1983705368",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.961073637008667
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.961073637008667
+      }
+    },
+    {
+      "author_id": "A5099611070",
+      "paper_id": "W4235120320",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9335640072822571
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9335640072822571
+      }
+    }
+  ]
+}
