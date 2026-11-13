@@ -1,7 +1,7 @@
 # PaperFeed: Grounded, Explainable Scientific Paper Recommendation Engine
 
 [![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](#environment-setup)
-[![Tests](https://img.shields.io/badge/pytest-319%20passed%2C%201%20skipped-brightgreen.svg)](#running-tests)
+[![Tests](https://img.shields.io/badge/pytest-333%20passed%2C%201%20skipped-brightgreen.svg)](#running-tests)
 [![Temporal Leakage](https://img.shields.io/badge/leakage%20check-clean%20(0%20violations)-success.svg)](#2-cohort-selection-ground-truth--leakage-check)
 [![SciERC Core F1](https://img.shields.io/badge/SciERC%20Core%20Relaxed%20F1-41.15%25-orange.svg)](#7-scierc-extraction-benchmark-phase-34)
 
@@ -72,7 +72,7 @@ Dynamic Session State ─────────────────┼─�
 | **Phase 5** | **Recommendation Engine** | Complete | `recommend(resources, profile, session, mode)`: Hybrid candidate generation ($M=100$), multi-feature linear scoring, greedy MMR diversity ($\lambda=0.2$), deterministic grounded explanations. End-to-end audit passed (`results/phase5_verification_report.md`: 222ms latency, 100% explanation coverage, 0 leaks). |
 | **Phase 6** | **Track 1: Full LFO Benchmark Runs** | Complete | Evaluated across 320 test authors in `results/track1_lfo_enhanced_report.md`. $H_1$ accepted with statistical significance ($p < 0.05$, BH FDR corrected) against all 5 baselines. |
 | **Phase 7** | **Retrieval Benchmark (CSFCube, LitSearch)** | Complete | BM25s, SPECTER2 and RRF (+ cross-encoder rows) on each benchmark's corpus; CSFCube also under official pool protocol. Tables in `results/retrieval_benchmark_{csfcube,litsearch}.md`. |
-| **Phase 8** | **Explanation Faithfulness Audit** | Complete | Evaluated across 100 stratified explanations across 95 researchers (`results/faithfulness_audit_report.md`). Extractive Grounding: 100.0%, Explanation Coverage: 100.0%, Counterfactual Drop-Out Rate: 100.0% (+5.83 mean rank drop). |
+| **Phase 8** | **Explanation Faithfulness Audit** | Implemented, results pending re-run | `scripts/audit_faithfulness.py` audits 100 stratified explanations: grounding, counterfactual drop-out on the exact scored pool behind each feed, coverage and template distribution. The committed `results/faithfulness_audit_report.*` predates the fixes (its counterfactual re-scored sparse authors without `adaptive_graph`, and its weights were not checked against the tuning signature); it also audited no span-quoting (facet) explanation because tuning set w_facet = 0. Re-run after the Track 1 runs. |
 | **Phases 9–12** | **Extended Track 2 Simulation, SOTA Variants, Best Configuration & SOTA Comparison, UI** | Planned | Empty module skeletons in `src/paperfeed/sim/`, `src/paperfeed/variants/`, and `src/paperfeed/ui/`. Phase 11 assembles the best option for each part from the Phase 10 tuning evidence and compares it with current SOTA paper recommenders (`docs/plan.md` Phase 11). |
 
 ---
@@ -220,7 +220,7 @@ Run the entire offline test suite covering all phases (fixtures require zero net
 ```bash
 pytest
 ```
-*Current test suite: **319 passed, 1 skipped** (total 320 tests across all modules).*
+*Current test suite: **333 passed, 1 skipped** (total 334 tests across all modules).*
 
 To run specific test modules:
 ```bash
@@ -335,7 +335,7 @@ Tested across all cohort strata (Warm, Moderate, Sparse, Zero-Publication):
 │   ├── sim/                        # Track 2 LLM session simulation (Phase 9)
 │   ├── variants/                   # SOTA variants (Phase 10), best configuration & SOTA comparison (Phase 11)
 │   └── ui/                         # Streamlit interactive interface (Phase 12)
-├── tests/                          # Automated test suite (320 unit & integration tests)
+├── tests/                          # Automated test suite (334 unit & integration tests)
 ├── pyproject.toml                  # Packaging & dependencies
 └── requirements.txt                # Pinned dependency manifest
 ```

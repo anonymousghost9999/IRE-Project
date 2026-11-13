@@ -322,3 +322,89 @@ def test_faithfulness_audit_result_serialization(tmp_path):
     save_path = tmp_path / "report.json"
     result.save(save_path)
     assert save_path.exists()
+
+
+def _result(per_template, population):
+    n = sum(t["n"] for t in per_template.values())
+    return FaithfulnessAuditResult(
+        n_sampled=n, n_users_in_sample=n, total_evaluated_recommendations=10 * n, total_covered_recommendations=10 * n,
+        explanation_coverage=1.0, extractive_grounding_rate=1.0, counterfactual_dropout_rate=1.0, left_top_k_count=n,
+        dropped_gte_3_count=0, retained_near_rank_count=0, mean_rank_drop=5.0, median_rank_drop=5.0,
+        template_distribution={k: v["n"] for k, v in per_template.items()},
+        template_proportions={k: v["n"] / n for k, v in per_template.items()},
+        per_template=per_template, population_template_distribution=population,
+    )
+
+
+def test_report_says_when_no_span_explanation_was_audited():
+    stats = {"n": 3, "grounded": 3, "necessary": 3, "left_top_k": 3, "dropped_gte_3": 0}
+    res = _result({"persona": dict(stats), "citation": dict(stats)}, {"persona": 20, "citation": 10})
+    assert res.n_span_explanations == 0
+    md = res.to_markdown()
+    assert "No span-quoting explanation was audited" in md
+    assert "| `persona` | 3 | 3 | 3 | 3 | 0 | 20 |" in md
+    assert res.to_dict()["n_span_explanations_audited"] == 0
+
+    with_facets = _result({"persona": dict(stats), "facet": dict(stats)}, {"persona": 20, "facet": 5})
+    assert with_facets.n_span_explanations == 3
+    assert "No span-quoting explanation was audited" not in with_facets.to_markdown()
+
+
+# ---------------------------------------------------------------------------
+# The audit's configuration must be the audited Track 1 run's configuration
+# ---------------------------------------------------------------------------
+
+import importlib.util
+import json
+from types import SimpleNamespace
+
+from paperfeed.eval.tuning import tuning_signature
+from paperfeed.rec.recommender import RecommendConfig
+
+
+def _audit_script():
+    spec = importlib.util.spec_from_file_location(
+        "audit_faithfulness", Path(__file__).resolve().parent.parent / "scripts" / "audit_faithfulness.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_tuning_signature_distinguishes_configurations():
+    base = RecommendConfig(pool_size=100, channel_depth=200)
+    sig = tuning_signature(base, ["A2", "https://openalex.org/A1"])
+    assert sig["tuning_authors"] == ["A1", "A2"] and sig["w_pop"] == 0.0 and sig["filter_popular"] is None
+    assert tuning_signature(base.with_overrides(pool_size=250), ["A1", "A2"]) != sig
+    assert tuning_signature(base.with_overrides(weights={"w_pop": 0.2}), ["A1", "A2"]) != sig
+    assert tuning_signature(base, ["A1"]) != sig  # a --tuning-sample run never matches a full run
+    assert tuning_signature(base, ["A1", "A2"], filter_popular=200) != sig
+
+
+def test_audit_uses_tuned_weights_only_from_a_matching_cache(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}, {"author_id": "A9", "split": "test"}]
+    args = SimpleNamespace(enhanced=False, skip_tuning=False)
+    artifact = tmp_path / "tuning_results.json"
+
+    with pytest.raises(FileNotFoundError):
+        script.audit_config(cfg, cohort, args, artifact)
+
+    expected = tuning_signature(RecommendConfig.from_config(cfg), ["A1"])
+    tuned = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.0, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    artifact.write_text(json.dumps({"config_signature": expected, "best_weights": tuned, "best_lambda_div": 0.0}))
+    rec_cfg, source = script.audit_config(cfg, cohort, args, artifact)
+    assert rec_cfg.weights.w_cite == 1.0 and rec_cfg.weights.w_facet == 0.0 and rec_cfg.lambda_div == 0.0
+    assert "signature matched" in source
+
+    # the same cache must not be reused for the enhanced configuration (pool 250, w_pop 0.2)
+    with pytest.raises(ValueError, match="different configuration"):
+        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=False), artifact)
+
+    rec_cfg, source = script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=True), artifact)
+    assert rec_cfg.pool_size == 250 and rec_cfg.weights.w_pop == 0.2 and rec_cfg.weights.w_cite == 0.5
+    assert "--skip-tuning" in source

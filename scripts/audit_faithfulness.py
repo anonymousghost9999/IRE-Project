@@ -24,6 +24,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import shutil
 import sys
 import time
 
@@ -33,6 +34,7 @@ from paperfeed.common.config import find_project_root, load_config
 from paperfeed.common.logger import get_logger
 from paperfeed.common.manifest import RunManifest
 from paperfeed.eval.faithfulness import run_faithfulness_audit
+from paperfeed.eval.tuning import tuning_signature
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
 from paperfeed.rec.scoring import ScoringWeights
 
@@ -45,6 +47,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-authors", type=int, default=None, help="Limit number of test authors to process (default: all)")
     parser.add_argument("--enhanced", action="store_true", help="Use Track 1 enhanced parameters (M=250, M_channel=500, w_pop=0.20)")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for sampling (default: 42)")
+    parser.add_argument("--skip-tuning", action="store_true", help="Use the configured weights instead of the Track 1 tuned ones")
     parser.add_argument("--report-name", default="faithfulness_audit_report.md", help="Markdown report filename")
     parser.add_argument("--results-name", default="faithfulness_audit_report.json", help="JSON output filename")
     parser.add_argument("--out-dir", default="results", help="Output directory (default: results)")
@@ -66,41 +69,55 @@ def main() -> int:
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
     manifest.extra_metadata["arguments"] = vars(args)
 
-    logger.info("Initializing RecommenderResources from %s...", root / cfg["paths"]["processed_dir"])
-    resources = RecommenderResources.load(cfg, root, load_encoder=False, use_facets=True)
+    try:
+        _run(args, root, cfg, manifest, report_path, results_path)
+    except BaseException as exc:
+        manifest.complete(status="FAILED", metadata={"error": repr(exc)})
+        raise
+    return 0
 
-    # Load cohort
+
+def audit_config(cfg, cohort, args, artifact_path):
+    """The configuration of the Track 1 run being audited: config defaults, the --enhanced overrides, then the tuned
+    weights, but only from a tuning cache whose signature matches this configuration (as run_track1_eval.py checks)."""
+    rec_cfg = RecommendConfig.from_config(cfg)
+    if args.enhanced:
+        rec_cfg = rec_cfg.with_overrides(
+            pool_size=250, channel_depth=500, weights=rec_cfg.weights.with_overrides(w_pop=0.20)
+        )
+    if args.skip_tuning:
+        return rec_cfg, "configured weights (--skip-tuning)"
+    if not artifact_path.exists():
+        raise FileNotFoundError(
+            f"{artifact_path} not found: run scripts/run_track1_eval.py with the same options first, or pass --skip-tuning."
+        )
+    saved = json.loads(artifact_path.read_text(encoding="utf-8"))
+    expected = tuning_signature(rec_cfg, [a["author_id"] for a in cohort if a.get("split") == "tuning"])
+    if saved.get("config_signature") != expected:
+        raise ValueError(
+            f"{artifact_path} was tuned for a different configuration ({saved.get('config_signature')} != {expected}); "
+            "re-run scripts/run_track1_eval.py with the same options (e.g. --enhanced) or pass --skip-tuning."
+        )
+    tuned = ScoringWeights(**{k: v for k, v in saved["best_weights"].items() if k in ScoringWeights.__dataclass_fields__})
+    if args.enhanced:
+        tuned = tuned.with_overrides(w_pop=0.20)  # as run_track1_eval.py applies --enhanced after tuning
+    rec_cfg = rec_cfg.with_overrides(weights=tuned, lambda_div=saved.get("best_lambda_div", rec_cfg.lambda_div))
+    return rec_cfg, f"tuned weights from {artifact_path.name} (signature matched)"
+
+
+def _run(args, root, cfg, manifest, report_path, results_path):
+    logger.info("Initializing RecommenderResources from %s...", root / cfg["paths"]["processed_dir"])
+    # The encoder embeds title-only authored papers, as in the Track 1 run being audited
+    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True)
+
     cohort_path = root / cfg["paths"]["processed_dir"] / "cohort.jsonl"
     with open(cohort_path, "r", encoding="utf-8") as f:
         cohort = [json.loads(line) for line in f if line.strip()]
-
     test_authors = [a for a in cohort if a.get("split") == "test"]
     logger.info("Found %d test authors in cohort.", len(test_authors))
 
-    # Configuration setup
-    rec_cfg = RecommendConfig.from_config(cfg)
-    tuning_artifact = root / cfg["paths"]["artifacts_dir"] / "tuning_results.json"
-    if tuning_artifact.exists():
-        try:
-            with open(tuning_artifact, "r", encoding="utf-8") as f:
-                saved_tuning = json.load(f)
-            bw = saved_tuning.get("best_weights", {})
-            tuned_weights = ScoringWeights(**{k: v for k, v in bw.items() if k in ScoringWeights.__dataclass_fields__})
-            rec_cfg = rec_cfg.with_overrides(
-                weights=tuned_weights,
-                lambda_div=saved_tuning.get("best_lambda_div", rec_cfg.lambda_div),
-            )
-            logger.info("Loaded tuned weights from %s", tuning_artifact)
-        except Exception as exc:
-            logger.warning("Could not load tuning artifact: %s", exc)
-
-    if args.enhanced:
-        rec_cfg = rec_cfg.with_overrides(
-            pool_size=250,
-            channel_depth=500,
-            weights=rec_cfg.weights.with_overrides(w_pop=0.20),
-        )
-        logger.info("Applied enhanced parameters: M=250, M_channel=500, w_pop=0.20")
+    rec_cfg, weights_source = audit_config(cfg, cohort, args, root / cfg["paths"]["artifacts_dir"] / "tuning_results.json")
+    logger.info("Auditing with %s: %s, lambda_div=%.2f", weights_source, rec_cfg.weights, rec_cfg.lambda_div)
 
     t_start = time.time()
     audit_result = run_faithfulness_audit(
@@ -120,7 +137,15 @@ def main() -> int:
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(report_md)
 
-    manifest.complete(status="SUCCESS", metadata={
+    for f in (report_path, results_path):
+        shutil.copy2(f, manifest.run_dir / f.name)
+    manifest.complete(metadata={
+        "weights_source": weights_source,
+        "weights": vars(rec_cfg.weights),
+        "lambda_div": rec_cfg.lambda_div,
+        "pool_size": rec_cfg.pool_size,
+        "n_span_explanations_audited": audit_result.n_span_explanations,
+        "template_distribution": audit_result.template_distribution,
         "extractive_grounding_rate": audit_result.extractive_grounding_rate,
         "counterfactual_dropout_rate": audit_result.counterfactual_dropout_rate,
         "explanation_coverage": audit_result.explanation_coverage,
@@ -132,7 +157,6 @@ def main() -> int:
     print(report_md)
     print(f"[+] Audit complete! Report written to {report_path}")
     print(f"[+] Raw JSON results written to {results_path}")
-    return 0
 
 
 if __name__ == "__main__":

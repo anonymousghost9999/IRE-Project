@@ -33,7 +33,7 @@ from paperfeed.rec.candidates import (
 from paperfeed.rec.explain import Explainer, ExplanationResult
 from paperfeed.rec.features import UserCitationContext, build_citation_context, compute_features
 from paperfeed.rec.mmr import DEFAULT_K, DEFAULT_LAMBDA_DIV, select_top_k
-from paperfeed.rec.scoring import ScoringWeights, score_candidates
+from paperfeed.rec.scoring import ScoredCandidate, ScoringWeights, score_candidates
 from paperfeed.user.exclusion import ExclusionSources, load_exclusion_sources
 from paperfeed.user.facets import UserFacets, build_user_facets, build_zero_pub_facets
 from paperfeed.user.persona import DEFAULT_GAMMA_REC, Persona, build_persona, build_seed_persona, load_authored_papers
@@ -359,6 +359,10 @@ class RecommendationResult:
     pseudo_query: str
     n_excluded: int
     config: RecommendConfig
+    # Feed mode: the whole scored pool and the weights it was scored with (after adaptive_graph), so analyses such
+    # as the faithfulness counterfactual re-rank exactly what produced this feed. Not serialized by ``to_dict``.
+    scored_pool: List[ScoredCandidate] = field(default_factory=list)
+    effective_weights: Optional[ScoringWeights] = None
 
     @property
     def paper_ids(self) -> List[str]:
@@ -390,6 +394,16 @@ def _check_output(paper_ids: Sequence[str], resources: RecommenderResources, exc
         )
     if len(set(paper_ids)) != len(paper_ids):
         raise RuntimeError("Recommender returned duplicate papers.")
+
+
+def effective_weights(weights: ScoringWeights, adaptive_graph: bool, profile: UserProfile) -> ScoringWeights:
+    """The weights a profile is actually scored with: with ``adaptive_graph``, w_cite is scaled by |Authored| / 3 for
+    authors with 1-2 papers (their citation signal rests on very few papers). Tuning and every analysis that re-scores
+    a feed must use this, not the raw configured weights."""
+    n_auth = len(profile.authored_papers)
+    if adaptive_graph and not profile.zero_pub and 0 < n_auth < 3:
+        return weights.with_overrides(w_cite=weights.w_cite * (n_auth / 3.0))
+    return weights
 
 
 def recommend(
@@ -438,10 +452,7 @@ def recommend(
         [c.paper_id for c in cands], r.store, profile.persona.vector, profile.user_facets, profile.citation_ctx, r.db,
         r.cutoff_year, session_vec, session.negatives, r.facet_store,
     )
-    weights = cfg.weights
-    n_auth = len(profile.authored_papers)
-    if cfg.adaptive_graph and not profile.zero_pub and 0 < n_auth < 3:
-        weights = weights.with_overrides(w_cite=weights.w_cite * (n_auth / 3.0))
+    weights = effective_weights(cfg.weights, cfg.adaptive_graph, profile)
     scored = score_candidates(features, weights)
     picks = select_top_k(scored, r.store, cfg.k, cfg.lambda_div)
 
@@ -463,7 +474,7 @@ def recommend(
     ]
     _check_output([i.paper_id for i in items], r, excluded)
     return RecommendationResult(profile.user_id, mode, items, len(cands), [c.paper_id for c in cands], session_active,
-                                pseudo_query, len(excluded), cfg)
+                                pseudo_query, len(excluded), cfg, scored_pool=scored, effective_weights=weights)
 
 
 def _search_item(rank: int, c: RetrievedCandidate, meta: Mapping[str, Mapping[str, Any]]) -> RecommendedItem:

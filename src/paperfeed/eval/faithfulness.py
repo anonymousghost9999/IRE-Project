@@ -5,7 +5,8 @@ Audits deterministic recommendations against two criteria (prob.md §2.4, §6E.5
    in the candidate paper's abstract text (target: 100%); citation edges are verified in SQLite under year <= T.
 2. Counterfactual Necessity (Drop-out Rate): When the explained feature contribution is set to 0 (DeltaScore = 0),
    the paper leaves the Top-10 or falls >= 3 ranks under MMR re-diversification (verifying the explanation highlights
-   a necessary ranking signal).
+   a necessary ranking signal). The counterfactual re-ranks the exact scored pool and weights that produced the feed
+   (``RecommendationResult.scored_pool``), and the audit first checks that re-ranking it unchanged reproduces the feed.
 3. Explanation Coverage: Percentage of Top-10 recommendations successfully annotated with a grounded explanation (target >= 90%).
 4. Template Distribution: Proportions of explanation templates across the evaluated recommendations.
 """
@@ -25,9 +26,8 @@ from paperfeed.common.logger import get_logger
 from paperfeed.data.cohort import clean_id
 from paperfeed.data.ground_truth import to_uri
 from paperfeed.index.store import EmbeddingStore
-from paperfeed.rec.candidates import feed_candidates
 from paperfeed.rec.explain import EXPLAINABLE_FEATURES, Explainer, Explanation, ExplanationResult
-from paperfeed.rec.features import compute_features, edges
+from paperfeed.rec.features import edges
 from paperfeed.rec.mmr import select_top_k
 from paperfeed.rec.recommender import (
     RecommendConfig,
@@ -36,8 +36,7 @@ from paperfeed.rec.recommender import (
     build_user_profile,
     recommend,
 )
-from paperfeed.rec.scoring import ScoredCandidate, score_candidates
-from paperfeed.user.query import build_feed_query
+from paperfeed.rec.scoring import ScoredCandidate
 
 logger = get_logger("eval.faithfulness")
 
@@ -97,6 +96,10 @@ class FaithfulnessAuditResult:
     template_distribution: Dict[str, int]
     template_proportions: Dict[str, float]
     audited_explanations: List[AuditedExplanation] = field(default_factory=list)
+    # template -> {"n", "grounded", "necessary", "left_top_k", "dropped_gte_3"} over the sample
+    per_template: Dict[str, Dict[str, int]] = field(default_factory=dict)
+    # population template counts over every covered Top-10 item (before sampling)
+    population_template_distribution: Dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -114,8 +117,16 @@ class FaithfulnessAuditResult:
             "median_rank_drop": self.median_rank_drop,
             "template_distribution": self.template_distribution,
             "template_proportions": self.template_proportions,
+            "per_template": self.per_template,
+            "population_template_distribution": self.population_template_distribution,
+            "n_span_explanations_audited": self.n_span_explanations,
             "audited_explanations": [a.to_dict() for a in self.audited_explanations],
         }
+
+    @property
+    def n_span_explanations(self) -> int:
+        """Audited explanations that quote spans from the abstract (facet, new_method): the plan's grounding check."""
+        return sum(self.per_template.get(t, {}).get("n", 0) for t in ("facet", "new_method"))
 
     def save(self, path: Path | str) -> None:
         p = Path(path)
@@ -163,6 +174,36 @@ class FaithfulnessAuditResult:
             share = self.template_proportions.get(template, 0.0) * 100.0
             lines.append(f"| `{template}` | {count} | {share:.1f}% |")
 
+        lines.extend([
+            "",
+            "Per template in the audited sample (grounding / counterfactual):",
+            "",
+            "| Template | Audited | Grounded | Counterfactually necessary | Left Top-10 | Fell >= 3 ranks | In all covered Top-10 items |",
+            "| :--- | :---: | :---: | :---: | :---: | :---: | :---: |",
+        ])
+        for template in sorted(set(self.per_template) | set(self.population_template_distribution)):
+            t = self.per_template.get(template, {})
+            lines.append(
+                f"| `{template}` | {t.get('n', 0)} | {t.get('grounded', 0)} | {t.get('necessary', 0)} | {t.get('left_top_k', 0)} "
+                f"| {t.get('dropped_gte_3', 0)} | {self.population_template_distribution.get(template, 0)} |"
+            )
+        notes = [
+            "",
+            "**Reading these numbers:**",
+            f"- The plan's grounding check is about quoted spans (facet and new-method templates); "
+            f"{self.n_span_explanations} of the {self.n_sampled} audited explanations quote spans.",
+        ]
+        if self.n_span_explanations == 0:
+            notes.append(
+                "- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation "
+                "edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the tuned weights "
+                "(e.g. w_facet = 0) the system produced no facet explanations to audit."
+            )
+        notes.append(
+            "- Zeroing the dominant term removes the largest part of a paper's score, so a high drop-out rate is expected "
+            "by construction; it shows the explained signal is necessary, not that the other signals are irrelevant."
+        )
+        lines.extend(notes)
         lines.extend([
             "",
             "## 4. Sample Audited Explanations",
@@ -471,6 +512,7 @@ def run_faithfulness_audit(
     logger.info("Generating recommendations across %d test authors for explanation audit...", len(authors_to_eval))
 
     candidate_samples: List[ExplanationSample] = []
+    population_templates: Dict[str, int] = {}
     total_recs = 0
     covered_recs = 0
 
@@ -484,22 +526,21 @@ def run_faithfulness_audit(
         # Generate recommendation with candidates and features
         res = recommend(resources, profile, session=None, mode="feed", config=cfg)
 
-        # Extract scored candidate pool for counterfactual re-ranking
-        excluded = profile.exclusion_sources.build(session_consumed=set(), diagnostic=cfg.diagnostic, zero_pub=cfg.zero_pub or profile.zero_pub)
-        pseudo_query = build_feed_query(profile.user_facets, None, resources.db, profile.authored_papers, cfg.n_terms, cfg.n_titles, cutoff_year=resources.cutoff_year)
-        cands = feed_candidates(
-            resources.retriever, profile.persona.vector, pseudo_query, None, excluded, resources.eligible,
-            cfg.rho, cfg.normalize_session, cfg.channel_depth, cfg.pool_size,
-        )
-        features = compute_features(
-            [c.paper_id for c in cands], resources.store, profile.persona.vector, profile.user_facets, profile.citation_ctx, resources.db,
-            resources.cutoff_year, None, set(), resources.facet_store,
-        )
-        scored_candidates = score_candidates(features, cfg.weights)
+        # The counterfactual must re-rank exactly what produced this feed: the scored pool and the effective weights
+        # (adaptive_graph changes w_cite for sparse authors). Re-ranking it unchanged must give back the feed.
+        scored_candidates = res.scored_pool
+        replay = [p.paper_id for p in select_top_k(scored_candidates, resources.store, k=cfg.k, lambda_div=cfg.lambda_div)]
+        if replay != res.paper_ids:
+            raise RuntimeError(
+                f"Faithfulness audit: re-ranking the scored pool of author {aid} does not reproduce the feed; "
+                "the counterfactual would measure the wrong ranking."
+            )
 
         for item in res.items:
             total_recs += 1
             exp_res = item.explanation
+            if exp_res and exp_res.covered and exp_res.dominant_feature:
+                population_templates[exp_res.dominant_feature] = population_templates.get(exp_res.dominant_feature, 0) + 1
             if exp_res and exp_res.covered and exp_res.explanation and exp_res.dominant_feature:
                 covered_recs += 1
                 candidate_samples.append(
@@ -529,10 +570,13 @@ def run_faithfulness_audit(
     retained_near = 0
     rank_drops: List[int] = []
     template_counts: Dict[str, int] = {}
+    per_template: Dict[str, Dict[str, int]] = {}
 
     for sample in sampled:
         dom = sample.dominant_feature
         template_counts[dom] = template_counts.get(dom, 0) + 1
+        stats = per_template.setdefault(dom, {"n": 0, "grounded": 0, "necessary": 0, "left_top_k": 0, "dropped_gte_3": 0})
+        stats["n"] += 1
 
         # 1. Grounding check
         is_grounded, grounding_details = verify_grounding(
@@ -540,6 +584,7 @@ def run_faithfulness_audit(
         )
         if is_grounded:
             grounded_count += 1
+            stats["grounded"] += 1
 
         # 2. Counterfactual impact
         cf_rank, r_drop, is_necessary = compute_counterfactual_impact(
@@ -549,10 +594,13 @@ def run_faithfulness_audit(
 
         if is_necessary:
             dropout_count += 1
+            stats["necessary"] += 1
             if cf_rank is None or cf_rank > cfg.k:
                 left_top_k += 1
+                stats["left_top_k"] += 1
             else:
                 dropped_gte_3 += 1
+                stats["dropped_gte_3"] += 1
         else:
             retained_near += 1
 
@@ -597,5 +645,7 @@ def run_faithfulness_audit(
         template_distribution=template_counts,
         template_proportions=proportions,
         audited_explanations=audited_list,
+        per_template=per_template,
+        population_template_distribution=population_templates,
     )
 

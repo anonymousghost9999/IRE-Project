@@ -65,6 +65,7 @@ from paperfeed.eval.tuning import (
     evaluate_parameter_grid,
     precompute_tuning_cache,
     tune_hybrid_persona,
+    tuning_signature,
 )
 
 __all__ = [
@@ -97,6 +98,7 @@ __all__ = [
     "precompute_tuning_cache",
     "evaluate_parameter_grid",
     "tune_hybrid_persona",
+    "tuning_signature",
     # LFO
     "UserEvaluationRow",
     "LFOEvaluationResult",

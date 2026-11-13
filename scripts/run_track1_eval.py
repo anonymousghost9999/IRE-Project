@@ -40,7 +40,7 @@ from paperfeed.eval.lfo import ZERO_PUB_BASELINES, run_lfo_evaluation, run_zero_
 from paperfeed.eval.report import format_cold_start_table, format_zero_pub_section, generate_full_evaluation_report
 from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown, slice_by_history_volume
 from paperfeed.eval.stats import H1_METRICS, compare_system_to_baselines, run_track1_hypothesis_tests
-from paperfeed.eval.tuning import evaluate_parameter_grid, precompute_tuning_cache, tune_hybrid_persona
+from paperfeed.eval.tuning import evaluate_parameter_grid, precompute_tuning_cache, tune_hybrid_persona, tuning_signature
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
 from paperfeed.rec.scoring import ScoringWeights
 
@@ -349,16 +349,9 @@ def run(args, root, cfg, manifest):
         )
 
     # 1. Tuning stage
-    tuning_sig = {
-        "pool_size": tuned_config.pool_size,
-        "channel_depth": tuned_config.channel_depth,
-        "w_pop": tuned_config.weights.w_pop,
-        "adaptive_graph": tuned_config.adaptive_graph,
-        "filter_popular": args.filter_popular,
-        "tuning_version": 2,  # 2: grid uses the configured w_pop; Hybrid-Persona baseline tuned too
-        # A --tuning-sample run must never be reused by a full run
-        "tuning_authors": sorted(clean_id(a["author_id"]) for a in tuning_authors),
-    }
+    tuning_sig = tuning_signature(
+        tuned_config, [a["author_id"] for a in tuning_authors], filter_popular=args.filter_popular
+    )
     # Hybrid-Persona baseline: configured values unless tuned below (plan §6.3)
     hybrid_params = {
         "gamma_rec": tuned_config.gamma_rec,

@@ -1263,3 +1263,34 @@ def test_popularity_never_pollutes_explanations():
         "popularity": 0.9,
     }
     assert dominant_feature(contributions) == "facet"
+
+
+# ---------------------------------------------------------------------------
+# The scored pool behind a feed (used by the faithfulness counterfactual)
+# ---------------------------------------------------------------------------
+
+from types import SimpleNamespace
+
+from paperfeed.rec.recommender import effective_weights
+
+
+def test_effective_weights_scale_w_cite_for_sparse_authors_only():
+    w = ScoringWeights(w_cite=0.9)
+    one = SimpleNamespace(authored_papers=[{}], zero_pub=False)
+    many = SimpleNamespace(authored_papers=[{}] * 5, zero_pub=False)
+    seed = SimpleNamespace(authored_papers=[], zero_pub=True)
+    assert effective_weights(w, True, one).w_cite == pytest.approx(0.3)
+    assert effective_weights(w, True, many).w_cite == 0.9
+    assert effective_weights(w, True, seed).w_cite == 0.9
+    assert effective_weights(w, False, one).w_cite == 0.9
+
+
+def test_feed_exposes_the_exact_pool_and_weights_it_was_ranked_with(world):
+    cfg = CFG.with_overrides(k=4, lambda_div=0.2, weights={"w_cite": 1.0})
+    prof = build_user_profile(world, "u1", authored_ids=["U1"], config=cfg)  # one paper: adaptive_graph applies
+    res = recommend(world, prof, config=cfg)
+    assert res.effective_weights.w_cite == pytest.approx(1.0 / 3.0)
+    assert {s.paper_id for s in res.scored_pool} == set(res.candidate_ids)
+    replay = [p.paper_id for p in select_top_k(res.scored_pool, world.store, cfg.k, cfg.lambda_div)]
+    assert replay == res.paper_ids  # re-ranking the exposed pool reproduces the feed exactly
+    assert "scored_pool" not in res.to_dict()

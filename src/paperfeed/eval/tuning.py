@@ -23,7 +23,7 @@ from paperfeed.eval.metrics import ndcg_at_k
 from paperfeed.rec.candidates import feed_candidates
 from paperfeed.rec.features import CandidateFeatures, compute_features
 from paperfeed.rec.mmr import select_top_k
-from paperfeed.rec.recommender import RecommendConfig, RecommenderResources, UserProfile, build_user_profile
+from paperfeed.rec.recommender import RecommendConfig, RecommenderResources, UserProfile, build_user_profile, effective_weights
 from paperfeed.rec.scoring import ScoringWeights, score_candidates
 from paperfeed.user.query import build_feed_query
 from paperfeed.user.session import SessionState
@@ -194,11 +194,7 @@ def evaluate_parameter_grid(
                 ndcgs.append(0.0)
                 continue
 
-            user_weights = weights
-            n_auth = len(user_data.profile.authored_papers)
-            if adaptive_graph and not user_data.profile.zero_pub and 0 < n_auth < 3:
-                user_weights = weights.with_overrides(w_cite=weights.w_cite * (n_auth / 3.0))
-            scored = score_candidates(user_data.features, user_weights)
+            scored = score_candidates(user_data.features, effective_weights(weights, adaptive_graph, user_data.profile))
             picks = select_top_k(scored, resources.store, k=k, lambda_div=lam)
             recommended_ids = [p.paper_id for p in picks]
             score = ndcg_at_k(recommended_ids, user_data.targets, k=k)
@@ -274,3 +270,25 @@ def tune_hybrid_persona(
             best = record
     records.sort(key=lambda r: r["mean_ndcg"], reverse=True)
     return {**(best or {}), "n_titles": n_titles, "grid_size": len(records), "n_users": len(cached_data), "top_configurations": records[:10]}
+
+
+TUNING_VERSION = 2  # 2: grid uses the configured w_pop; Hybrid-Persona baseline tuned too
+
+
+def tuning_signature(
+    config: RecommendConfig,
+    tuning_author_ids: Sequence[str],
+    filter_popular: Optional[int] = None,
+) -> Dict[str, Any]:
+    """What a cached ``tuning_results.json`` is valid for. Any script that reuses tuned weights must match it exactly,
+    so weights tuned for one configuration (pool size, w_pop, popularity filter, tuning authors) are never reused for
+    another."""
+    return {
+        "pool_size": config.pool_size,
+        "channel_depth": config.channel_depth,
+        "w_pop": config.weights.w_pop,
+        "adaptive_graph": config.adaptive_graph,
+        "filter_popular": filter_popular,
+        "tuning_version": TUNING_VERSION,
+        "tuning_authors": sorted(clean_id(a) for a in tuning_author_ids),
+    }
