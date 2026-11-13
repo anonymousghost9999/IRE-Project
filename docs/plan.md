@@ -418,8 +418,12 @@ Profile query text (recent authored titles + top canonical facet terms); rerank 
 - **10.2c** Decision, frozen in `data/artifacts/variant_v2_decision.json` before any test run: the better reranker at its optimum replaces Core only if the paired-bootstrap 95% CI of its tuning-split NDCG@10 gain over Core lies above zero.
 - **10.2d** Test run: one Track 1 run with `--cross-encoder` and its audit, which also reports the share of Top-10 items where the reranker term outweighs the explained term.
 
-### 10.3 V3 — Learned ranker
+### 10.3 V3 — Learned ranker (D§13.8, specification fixed there)
 LightGBM LambdaMART over the min-max-scaled features plus channel ranks; labels = in-corpus Discovery references; 5-fold cross-validation inside the tuning split; shallow trees and strong regularization; compare with the linear scorer on the same folds. SHAP contributions for the explainer; if they are unreliable, report V3 as accuracy-only.
+- **10.3a** Ranker module: feature matrix from a cached pool (6 features), fixed-parameter `LGBMRanker`, pool-wise min-max scaling then MMR, SHAP contributions; unit tests on toy pools (determinism, label alignment, a feature that separates the labels is learned).
+- **10.3b** Cross-validation: 5 author folds; per fold the linear grid and V3 are fitted on the same 64 authors and scored on the held-out 16; out-of-fold per-author NDCG@10 for both.
+- **10.3c** Decision, frozen in `data/artifacts/variant_v3_decision.json` with the final model (`variant_v3_model.txt`) before any test run: V3 replaces the linear scorer only if the paired-bootstrap 95% CI of its out-of-fold NDCG@10 gain lies above zero.
+- **10.3d** Test run with `--learned-ranker` and its audit (SHAP-based explanations, counterfactual by re-prediction, reliability rule of D§13.8 V3 point 7).
 
 ### 10.4 V4 — Citation-graph candidate channel (D§13.8, specification fixed there)
 - Motivation, stated as such in the report: the Core test run lost to Citation-only while the text-retrieved pool held about 5% of the Discovery targets (Recall@100 0.051). V4 is therefore an exploratory variant; the Core run remains the answer to $H_1$.
