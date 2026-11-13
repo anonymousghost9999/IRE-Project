@@ -57,6 +57,8 @@ class CachedUserCandidateData:
     features: List[CandidateFeatures]
     targets: List[str]  # in-corpus discovery targets
     pseudo_query: str = ""  # the feed pseudo-query (V2 reranks the pool against it)
+    # paper -> (dense rank, lexical rank) in the fused pool, None where the channel missed it (V3 features)
+    channel_ranks: Dict[str, Tuple[Optional[int], Optional[int]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -161,6 +163,7 @@ def precompute_tuning_cache(
                     features=features,
                     targets=targets,
                     pseudo_query=pseudo_query,
+                    channel_ranks={c.paper_id: (c.dense_rank, c.lexical_rank) for c in cands},
                 )
             )
         except Exception as exc:
