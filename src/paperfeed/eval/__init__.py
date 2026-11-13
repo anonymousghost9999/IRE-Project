@@ -39,6 +39,15 @@ from paperfeed.eval.report import (
     format_main_table_markdown,
     generate_full_evaluation_report,
 )
+from paperfeed.eval.faithfulness import (
+    AuditedExplanation,
+    ExplanationSample,
+    FaithfulnessAuditResult,
+    compute_counterfactual_impact,
+    run_faithfulness_audit,
+    sample_stratified_explanations,
+    verify_grounding,
+)
 from paperfeed.eval.slices import classify_cold_start_targets, item_cold_start_breakdown, slice_by_history_volume
 from paperfeed.eval.stats import (
     BootstrapComparison,
@@ -112,4 +121,12 @@ __all__ = [
     "format_ablation_table_markdown",
     "format_hypothesis_markdown",
     "generate_full_evaluation_report",
+    # Faithfulness Audit (Phase 8)
+    "AuditedExplanation",
+    "ExplanationSample",
+    "FaithfulnessAuditResult",
+    "compute_counterfactual_impact",
+    "run_faithfulness_audit",
+    "sample_stratified_explanations",
+    "verify_grounding",
 ]
