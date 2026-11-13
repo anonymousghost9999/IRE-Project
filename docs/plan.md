@@ -21,7 +21,7 @@
                                    │                                          │
                                    ├─► 7 Retrieval benchmark                   ├─► 6 Track 1 evaluation ──► 8 Faithfulness audit
                                    └─► (3.4 SciERC, any time after 3.1)        ├─► 9 Track 2 simulation (Extended)
-                                                                              ├─► 10 SOTA variants V1–V3 (Extended)
+                                                                              ├─► 10 SOTA variants V1–V4 (Extended)
                                                                               │       └─► 11 Best configuration + SOTA comparison (Extended)
                                                                               └─► 12 UI + user pilot (Extended)
                                                                                          └─► 13 Reproducibility & report
@@ -403,6 +403,8 @@ Run 30 personas × 5 seeds × 5 arms. Paired bootstrap over persona × seed unit
 
 **Goal:** test whether stronger components help, without touching the test split for selection (D§13.8, D§9.1).
 
+**Order:** V4 first (no new models; addresses the Core test result), then V2 and V3 (reuse the tuning cache), then V1 (needs re-embedding). Track 2 (Phase 9) follows once the Phase 10 choices are frozen, so its pilot tuning runs on the final pool and scorer.
+
 ### 10.1 V1 — Alternative encoders
 - Build a fixed 20k-paper subset containing the tuning authors' neighbourhoods.
 - Embed it with SPECTER2 and with alternatives (SciNCL; a general embedding model such as BGE, E5 or a small Qwen-embedding model), each with its recommended query format.
@@ -415,7 +417,14 @@ Profile query text (recent authored titles + top canonical facet terms); rerank 
 ### 10.3 V3 — Learned ranker
 LightGBM LambdaMART over the min-max-scaled features plus channel ranks; labels = in-corpus Discovery references; 5-fold cross-validation inside the tuning split; shallow trees and strong regularization; compare with the linear scorer on the same folds. SHAP contributions for the explainer; if they are unreliable, report V3 as accuracy-only.
 
-### 10.4 Final variant table
+### 10.4 V4 — Citation-graph candidate channel (D§13.8, specification fixed there)
+- Motivation, stated as such in the report: the Core test run lost to Citation-only while the text-retrieved pool held about 5% of the Discovery targets (Recall@100 0.051). V4 is therefore an exploratory variant; the Core run remains the answer to $H_1$.
+- **10.4a** Third feed-mode channel: eligible papers ($\le T$, $\mathcal{E}_u$ removed) with $\text{BC}+\text{CC}>0$, ranked by $\log(1+\text{BC}+\text{CC})$, ties by paper ID, top 200; same code as the Citation-only baseline. Plain three-channel RRF ($k=60$, equal weights), keep $M=100$. Off by default (`RecommendConfig.graph_channel`); zero-publication users get the Core pool. Unit tests: leakage (no year $> T$, nothing in $\mathcal{E}_u$), determinism, empty channel for zero-pub.
+- **10.4b** Tuning: rerun the 6.3 grid with the V4 pool on the 80 tuning authors (own tuning file, signature includes `graph_channel`); report tuning-split candidate Recall@100 and NDCG@10 for Core and V4.
+- **10.4c** Decision, frozen in `data/artifacts/variant_v4_decision.json` before any test run: V4 replaces the Core pool only if the paired-bootstrap 95% CI of its tuning-split NDCG@10 gain over Core (each at its own grid optimum) is above zero.
+- **10.4d** Test run: one Track 1 run with `--graph-channel` (full tables, ablations where No-Graph drops both the channel and $w_{\text{cite}}$), reported as a row of 10.5 whatever the decision.
+
+### 10.5 Final variant table
 Freeze all choices, then run every variant once on the test split and report all of them (including losers) with BH-corrected comparisons. Which variant goes into the final system is decided in Phase 11 from tuning evidence only, never from this table.
 
 **Done when:** the variant table exists and the frozen choice is documented.
@@ -427,12 +436,12 @@ Freeze all choices, then run every variant once on the test split and report all
 **Goal:** use the Phase 10 evidence to choose the best-performing option for each part of the architecture, assemble those choices into one system, evaluate it once, and compare it with current state-of-the-art research-paper recommendation systems under the same protocol (D§13.9).
 
 ### 11.1 Per-component selection (tuning evidence only)
-One decision per part of the architecture, each taken from the evidence listed. The test-split variant table of 10.4 is **never** used for a choice; it only reports what each variant did.
+One decision per part of the architecture, each taken from the evidence listed. The test-split variant table of 10.5 is **never** used for a choice; it only reports what each variant did.
 
 | Part | Options | Decided on |
 |---|---|---|
 | Dense encoder | SPECTER2 (Core) vs the V1 alternatives | Phase 7 retrieval benchmarks + Track 1 tuning split (10.1) |
-| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$ | Phase 7 benchmarks + tuning-split Discovery Recall@100 |
+| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$; with or without the V4 citation channel | Phase 7 benchmarks + tuning-split Discovery Recall@100 and NDCG@10 (10.4) |
 | Feed reranking | none (Core) vs the V2 cross-encoders | tuning split (10.2) |
 | Scorer | linear (Core) vs V3 LambdaMART | 5-fold CV inside the tuning split (10.3) |
 | Diversification | $\lambda_{\text{div}}$ grid | tuning split (6.3) |
@@ -466,7 +475,7 @@ Parts chosen one at a time can interact (for example, a new encoder changes whic
 - Run Core, the best configuration and every included comparison system once on the test split under the Track 1 protocol: same eligible pool, same $\mathcal{E}_u$, same metrics, anchors and slices (6.1–6.4).
 - Statistics as in 6.5: paired bootstrap with BH correction across the family (best vs Core, best vs each comparison system), 95% CIs, Cohen's $d$ and the minimum detectable effect. These comparisons are exploratory.
 - Also report for the best configuration: Phase 7 retrieval rows for its encoder and retriever; the Phase 8 faithfulness audit and Explanation Coverage, re-run if the scorer or features changed (SHAP-based explanations if V3 is chosen); latency per feed.
-- State in the report that the test split was already used once by 10.4, so this run is confirmatory.
+- State in the report that the test split was already used once by 10.5, so this run is confirmatory.
 
 ### 11.5 Tables
 - **Best-configuration table:** part, options, chosen option, tuning evidence (metric, CI, $n$).

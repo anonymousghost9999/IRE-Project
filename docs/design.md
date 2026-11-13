@@ -210,6 +210,8 @@ No text query exists, so one is constructed from the user model.
 2. **Lexical channel:** BM25s over title + abstract with a **pseudo-query** built from (a) the user's most frequent canonical task / method / dataset facet terms and (b) the titles of the last 3 session papers, if any. The Lexical Baseline (§13.1) shares the same BM25s code path but uses the full text of the user's past papers as its query; the pseudo-query is deliberately shorter and facet-focused. For Track 1 (no session) part (b) uses the titles of the user's 3 most recent authored papers instead.
 3. **Fusion:** each channel returns its top $M_{\text{channel}}=200$ papers after the filters above; Reciprocal Rank Fusion with $k_{\text{rrf}}=60$ keeps the top $M=100$ candidates.
 
+**Core feed mode has no citation channel:** the citation signal enters only as a score feature over the text-retrieved pool. An Extended variant (§13.8, V4) adds the time-bounded citation graph as a third candidate channel; it is adopted only if it beats Core on tuning data.
+
 **Core feed mode has no cross-encoder:** there is no user-written query to rerank against. An Extended variant (§13.8, V2) builds a *profile query text* and reranks the 100 candidates with a cross-encoder; it is adopted only if it beats the linear score on tuning data.
 
 ### 8.2 Search mode (UI search bar; retrieval benchmark)
@@ -241,7 +243,7 @@ $$\text{Score}(p) = w_{\text{pers}}\,\text{mm}\!\big[\cos(\mathbf{e}_p,\mathbf{v
 **Tuned parameters.** Track 1 tuning split (80 authors): $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$ via a coarse grid. Track 2 pilot personas (about 10, disjoint from the 30 evaluation personas): $\alpha_{\text{sess}}, \rho, w_{\text{sess}}, \lambda_{\text{neg}}, \gamma_{\text{pivot}}$; Track 2 reuses the Track 1 values of $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$. Everything else is fixed at the defaults in §2.
 
 **Facet-active variant (selection rule fixed before any test run).** The headline system is the unconstrained grid optimum above. Because the facet and new-method terms are what make span-grounded explanations possible (§11), a secondary *facet-active* configuration is also defined, chosen on the tuning split only:
-1. Candidates: grid points with $w_{	ext{facet}} > 0$ (and $w_{	ext{pers}} = 1$, as everywhere), taken in order of tuning-split mean Discovery NDCG@10.
+1. Candidates: grid points with $w_{\text{facet}} > 0$ (and $w_{\text{pers}} = 1$, as everywhere), taken in order of tuning-split mean Discovery NDCG@10.
 2. *Non-inferiority:* the paired-bootstrap 95% CI (over the 80 tuning authors) of its relative NDCG@10 loss against the grid optimum has an upper end of at most 5%.
 3. *Explainability:* at least 10% of the tuning authors' Top-10 items have a facet or new-method dominant contribution (the feature their explanation would show).
 4. The first candidate meeting both is the facet-active variant. If none does, there is no facet-active variant and that is reported, with the explainability cost or accuracy cost that ruled each candidate out.
@@ -387,7 +389,7 @@ Same list as `prob.md` §7, to be stated in the final report:
 7. **Ethics and licences:** no formal ethics review beyond consent for the pilot; OpenAlex terms and model licences are used as documented by their providers.
 
 ### 13.8 Extended SOTA variant experiments
-The aim (§1) is a state-of-the-art system, so three upgrades are tested against the Core system. All use the same cohort, metrics and statistics as §13.1.
+The aim (§1) is a state-of-the-art system, so four upgrades are tested against the Core system. All use the same cohort, metrics and statistics as §13.1.
 
 **Selection rule (prevents test-set tuning).** Variants are compared with the Core system on the **tuning split** and on the retrieval benchmarks (§13.3). Any replacement decision is frozen before the test split is touched; the final table reports every variant on the test split, including those that lost. Variant comparisons are exploratory: report effect sizes with BH-corrected p-values over the whole family of comparisons.
 
@@ -396,12 +398,21 @@ The aim (§1) is a state-of-the-art system, so three upgrades are tested against
 | **V1** | Alternative dense encoders | Swap SPECTER2 for other pretrained models of base size or smaller (to fit ~4 GB VRAM). Candidates: SciNCL (citation-neighbourhood contrastive), and strong general embedding models such as BGE, E5 or a small Qwen-embedding model. Each uses its own recommended query format in place of the `adhoc_query` adapter. | CSFCube / LitSearch Recall@100 and nDCG; LFO with the Dense Centroid baseline and with the full system |
 | **V2** | Cross-encoder rerank in feed mode | Build a profile query text (titles of the user's most recent authored papers + top canonical task / method / dataset terms), rerank the 100 candidates with `bge-reranker-base` and `ms-marco-MiniLM-L-6-v2` (compare both), and add the reranker score as a feature of the linear score. | LFO Discovery NDCG@10 / Recall@10; also latency per feed |
 | **V3** | Learned ranker | LightGBM LambdaMART as in §9.1. | LFO (5-fold CV on tuning split, then one test run) |
+| **V4** | Citation-graph candidate channel | A third feed-mode channel (§8.1) ranks eligible papers by $\log(1+\text{BC}+\text{CC})$ with the user's authored papers, over the whole eligible corpus. Specification below. | LFO tuning split: candidate Recall@100 and Discovery NDCG@10 / Recall@10 |
+
+**V4 specification (fixed before implementation, after the Core test run).** The Core test run (§13.1) showed the system losing to the Citation-only baseline while its text-retrieved pool contains only about 5% of the Discovery targets. V4 tests the obvious remedy. Because it was motivated by a test-split result, it is a labelled exploratory variant, decided on the tuning split only, and the Core result stays the pre-registered answer to $H_1$.
+1. *Channel:* the eligible papers ($\le T$, $\mathcal{E}_u$ removed) with $\text{BC}+\text{CC}>0$ for the user's authored papers, ranked by $\log(1+\text{BC}+\text{CC})$ with ties broken by paper ID, top $M_{\text{channel}}=200$. Same definitions and code as the Citation-only baseline and the citation feature (§4.4). Zero-publication users have an empty graph channel, so their pool is the Core two-channel pool.
+2. *Fusion:* plain three-channel RRF ($k_{\text{rrf}}=60$, equal channel weights), keeping $M=100$. No channel weights are tuned, so the only change is the pool.
+3. *Scoring and explanations:* unchanged (§9, §11). The grid of §9 ($w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$) is re-run on the tuning split with the V4 pool; its tuning file has its own configuration signature.
+4. *Decision (tuning split, 80 authors):* V4 replaces the Core pool only if its gain in tuning-split mean Discovery NDCG@10 over Core (each at its own grid optimum) has a paired-bootstrap 95% CI above zero (§13.9). Candidate Recall@100 is reported alongside as the mechanism check.
+5. *Test run:* once, after the decision is frozen, as a row of the variant table, compared with Core and with all five baselines (BH-corrected). Ablations: No-Graph removes both the channel and the citation feature; No-MMR and No-Facets as in §13.1.
+6. *Expected risk:* the channel and the citation feature use the same counts, so V4 may simply converge to Citation-only. Whether the hybrid beats Citation-only, not Core, is the comparison that matters; a negative result is reported as such.
 
 **Notes and risks to report.**
 - *Encoder leakage:* SciNCL and SPECTER-family models were trained on citation data and may encode held-out links (§13.7, L2). General embedding models are trained on web data that may postdate $T$. Treat BM25 as the clean reference and discuss each encoder's training-data cutoff.
 - *Reranker domain mismatch:* these cross-encoders are trained on web search relevance, not on paper-to-profile matching; V2 may not help, and a negative result is a valid finding.
 - *Compute:* each encoder requires a full re-embedding of the corpus, so run V1 on a fixed 20k-paper subset (same author-first construction, containing the tuning authors' neighbourhoods) first, decide on the tuning authors only, and scale only the best candidate.
-- Combined variants (for example V1 + V2 + V3) are reported only for the best individual choices; assembling them into one system is §13.9.
+- Combined variants (for example V1 + V2 + V3 + V4) are reported only for the best individual choices; assembling them into one system is §13.9.
 
 ### 13.9 Best configuration and comparison with SOTA paper recommenders (Extended)
 After the variant experiments (§13.8), each part of the architecture has a measured winner. This step assembles those winners into one system and asks the question the project aim (§1) raises: how does the best version of Paper Feed compare with current state-of-the-art research-paper recommenders?
@@ -411,7 +422,7 @@ After the variant experiments (§13.8), each part of the architecture has a meas
 | Part | Options | Evidence |
 |---|---|---|
 | Dense encoder | SPECTER2 vs V1 alternatives | Retrieval benchmarks (§13.3) + LFO tuning split |
-| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$ | Retrieval benchmarks + tuning-split Discovery Recall@100 |
+| Candidate generation | dense / BM25s / RRF hybrid; $M_{\text{channel}}$, $M$; with or without the V4 citation channel | Retrieval benchmarks + tuning-split Discovery Recall@100 and NDCG@10 (V4) |
 | Feed reranking | none vs V2 cross-encoders | LFO tuning split |
 | Scorer | linear vs V3 LambdaMART | 5-fold CV inside the tuning split |
 | Diversification | $\lambda_{\text{div}}$ | LFO tuning split |
@@ -457,7 +468,7 @@ Target hardware: RTX 3050 (≈ 4 GB VRAM), so only pretrained models of modest s
 2. Week 4: GLiNER + canonicalization, in-corpus audit, SciERC.
 3. Recommender with its few tuned weights; tuning on the tuning split.
 4. Ablations, statistics, faithfulness audit, retrieval benchmark.
-5. Extended: Track 2, UI, user pilot, SOTA variant experiments (§13.8: V1 encoders first, then V2, then V3).
+5. Extended: Track 2, UI, user pilot, SOTA variant experiments (§13.8: V4 citation channel first, as it needs no new models; then V2, V3, and V1 encoders last, as they need re-embedding).
 6. Extended, after §13.8: best-configuration assembly and comparison with SOTA paper recommenders (§13.9); the UI then serves the frozen best configuration.
 
 Owners per component are to be assigned by the team.
