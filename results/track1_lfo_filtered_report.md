@@ -9,7 +9,7 @@
 > - Scoring Weights: w_pers=1.00, w_cite=1.00, w_facet=0.25, w_nov=0.25, lambda_div=0.50
 > - System variant: grid optimum (headline)
 > - Hybrid-Persona baseline: gamma_rec=1.00, n_terms=5
-> - Report: `track1_lfo_filtered_report.md` | Raw JSON: `track1_lfo_filtered_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_20261113T141415Z/manifest.json`
+> - Report: `track1_lfo_filtered_report.md` | Raw JSON: `track1_lfo_filtered_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_filtered_20261113T172154Z/manifest.json`
 > 
 > **Popularity Filter Active:**
 > - Threshold: citation_count_T >= 200
@@ -26,13 +26,31 @@
 | Ablation: No-MMR | 0.0231 | 2.3% | 0.0253 | 0.1086 | 0.0444 | 1.5028 | 0.0797 |
 | Ablation: No-Graph | 0.0095 | 0.9% | 0.0124 | 0.0559 | 0.0165 | 1.8303 | 0.0768 |
 | Ablation: No-Facets | 0.0268 | 2.7% | 0.0296 | 0.1250 | 0.0516 | 1.5512 | 0.0800 |
-| Diagnostic: Re-Citation | 0.0371 | 3.7% | 0.0426 | 0.1316 | 0.0591 | 1.5078 | 0.0801 |
 | Baseline: popularity | 0.0002 | 0.0% | 0.0002 | 0.0033 | 0.0004 | 1.7046 | 0.1265 |
 | Baseline: bm25_author | 0.0158 | 1.6% | 0.0169 | 0.0789 | 0.0280 | 1.6256 | 0.0995 |
 | Baseline: dense_centroid | 0.0115 | 1.2% | 0.0142 | 0.0658 | 0.0183 | 1.7564 | 0.0691 |
 | Baseline: citation_only | 0.0304 | 3.0% | 0.0387 | 0.1513 | 0.0479 | 1.6039 | 0.1089 |
 | Baseline: hybrid_persona | 0.0138 | 1.4% | 0.0141 | 0.0691 | 0.0294 | 1.8036 | 0.0895 |
 | Anchor: Random (100-draw) | 0.0001 | 0.0% | 0.0001 | 0.0008 | 0.0003 | 3.2612 | 0.2011 |
+
+### Candidate Coverage Ceiling
+
+| System | Candidate pool Recall@100 (ceiling) | Recall@10 | Share of ceiling reached |
+| :--- | :---: | :---: | :---: |
+| Paper Feed (Full) | 0.0758 | 0.0255 | 33.6% |
+| Ablation: No-MMR | 0.0758 | 0.0253 | 33.4% |
+| Ablation: No-Graph | 0.0758 | 0.0124 | 16.4% |
+| Ablation: No-Facets | 0.0758 | 0.0296 | 39.0% |
+
+*The pool comes from the text channels (BM25 + SPECTER2, RRF); targets outside it cannot be recommended whatever the scoring weights. For reference, Citation-only ranks the whole eligible corpus by the graph signal and reaches Recall@10 = 0.0387.*
+
+### Diagnostic: Re-Citation
+
+| Run | Ground truth | Recall@10 | NDCG@10 | HitRate@10 | Candidate Recall@100 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| Diagnostic: Re-Citation | ReCitation (own past references cited again after T) | 0.0426 | 0.0371 | 0.1316 | 0.0790 |
+
+*Citations(u, <= T) are removed from the exclusion set, so the feed may re-recommend the author's own past references. Different ground truth from every other table: not comparable with the Discovery numbers.*
 
 ## 2. Component Ablations
 
@@ -71,7 +89,7 @@
 **Verdict:** REJECTED / INCONCLUSIVE
 
 - **Entropy Increase (one-sided):** Delta = +0.0278 (+1.85%), 95% CI = [+0.0165, +0.0399], p = 1.0000e-04, MDE = 0.0167 (Significant: True)
-- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = 0.22%, 95% CI = [-0.0007, +0.0008], p = 4.4140e-01, MDE = 0.0011 (Non-inferior: False)
+- **NDCG Retention (non-inferiority: relative loss <= 3%):** NDCG@10 change with MMR = +0.22% (Delta = +0.0001, 95% CI = [-0.0007, +0.0008]); worst-case relative loss from the CI = 3.14%, MDE = 0.0011 (Non-inferior: False)
 
 ## 4. History Slice Stratification
 

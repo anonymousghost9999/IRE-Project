@@ -79,10 +79,23 @@ def audit_config(cfg, cohort, args, artifact_path):
         rec_cfg, [a["author_id"] for a in cohort if a.get("split") == "tuning"], filter_popular=filter_popular
     )
     if saved.get("config_signature") != expected:
-        raise ValueError(
-            f"{artifact_path} was tuned for a different configuration ({saved.get('config_signature')} != {expected}); "
-            "re-run scripts/run_track1_eval.py with the same options (e.g. --enhanced) or pass --skip-tuning."
-        )
+        found_cache = False
+        for cand_path in artifact_path.parent.glob("tuning_results*.json"):
+            if cand_path == artifact_path:
+                continue
+            try:
+                c_saved = json.loads(cand_path.read_text(encoding="utf-8"))
+                if c_saved.get("config_signature") == expected:
+                    saved = c_saved
+                    found_cache = True
+                    break
+            except Exception:
+                pass
+        if not found_cache:
+            raise ValueError(
+                f"{artifact_path} was tuned for a different configuration ({saved.get('config_signature')} != {expected}); "
+                "re-run scripts/run_track1_eval.py with the same options (e.g. --enhanced) or pass --skip-tuning."
+            )
     tuned = ScoringWeights(**{k: v for k, v in saved["best_weights"].items() if k in ScoringWeights.__dataclass_fields__})
     if getattr(args, "enhanced", False):
         tuned = tuned.with_overrides(w_pop=0.20)  # as run_track1_eval.py applies --enhanced after tuning

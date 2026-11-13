@@ -9,7 +9,7 @@
 > - Scoring Weights: w_pers=1.00, w_cite=1.00, w_facet=0.25, w_nov=0.25, lambda_div=0.50
 > - System variant: grid optimum (headline)
 > - Hybrid-Persona baseline: gamma_rec=1.00, n_terms=5
-> - Report: `track1_lfo_report.md` | Raw JSON: `track1_lfo_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_20261113T135204Z/manifest.json`
+> - Report: `track1_lfo_report.md` | Raw JSON: `track1_lfo_results.json` | Run manifest: `results/runs/track1_track1_lfo_report_20261113T170226Z/manifest.json`
 
 
 ## 1. Main Benchmark Results
@@ -20,13 +20,31 @@
 | Ablation: No-MMR | 0.0212 | 2.1% | 0.0150 | 0.1250 | 0.0553 | 1.5127 | 0.0797 |
 | Ablation: No-Graph | 0.0109 | 1.1% | 0.0082 | 0.0719 | 0.0240 | 1.8414 | 0.0766 |
 | Ablation: No-Facets | 0.0234 | 2.3% | 0.0182 | 0.1437 | 0.0584 | 1.5600 | 0.0800 |
-| Diagnostic: Re-Citation | 0.0363 | 3.6% | 0.0415 | 0.1281 | 0.0577 | 1.5154 | 0.0801 |
 | Baseline: popularity | 0.0129 | 1.3% | 0.0062 | 0.0656 | 0.0286 | 1.6884 | 0.1260 |
 | Baseline: bm25_author | 0.0142 | 1.4% | 0.0094 | 0.0813 | 0.0279 | 1.6350 | 0.0993 |
 | Baseline: dense_centroid | 0.0111 | 1.1% | 0.0085 | 0.0688 | 0.0224 | 1.7728 | 0.0691 |
 | Baseline: citation_only | 0.0348 | 3.5% | 0.0273 | 0.1875 | 0.0711 | 1.6173 | 0.1092 |
 | Baseline: hybrid_persona | 0.0128 | 1.3% | 0.0093 | 0.0813 | 0.0321 | 1.7977 | 0.0895 |
 | Anchor: Random (100-draw) | 0.0001 | 0.0% | 0.0001 | 0.0013 | 0.0004 | 3.2613 | 0.2011 |
+
+### Candidate Coverage Ceiling
+
+| System | Candidate pool Recall@100 (ceiling) | Recall@10 | Share of ceiling reached |
+| :--- | :---: | :---: | :---: |
+| Paper Feed (Full) | 0.0510 | 0.0156 | 30.6% |
+| Ablation: No-MMR | 0.0510 | 0.0150 | 29.4% |
+| Ablation: No-Graph | 0.0510 | 0.0082 | 16.1% |
+| Ablation: No-Facets | 0.0510 | 0.0182 | 35.7% |
+
+*The pool comes from the text channels (BM25 + SPECTER2, RRF); targets outside it cannot be recommended whatever the scoring weights. For reference, Citation-only ranks the whole eligible corpus by the graph signal and reaches Recall@10 = 0.0273.*
+
+### Diagnostic: Re-Citation
+
+| Run | Ground truth | Recall@10 | NDCG@10 | HitRate@10 | Candidate Recall@100 |
+| :--- | :--- | :---: | :---: | :---: | :---: |
+| Diagnostic: Re-Citation | ReCitation (own past references cited again after T) | 0.0415 | 0.0363 | 0.1281 | 0.0781 |
+
+*Citations(u, <= T) are removed from the exclusion set, so the feed may re-recommend the author's own past references. Different ground truth from every other table: not comparable with the Discovery numbers.*
 
 ## 2. Component Ablations
 
@@ -65,7 +83,7 @@
 **Verdict:** ACCEPTED (Supported by empirical data)
 
 - **Entropy Increase (one-sided):** Delta = +0.0278 (+1.84%), 95% CI = [+0.0168, +0.0399], p = 1.0000e-04, MDE = 0.0164 (Significant: True)
-- **NDCG Retention (non-inferiority <= 3% loss):** Rel. Loss = 2.10%, 95% CI = [-0.0002, +0.0013], p = 1.2890e-01, MDE = 0.0011 (Non-inferior: True)
+- **NDCG Retention (non-inferiority: relative loss <= 3%):** NDCG@10 change with MMR = +2.10% (Delta = +0.0004, 95% CI = [-0.0002, +0.0013]); worst-case relative loss from the CI = 0.91%, MDE = 0.0011 (Non-inferior: True)
 
 ## 4. History Slice Stratification
 

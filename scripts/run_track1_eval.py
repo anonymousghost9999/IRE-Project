@@ -395,6 +395,20 @@ def run(args, root, cfg, manifest):
                     tuning_sig,
                 )
 
+        if loaded_saved is None:
+            for cand_path in (root / "data" / "artifacts").glob("tuning_results*.json"):
+                if cand_path == tuning_artifact:
+                    continue
+                try:
+                    with open(cand_path, "r", encoding="utf-8") as f:
+                        c_saved = json.load(f)
+                    if c_saved.get("config_signature") == tuning_sig and c_saved.get("hybrid_persona"):
+                        loaded_saved = c_saved
+                        logger.info("Found matching tuning cache in %s", cand_path.name)
+                        break
+                except Exception:
+                    pass
+
         if loaded_saved is not None:
             logger.info("Loading matching tuned parameters from %s", tuning_artifact)
             bw = loaded_saved.get("best_weights", {})

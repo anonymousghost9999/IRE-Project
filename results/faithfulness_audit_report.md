@@ -13,8 +13,8 @@
 | **Extractive Grounding Rate** | 100.0% | **100.00%** | ✅ PASS |
 | **Counterfactual Necessity (Drop-Out Rate)** | — | **100.00%** | ✅ HIGH |
 | **Explanation Coverage (Top-10)** | ≥ 90.0% | **100.00%** | ✅ PASS |
-| **Mean Rank Drop (ΔRank)** | — | **+5.11** | INFO |
-| **Median Rank Drop** | — | **+5.0** | INFO |
+| **Mean Rank Drop (ΔRank)** | — | **+5.87** | INFO |
+| **Median Rank Drop** | — | **+6.0** | INFO |
 
 ## 2. Counterfactual Impact Breakdown
 
@@ -38,30 +38,30 @@ Per template in the audited sample (grounding / counterfactual):
 
 | Template | Audited | Grounded | Counterfactually necessary | Left Top-10 | Fell >= 3 ranks | In all covered Top-10 items |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `citation` | 33 | 33 | 33 | 33 | 0 | 1000 |
-| `persona` | 67 | 67 | 67 | 67 | 0 | 2200 |
+| `citation` | 33 | 33 | 33 | 33 | 0 | 1012 |
+| `persona` | 67 | 67 | 67 | 67 | 0 | 2188 |
 
 **Reading these numbers:**
 - The plan's grounding check is about quoted spans (facet and new-method templates); 0 of the 100 audited explanations quote spans.
-- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the tuned weights (e.g. w_facet = 0) the system produced no facet explanations to audit.
+- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the audited weights the facet and new-method terms never dominated a Top-10 score, so no span explanation was shown.
 - Zeroing the dominant term removes the largest part of a paper's score, so a high drop-out rate is expected by construction; it shows the explained signal is necessary, not that the other signals are irrelevant.
 
 ## 4. Sample Audited Explanations
 
 | User | Paper | Rank | Template | Drop (New Rank) | Grounded? | Explanation Text |
 | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| A5082602929 | W4220691145 | 3 | `citation` | +8 (Fell Out) | ✅ Yes | Shares **10** references with your paper *A quantitative framework reveals ecological drivers of grassland microbial community assembly in response to warming* |
-| A5022888377 | W4385423342 | 1 | `citation` | +10 (Fell Out) | ✅ Yes | Shares **5** references with your paper *ALOC: Attack-Aware by Utilizing the Adversarially Learned One-Class Classifier for SCADA System* |
-| A5101966856 | W4405893789 | 1 | `citation` | +10 (Fell Out) | ✅ Yes | Shares **9** references with your paper *Pedagogical agents in K-12 education: a scoping review* |
-| A5058765046 | W4401980346 | 9 | `citation` | +2 (Fell Out) | ✅ Yes | Shares **26** references with your paper *S-Adapter: Generalizing Vision Transformer for Face Anti-Spoofing With Statistical Tokens* |
-| A5089729827 | W3107763902 | 4 | `persona` | +7 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5010113677 | W4366783381 | 4 | `persona` | +7 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5090650251 | W4322766882 | 2 | `citation` | +9 (Fell Out) | ✅ Yes | Frequently cited together with your paper *A Survey on Mixture of Experts* |
-| A5001016117 | W2898288652 | 9 | `persona` | +2 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5045016749 | W4385766743 | 4 | `citation` | +7 (Fell Out) | ✅ Yes | Shares **10** references with your paper *Explainable Artificial Intelligence (XAI) 2.0: A manifesto of open challenges and interdisciplinary research directions* |
-| A5092611926 | W4376139682 | 5 | `persona` | +6 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5040252691 | W4387653441 | 9 | `citation` | +2 (Fell Out) | ✅ Yes | Shares **6** references with your paper *Semi-Supervised Person Detection in Aerial Images with Instance Segmentation and Maximum Mean Discrepancy Distance* |
-| A5064993007 | W4309802094 | 5 | `persona` | +6 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5100438513 | W2765794674 | 10 | `persona` | +1 (Fell Out) | ✅ Yes | Close to your overall research profile |
-| A5010566508 | W4389748543 | 1 | `citation` | +10 (Fell Out) | ✅ Yes | Shares **2** references with your paper *Exploring the Impacts of ChatGPT on Future Scientific Work* |
-| A5058906826 | W4401777108 | 2 | `persona` | +9 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5061391366 | W4392739263 | 6 | `citation` | +5 (Fell Out) | ✅ Yes | Shares **3** references with your paper *Breast Cancer Immunohistochemical Image Generation: a Benchmark Dataset and Challenge Review* |
+| A5101323013 | W4360884927 | 4 | `citation` | +7 (Fell Out) | ✅ Yes | Frequently cited together with your paper *CamoDiffusion: Camouflaged Object Detection via Conditional Diffusion Models* |
+| A5036932232 | W4387824313 | 10 | `citation` | +1 (Fell Out) | ✅ Yes | Shares **5** references with your paper *PKSmart: An Open-Source Computational Model to Predict in vivo Pharmacokinetics of Small Molecules* |
+| A5059013679 | W4391115847 | 2 | `citation` | +9 (Fell Out) | ✅ Yes | Shares **13** references with your paper *Visibility Restoration: A Systematic Review and Meta-Analysis* |
+| A5091224174 | W4394930977 | 9 | `persona` | +2 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5010341431 | W4400111632 | 5 | `persona` | +6 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5009129791 | W4404079283 | 1 | `citation` | +10 (Fell Out) | ✅ Yes | Shares **8** references with your paper *Effects of Well-being, Grit, Emotion Regulation, and Resilience Interventions on L2 Learners’ Writing Skills* |
+| A5001016117 | W2145747124 | 7 | `persona` | +4 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5020661868 | W4403318601 | 9 | `citation` | +2 (Fell Out) | ✅ Yes | Shares **6** references with your paper *Swift: Expedited Failure Recovery for Large-Scale DNN Training* |
+| A5034682935 | W4402508171 | 10 | `persona` | +1 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5113880986 | W4292506131 | 3 | `citation` | +8 (Fell Out) | ✅ Yes | Shares **2** references with your paper *Efficient, Lightweight Cyber Intrusion Detection System for IoT Ecosystems Using MI2G Algorithm* |
+| A5065193592 | W4385420376 | 8 | `persona` | +3 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5100655268 | W2965481926 | 6 | `persona` | +5 (Fell Out) | ✅ Yes | Close to your overall research profile |
+| A5074421743 | W4368367371 | 10 | `citation` | +1 (Fell Out) | ✅ Yes | Shares **6** references with your paper *Automated multi-modal Transformer network (AMTNet) for 3D medical images segmentation* |
+| A5101831987 | W2003678792 | 5 | `persona` | +6 (Fell Out) | ✅ Yes | Close to your overall research profile |
