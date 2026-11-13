@@ -373,3 +373,68 @@ def test_query_metrics_use_the_benchmark_threshold():
     q = BenchmarkQuery(qid="q", kind="text", text="t", qrels={"a": 1, "b": 2})
     assert query_metrics(["a"], q, threshold=2)["recall_at_100"] == 0.0  # grade 1 below the threshold
     assert query_metrics(["a"], q, threshold=1)["recall_at_100"] == 0.5
+
+
+# ---------------------------------------------------------------------------
+# V1 encoder study on the benchmarks (plan 10.1b)
+# ---------------------------------------------------------------------------
+
+class FakeV1Encoder(FakeEncoder):
+    """A V1 encoder stand-in: it has a spec instead of SPECTER2's adapters, and its own vectors."""
+
+    def __init__(self):
+        super().__init__()
+        from paperfeed.index.encoders import ENCODER_SPECS
+
+        self.spec = ENCODER_SPECS["bge"]
+
+    @staticmethod
+    def _vec(text):
+        return FakeEncoder._vec("bge:" + text)
+
+    def embed_papers(self, papers, batch_size=32, show_progress=False):
+        self.papers_embedded += len(papers)
+        return np.vstack([self._vec(p["title"] + p["abstract"]) for p in papers])
+
+    def embed_queries(self, queries, batch_size=32):
+        self.queries_embedded.extend(queries)
+        return np.vstack([self._vec("q:" + q) for q in queries])
+
+
+def test_v1_encoder_indexes_live_beside_the_specter2_index(tmp_path):
+    from paperfeed.bench.retrieval_index import index_subdir
+
+    assert index_subdir() == "index" and index_subdir("bge") == "index_bge"
+    bench = _text_bench()
+    build_benchmark_index(bench, FakeEncoder(), tmp_path)
+    m = build_benchmark_index(bench, FakeV1Encoder(), tmp_path, subdir=index_subdir("bge"))
+    assert m["encoder"]["base_model"] == "BAAI/bge-base-en-v1.5" and m["encoder"]["pooling"] == "cls"
+    assert m["encoder"]["query_prefix"].startswith("Represent this sentence")
+    spec_idx, bge_idx = load_benchmark_index(bench, tmp_path), load_benchmark_index(bench, tmp_path, index_subdir("bge"))
+    assert spec_idx.manifest["encoder"]["base_model"] == "fake-base"  # the SPECTER2 index is untouched
+    assert not np.allclose(spec_idx.query_vectors["t0"], bge_idx.query_vectors["t0"])
+    with pytest.raises(FileNotFoundError):
+        load_benchmark_index(bench, tmp_path, index_subdir("scincl"))
+
+
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")  # Cohen's d of a one-query toy benchmark
+def test_runs_name_the_encoder_and_merge_with_one_bm25_row(tmp_path):
+    import importlib.util
+
+    from paperfeed.bench.retrieval_index import index_subdir
+
+    bench = _text_bench()
+    build_benchmark_index(bench, FakeEncoder(), tmp_path)
+    build_benchmark_index(bench, FakeV1Encoder(), tmp_path, subdir=index_subdir("bge"))
+    a = run_benchmark(bench, load_benchmark_index(bench, tmp_path), "corpus", dense_name="Dense: SPECTER2", rrf_name="RRF: SPECTER2")
+    b = run_benchmark(bench, load_benchmark_index(bench, tmp_path, "index_bge"), "corpus", dense_name="Dense: BGE", rrf_name="RRF: BGE")
+    assert a.systems == ["BM25", "Dense: SPECTER2", "RRF: SPECTER2"]
+    assert a.per_query["BM25"] == b.per_query["BM25"]  # BM25 does not depend on the encoder
+
+    spec = importlib.util.spec_from_file_location("reb", Path(__file__).resolve().parent.parent / "scripts" / "run_encoder_benchmark.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    merged = mod.merge_runs({"specter2": a, "bge": b})
+    assert merged.systems == ["BM25", "Dense: SPECTER2", "RRF: SPECTER2", "Dense: BGE", "RRF: BGE"]
+    table = mod.paired_table(merged, ["specter2", "bge"], n_bootstrap=50)
+    assert "Dense: BGE" in table and "RRF: BGE" in table and "Dense: SPECTER2 |" not in table

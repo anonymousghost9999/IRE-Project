@@ -136,16 +136,33 @@ class HFEncoder:
             starts = tqdm(starts, desc=f"Embedding ({self.name})", total=(len(sorted_texts) + batch_size - 1) // batch_size)
         with torch.no_grad():
             for i in starts:
-                batch = self._tokenizer(list(sorted_texts[i : i + batch_size]), padding=True, truncation=True,
-                                        max_length=self.spec.max_length, return_tensors="pt").to(self._device)
-                out = self._model(**batch)
-                vec = pool(out.last_hidden_state, batch["attention_mask"], self.spec.pooling)
-                vec = torch.nn.functional.normalize(vec.float(), p=2, dim=1)
-                chunks.append(vec.cpu().numpy().astype(np.float32))
+                chunks.append(self._embed_batch(list(sorted_texts[i : i + batch_size])))
         stacked = np.vstack(chunks)
         result = np.empty_like(stacked)
         result[order] = stacked
         return result
+
+    def _embed_batch(self, texts: List[str]) -> np.ndarray:
+        """One batch; on CUDA out-of-memory it is split in halves (down to single texts), so a large model on a small
+        GPU slows down instead of failing. Splitting changes the vectors only by floating-point noise (padding is
+        masked)."""
+        import torch
+
+        batch = out = None
+        try:
+            batch = self._tokenizer(texts, padding=True, truncation=True, max_length=self.spec.max_length,
+                                    return_tensors="pt").to(self._device)
+            out = self._model(**batch)
+            vec = pool(out.last_hidden_state, batch["attention_mask"], self.spec.pooling)
+            return torch.nn.functional.normalize(vec.float(), p=2, dim=1).cpu().numpy().astype(np.float32)
+        except torch.OutOfMemoryError:
+            if len(texts) == 1:
+                raise
+            batch = out = None  # release the failed batch before retrying
+            torch.cuda.empty_cache()
+            half = len(texts) // 2
+            logger.warning("%s: CUDA out of memory on %d texts; splitting the batch.", self.name, len(texts))
+            return np.vstack([self._embed_batch(texts[:half]), self._embed_batch(texts[half:])])
 
     def embed_papers(self, papers: Sequence[Mapping[str, Any]], batch_size: int = 32, show_progress: bool = False) -> np.ndarray:
         self._ensure_loaded()

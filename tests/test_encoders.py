@@ -103,3 +103,23 @@ def test_make_encoder_keeps_post_t_models_out_of_track1():
     make_encoder("scincl", device="cpu", track1=True)
     with pytest.raises(ValueError, match="Unknown encoder"):
         make_encoder("e5")
+
+
+def test_out_of_memory_splits_the_batch_and_keeps_the_vectors():
+    class OOMModel(_Model):
+        def forward(self, input_ids, attention_mask):
+            if input_ids.shape[0] > 1:
+                raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+            return super().forward(input_ids, attention_mask)
+
+    papers = [{"title": "aaaa bb", "abstract": "c"}, {"title": "a", "abstract": None}, {"title": "ccc", "abstract": "d"}]
+    ok = HFEncoder(ENCODER_SPECS["scincl"], device="cpu", use_fp16=False, model=_Model(), tokenizer=_Tok())
+    oom = HFEncoder(ENCODER_SPECS["scincl"], device="cpu", use_fp16=False, model=OOMModel(), tokenizer=_Tok())
+    np.testing.assert_allclose(oom.embed_papers(papers, batch_size=3), ok.embed_papers(papers, batch_size=3), rtol=1e-6)
+
+    class AlwaysOOM(_Model):
+        def forward(self, input_ids, attention_mask):
+            raise torch.OutOfMemoryError("CUDA out of memory (simulated)")
+
+    with pytest.raises(torch.OutOfMemoryError):  # a single text that does not fit is a real failure
+        HFEncoder(ENCODER_SPECS["scincl"], device="cpu", use_fp16=False, model=AlwaysOOM(), tokenizer=_Tok()).embed_papers(papers)

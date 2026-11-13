@@ -74,13 +74,28 @@ def corpus_fingerprint(bench: RetrievalBenchmark) -> str:
 
 
 def _encoder_info(encoder: Optional[BenchmarkEncoder]) -> Optional[Dict[str, str]]:
+    """What the vectors depend on: SPECTER2's base model and adapters, or a V1 encoder's model, pooling and formats."""
     if encoder is None:
         return None
+    spec = getattr(encoder, "spec", None)
+    if spec is not None:  # index.encoders.HFEncoder (V1, design §13.8)
+        return {
+            "base_model": spec.model_name,
+            "encoder_key": spec.key,
+            "pooling": spec.pooling,
+            "doc_separator": spec.doc_separator,
+            "query_prefix": spec.query_prefix,
+        }
     return {
         "base_model": encoder.base_model_name,
         "dense_adapter": encoder.dense_adapter_name,
         "query_adapter": encoder.query_adapter_name,
     }
+
+
+def index_subdir(encoder_key: str = "specter2") -> str:
+    """SPECTER2 keeps the Phase 7 folder ``index``; each V1 encoder gets ``index_<key>`` beside it."""
+    return INDEX_SUBDIR if encoder_key == "specter2" else f"{INDEX_SUBDIR}_{encoder_key}"
 
 
 def build_benchmark_index(
@@ -89,9 +104,10 @@ def build_benchmark_index(
     bench_dir: Path,
     batch_size: int = 64,
     checkpoint_every: int = 10000,
+    subdir: str = INDEX_SUBDIR,
 ) -> Dict[str, Any]:
     """Embed (resuming from a matching checkpoint), then build FAISS, BM25s and the query vectors. Returns the manifest."""
-    out = Path(bench_dir) / INDEX_SUBDIR
+    out = Path(bench_dir) / subdir
     out.mkdir(parents=True, exist_ok=True)
     manifest_path = out / "index_manifest.json"
     old = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.exists() else {}
@@ -151,7 +167,8 @@ def build_benchmark_index(
         "corpus_sha256": fingerprint,
         "encoder": enc_info,
         "query_adapter": bench.query_adapter,
-        "doc_text": "title [SEP] abstract (title only without an abstract); BM25: title abstract",
+        "doc_text": ("title [SEP] abstract (title only without an abstract); BM25: title abstract" if subdir == INDEX_SUBDIR
+                     else "the encoder's document format (design §13.8 V1 point 2); BM25: title abstract"),
         "embedding_dim": int(vectors.shape[1]),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         # embedding time accumulates over resumed runs of the same corpus and encoder
@@ -195,9 +212,9 @@ def _query_vectors(
     return qids, np.vstack([vecs[q] for q in qids]).astype(np.float32)
 
 
-def load_benchmark_index(bench: RetrievalBenchmark, bench_dir: Path) -> BenchmarkIndex:
+def load_benchmark_index(bench: RetrievalBenchmark, bench_dir: Path, subdir: str = INDEX_SUBDIR) -> BenchmarkIndex:
     """Load the indexes and check they were built from exactly this corpus and these queries."""
-    out = Path(bench_dir) / INDEX_SUBDIR
+    out = Path(bench_dir) / subdir
     manifest_path = out / "index_manifest.json"
     if not manifest_path.exists():
         raise FileNotFoundError(f"No index for {bench.name} in {out}; run scripts/build_benchmark_indexes.py first.")

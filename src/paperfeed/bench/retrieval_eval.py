@@ -144,8 +144,10 @@ def rank_query(
     eval_depth: int = EVAL_DEPTH,
     channel_depth: int = CHANNEL_DEPTH,
     rrf_k: int = RRF_K,
+    dense_name: str = "SPECTER2",
+    rrf_name: str = "RRF",
 ) -> Dict[str, List[str]]:
-    """Ranked document IDs of BM25, SPECTER2 and RRF for one query."""
+    """Ranked document IDs of BM25, the dense channel and RRF for one query (names configurable for V1 encoders)."""
     if mode not in ("corpus", "pool"):
         raise ValueError(f"Unknown mode {mode!r}")
     exclude = {q.doc_id} if q.doc_id else set()
@@ -166,8 +168,8 @@ def rank_query(
     bm25_chan, dense_chan = lexical(chan), dense(chan)
     runs = {
         "BM25": bm25_chan[:depth],
-        "SPECTER2": dense_chan[:depth],
-        "RRF": [d for d, _ in reciprocal_rank_fusion([dense_chan, bm25_chan], k_rrf=rrf_k)][:depth],
+        dense_name: dense_chan[:depth],
+        rrf_name: [d for d, _ in reciprocal_rank_fusion([dense_chan, bm25_chan], k_rrf=rrf_k)][:depth],
     }
     if pool is not None:
         runs = {name: _complete_pool(r, pool) for name, r in runs.items()}
@@ -219,16 +221,18 @@ def run_benchmark(
     mode: str = "corpus",
     rerankers: Sequence[CrossEncoderReranker] = (),
     progress: Optional[Callable[[int, int], None]] = None,
+    dense_name: str = "SPECTER2",
+    rrf_name: str = "RRF",
 ) -> BenchmarkRun:
     """Run every system on every query and score it."""
     threshold = bench.relevance_threshold
-    systems = list(BASE_SYSTEMS) + [f"RRF + CE ({r.model_name})" for r in rerankers]
+    systems = ["BM25", dense_name, rrf_name] + [f"RRF + CE ({r.model_name})" for r in rerankers]
     per_query: Dict[str, Dict[str, Dict[str, float]]] = {s: {} for s in systems}
     rankings: Dict[str, Dict[str, List[str]]] = {s: {} for s in systems}
     for n, q in enumerate(bench.queries, start=1):
-        runs = rank_query(bench, idx, q, mode)
+        runs = rank_query(bench, idx, q, mode, dense_name=dense_name, rrf_name=rrf_name)
         for r in rerankers:
-            runs[f"RRF + CE ({r.model_name})"] = r.rerank(query_text(bench, q), runs["RRF"], bench.corpus)
+            runs[f"RRF + CE ({r.model_name})"] = r.rerank(query_text(bench, q), runs[rrf_name], bench.corpus)
         for system, ranked in runs.items():
             m = query_metrics(ranked, q, threshold)
             if mode == "pool":
