@@ -411,8 +411,12 @@ Run 30 personas × 5 seeds × 5 arms. Paired bootstrap over persona × seed unit
 - Compare on CSFCube/LitSearch and on Track 1 tuning authors (Dense Centroid and the full system).
 - If one wins on tuning data, re-embed the full corpus with it and re-run the pipeline.
 
-### 10.2 V2 — Cross-encoder in feed mode
+### 10.2 V2 — Cross-encoder in feed mode (D§13.8, specification fixed there)
 Profile query text (recent authored titles + top canonical facet terms); rerank the 100 candidates with `bge-reranker-base` and `ms-marco-MiniLM-L-6-v2`; add the reranker score as a feature; tune its weight on the tuning split; record latency per feed.
+- **10.2a** Feature: reranker score of (feed pseudo-query, title + abstract) over the Core pool, min-max scaled, term $w_{\text{ce}}\,\text{mm}[\text{CE}]$; off by default (`RecommendConfig.cross_encoder`). Not explainable: the explainer ignores it; the result records it. Unit tests with a fake reranker: scaling, ordering, off = Core exactly.
+- **10.2b** Tuning: cache reranker scores per tuning pool for both models; the §6.3 grid × $w_{\text{ce}} \in \{0, 0.25, 0.5, 1\}$ per model; latency per feed (mean, p95, hardware).
+- **10.2c** Decision, frozen in `data/artifacts/variant_v2_decision.json` before any test run: the better reranker at its optimum replaces Core only if the paired-bootstrap 95% CI of its tuning-split NDCG@10 gain over Core lies above zero.
+- **10.2d** Test run: one Track 1 run with `--cross-encoder` and its audit, which also reports the share of Top-10 items where the reranker term outweighs the explained term.
 
 ### 10.3 V3 — Learned ranker
 LightGBM LambdaMART over the min-max-scaled features plus channel ranks; labels = in-corpus Discovery references; 5-fold cross-validation inside the tuning split; shallow trees and strong regularization; compare with the linear scorer on the same folds. SHAP contributions for the explainer; if they are unreliable, report V3 as accuracy-only.
