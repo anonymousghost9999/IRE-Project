@@ -2,7 +2,7 @@
 """Phase 8 explanation faithfulness audit (docs/plan.md §8 / docs/design.md §13.6).
 
 Usage:
-    python scripts/audit_faithfulness.py [--enhanced] [--facet-active] [--filter-popular THRESHOLD]
+    python scripts/audit_faithfulness.py [--enhanced] [--facet-active | --span-check] [--filter-popular THRESHOLD]
                                          [--sample-size 100] [--seed 42]
 
 Audits deterministic recommendations against two criteria (prob.md §2.4, §6E.5):
@@ -33,6 +33,7 @@ from paperfeed.common.manifest import RunManifest
 from paperfeed.eval.faithfulness import run_faithfulness_audit
 from paperfeed.eval.tuning import (
     default_facet_selection_path,
+    find_tuning_artifact,
     load_facet_selection,
     tuning_signature,
 )
@@ -49,6 +50,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--enhanced", action="store_true", help="Use Track 1 enhanced parameters (M=250, M_channel=500, w_pop=0.20)")
     parser.add_argument("--facet-active", action="store_true", help="Audit the facet-active variant frozen by select_facet_config.py")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Filter popular papers from discovery")
+    parser.add_argument(
+        "--span-check",
+        action="store_true",
+        help="Supplementary check: raise w_facet and w_nov to 1.0 so span-quoting explanations appear and their spans "
+        "can be verified (not the evaluated system; written to *_span_check files)",
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed for sampling (default: 42)")
     parser.add_argument("--skip-tuning", action="store_true", help="Use the configured weights instead of the Track 1 tuned ones")
     parser.add_argument("--report-name", default=None, help="Markdown report filename")
@@ -57,54 +64,54 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def audit_config(cfg, cohort, args, artifact_path):
+SPAN_CHECK_WEIGHTS = {"w_facet": 1.0, "w_nov": 1.0}
+
+
+def audit_config(cfg, cohort, args, artifacts_dir):
     """The configuration of the Track 1 run being audited: config defaults, the --enhanced overrides, then the tuned
-    weights, but only from a tuning cache whose signature matches this configuration (as run_track1_eval.py checks)."""
+    weights, but only from the tuning file whose signature matches this configuration (as run_track1_eval.py does).
+
+    --span-check raises w_facet and w_nov on top of that (SPAN_CHECK_WEIGHTS) so facet and new-method explanations
+    appear and their quoted spans can be checked; it is a supplementary check, not the evaluated system."""
+    artifacts_dir = Path(artifacts_dir)
     rec_cfg = RecommendConfig.from_config(cfg)
     filter_popular = getattr(args, "filter_popular", None)
+    facet_active = getattr(args, "facet_active", False)
+    span_check = getattr(args, "span_check", False)
+    if facet_active and span_check:
+        raise ValueError("--span-check overrides the facet weights; it cannot be combined with --facet-active.")
     if getattr(args, "enhanced", False):
         rec_cfg = rec_cfg.with_overrides(
             pool_size=250, channel_depth=500, weights=rec_cfg.weights.with_overrides(w_pop=0.20)
         )
     if getattr(args, "skip_tuning", False):
-        if getattr(args, "facet_active", False):
+        if facet_active:
             raise ValueError("--facet-active audits the frozen selection; it cannot be combined with --skip-tuning.")
-        return rec_cfg, "configured weights (--skip-tuning)"
-    if not artifact_path.exists():
-        raise FileNotFoundError(
-            f"{artifact_path} not found: run scripts/run_track1_eval.py with the same options first, or pass --skip-tuning."
+        source = "configured weights (--skip-tuning)"
+    else:
+        expected = tuning_signature(
+            rec_cfg, [a["author_id"] for a in cohort if a.get("split") == "tuning"], filter_popular=filter_popular
         )
-    saved = json.loads(artifact_path.read_text(encoding="utf-8"))
-    expected = tuning_signature(
-        rec_cfg, [a["author_id"] for a in cohort if a.get("split") == "tuning"], filter_popular=filter_popular
-    )
-    if saved.get("config_signature") != expected:
-        found_cache = False
-        for cand_path in artifact_path.parent.glob("tuning_results*.json"):
-            if cand_path == artifact_path:
-                continue
-            try:
-                c_saved = json.loads(cand_path.read_text(encoding="utf-8"))
-                if c_saved.get("config_signature") == expected:
-                    saved = c_saved
-                    found_cache = True
-                    break
-            except Exception:
-                pass
-        if not found_cache:
-            raise ValueError(
-                f"{artifact_path} was tuned for a different configuration ({saved.get('config_signature')} != {expected}); "
-                "re-run scripts/run_track1_eval.py with the same options (e.g. --enhanced) or pass --skip-tuning."
+        artifact_path = find_tuning_artifact(artifacts_dir, expected)
+        if artifact_path is None:
+            raise FileNotFoundError(
+                f"No tuning file in {artifacts_dir} matches this configuration ({expected}): run "
+                "scripts/run_track1_eval.py with the same options (e.g. --enhanced) first, or pass --skip-tuning."
             )
-    tuned = ScoringWeights(**{k: v for k, v in saved["best_weights"].items() if k in ScoringWeights.__dataclass_fields__})
-    if getattr(args, "enhanced", False):
-        tuned = tuned.with_overrides(w_pop=0.20)  # as run_track1_eval.py applies --enhanced after tuning
-    rec_cfg = rec_cfg.with_overrides(weights=tuned, lambda_div=saved.get("best_lambda_div", rec_cfg.lambda_div))
-    if getattr(args, "facet_active", False):
-        selection = default_facet_selection_path(artifact_path.parent, getattr(args, "enhanced", False))
-        fa_weights, fa_lambda = load_facet_selection(selection, expected)
-        return rec_cfg.with_overrides(weights=fa_weights, lambda_div=fa_lambda), f"facet-active variant from {selection.name} (signature matched)"
-    return rec_cfg, f"tuned weights from {artifact_path.name} (signature matched)"
+        saved = json.loads(artifact_path.read_text(encoding="utf-8"))
+        tuned = ScoringWeights(**{k: v for k, v in saved["best_weights"].items() if k in ScoringWeights.__dataclass_fields__})
+        if getattr(args, "enhanced", False):
+            tuned = tuned.with_overrides(w_pop=0.20)  # as run_track1_eval.py applies --enhanced after tuning
+        rec_cfg = rec_cfg.with_overrides(weights=tuned, lambda_div=saved.get("best_lambda_div", rec_cfg.lambda_div))
+        source = f"tuned weights from {artifact_path.name} (signature matched)"
+        if facet_active:
+            selection = default_facet_selection_path(artifacts_dir, getattr(args, "enhanced", False))
+            fa_weights, fa_lambda = load_facet_selection(selection, expected)
+            return rec_cfg.with_overrides(weights=fa_weights, lambda_div=fa_lambda), f"facet-active variant from {selection.name} (signature matched)"
+    if span_check:
+        rec_cfg = rec_cfg.with_overrides(weights=rec_cfg.weights.with_overrides(**SPAN_CHECK_WEIGHTS))
+        source += f", then {SPAN_CHECK_WEIGHTS} for the supplementary span-grounding check (not the evaluated system)"
+    return rec_cfg, source
 
 
 def main() -> int:
@@ -145,6 +152,11 @@ def main() -> int:
     else:
         results_name = "faithfulness_audit_report.json"
 
+    if args.span_check:  # never overwrite the audit of the evaluated system
+        if not args.report_name:
+            report_name = report_name.replace(".md", "_span_check.md")
+        if not args.results_name:
+            results_name = results_name.replace(".json", "_span_check.json")
     report_path = out_dir / report_name
     results_path = out_dir / results_name
 
@@ -170,7 +182,7 @@ def _run(args, root, cfg, manifest, report_path, results_path):
     test_authors = [a for a in cohort if a.get("split") == "test"]
     logger.info("Found %d test authors in cohort.", len(test_authors))
 
-    rec_cfg, weights_source = audit_config(cfg, cohort, args, root / cfg["paths"]["artifacts_dir"] / "tuning_results.json")
+    rec_cfg, weights_source = audit_config(cfg, cohort, args, root / cfg["paths"]["artifacts_dir"])
     logger.info("Auditing with %s: %s, lambda_div=%.2f", weights_source, rec_cfg.weights, rec_cfg.lambda_div)
 
     t_start = time.time()

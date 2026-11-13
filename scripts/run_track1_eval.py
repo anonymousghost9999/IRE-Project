@@ -43,9 +43,11 @@ from paperfeed.eval.stats import H1_METRICS, compare_system_to_baselines, run_tr
 from paperfeed.eval.tuning import (
     default_facet_selection_path,
     evaluate_parameter_grid,
+    find_tuning_artifact,
     load_facet_selection,
     precompute_tuning_cache,
     tune_hybrid_persona,
+    tuning_artifact_path,
     tuning_signature,
 )
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
@@ -379,38 +381,22 @@ def run(args, root, cfg, manifest):
         "n_terms": tuned_config.n_terms,
         "n_titles": tuned_config.n_titles,
     }
-    tuning_artifact = root / "data" / "artifacts" / "tuning_results.json"
+    artifacts_dir = root / cfg["paths"]["artifacts_dir"]
+    # One tuning file per configuration (signature); older shared files are reused only on an exact signature match
+    tuning_artifact = None if args.skip_tuning else find_tuning_artifact(artifacts_dir, tuning_sig)
     if not args.skip_tuning and tuning_authors:
         loaded_saved = None
-        if tuning_artifact.exists():
+        if tuning_artifact is not None:
             with open(tuning_artifact, "r", encoding="utf-8") as f:
                 candidate_saved = json.load(f)
-            if candidate_saved.get("config_signature") == tuning_sig and candidate_saved.get("hybrid_persona"):
+            if candidate_saved.get("hybrid_persona"):
                 loaded_saved = candidate_saved
             else:
-                logger.info(
-                    "Tuning cache %s signature mismatch (%s != %s); re-tuning for current config.",
-                    tuning_artifact,
-                    candidate_saved.get("config_signature"),
-                    tuning_sig,
-                )
-
-        if loaded_saved is None:
-            for cand_path in (root / "data" / "artifacts").glob("tuning_results*.json"):
-                if cand_path == tuning_artifact:
-                    continue
-                try:
-                    with open(cand_path, "r", encoding="utf-8") as f:
-                        c_saved = json.load(f)
-                    if c_saved.get("config_signature") == tuning_sig and c_saved.get("hybrid_persona"):
-                        loaded_saved = c_saved
-                        logger.info("Found matching tuning cache in %s", cand_path.name)
-                        break
-                except Exception:
-                    pass
+                logger.info("Tuning cache %s has no Hybrid-Persona tuning; re-tuning.", tuning_artifact)
 
         if loaded_saved is not None:
             logger.info("Loading matching tuned parameters from %s", tuning_artifact)
+            manifest.extra_metadata["tuning_artifact"] = tuning_artifact.name
             bw = loaded_saved.get("best_weights", {})
             tuned_weights = ScoringWeights(**{k: v for k, v in bw.items() if k in ScoringWeights.__dataclass_fields__})
             if args.w_pop is not None:
@@ -440,7 +426,9 @@ def run(args, root, cfg, manifest):
                 "n_terms": t_res.hybrid_persona["n_terms"],
                 "n_titles": t_res.hybrid_persona["n_titles"],
             }
+            tuning_artifact = tuning_artifact_path(artifacts_dir, tuning_sig)
             t_res.save(tuning_artifact)
+            manifest.extra_metadata["tuning_artifact"] = tuning_artifact.name
             logger.info(
                 "Tuning complete in %.1fs. Best Mean NDCG@10: %.4f (w_cite=%.2f, w_facet=%.2f, w_nov=%.2f, lambda=%.2f)",
                 time.time() - t0,
@@ -603,7 +591,7 @@ def run(args, root, cfg, manifest):
                 "cohort.jsonl": processed_dir / "cohort.jsonl",
                 "ground_truth.jsonl": processed_dir / "ground_truth.jsonl",
                 "split.json": processed_dir / "split.json",
-                "tuning_results.json": tuning_artifact,
+                **({tuning_artifact.name: tuning_artifact} if tuning_artifact is not None else {}),
                 "embedding_ids.json": processed_dir / "embedding_ids.json",
                 "index_manifest.json": processed_dir / "index_manifest.json",
             }.items()

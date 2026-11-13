@@ -10,6 +10,7 @@ Tuning objective: Mean Discovery NDCG@10 across the tuning cohort.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
+import hashlib
 import itertools
 import json
 from pathlib import Path
@@ -408,7 +409,7 @@ def tuning_signature(
     tuning_author_ids: Sequence[str],
     filter_popular: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """What a cached ``tuning_results.json`` is valid for. Any script that reuses tuned weights must match it exactly,
+    """What a cached tuning file (``tuning_artifact_path``) is valid for. Any script that reuses tuned weights must match it exactly,
     so weights tuned for one configuration (pool size, w_pop, popularity filter, tuning authors) are never reused for
     another."""
     return {
@@ -420,6 +421,38 @@ def tuning_signature(
         "tuning_version": TUNING_VERSION,
         "tuning_authors": sorted(clean_id(a) for a in tuning_author_ids),
     }
+
+
+def signature_hash(signature: Mapping[str, Any]) -> str:
+    """Short stable hash of a tuning signature (names the per-configuration tuning file)."""
+    return hashlib.sha256(json.dumps(dict(signature), sort_keys=True).encode("utf-8")).hexdigest()[:12]
+
+
+def tuning_artifact_path(artifacts_dir: Path | str, signature: Mapping[str, Any]) -> Path:
+    """One tuning file per configuration, so tuning the main, filtered and enhanced runs never overwrite each other."""
+    return Path(artifacts_dir) / f"tuning_results_{signature_hash(signature)}.json"
+
+
+def find_tuning_artifact(artifacts_dir: Path | str, signature: Mapping[str, Any]) -> Optional[Path]:
+    """The tuning file made for exactly this configuration, or None.
+
+    Looks at the per-configuration file first, then at older ``tuning_results*.json`` files (the single shared
+    ``tuning_results.json`` used before per-configuration names, or hand-made copies), accepting one only when its
+    stored signature matches. The returned path is the file actually used, for the run manifest."""
+    expected = dict(signature)
+    canonical = tuning_artifact_path(artifacts_dir, signature)
+    others = sorted(p for p in Path(artifacts_dir).glob("tuning_results*.json") if p != canonical)
+    for path in [canonical, *others]:
+        if not path.exists():
+            continue
+        try:
+            saved = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Skipping unreadable tuning file %s: %s", path, exc)
+            continue
+        if saved.get("config_signature") == expected:
+            return path
+    return None
 
 
 def default_facet_selection_path(artifacts_dir: Path | str, enhanced: bool = False) -> Path:

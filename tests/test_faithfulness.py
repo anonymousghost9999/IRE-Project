@@ -358,7 +358,7 @@ import importlib.util
 import json
 from types import SimpleNamespace
 
-from paperfeed.eval.tuning import tuning_signature
+from paperfeed.eval.tuning import find_tuning_artifact, tuning_artifact_path, tuning_signature
 from paperfeed.rec.recommender import RecommendConfig
 
 
@@ -389,25 +389,45 @@ def test_audit_uses_tuned_weights_only_from_a_matching_cache(tmp_path):
     }
     cohort = [{"author_id": "A1", "split": "tuning"}, {"author_id": "A9", "split": "test"}]
     args = SimpleNamespace(enhanced=False, skip_tuning=False)
-    artifact = tmp_path / "tuning_results.json"
 
     with pytest.raises(FileNotFoundError):
-        script.audit_config(cfg, cohort, args, artifact)
+        script.audit_config(cfg, cohort, args, tmp_path)
 
     expected = tuning_signature(RecommendConfig.from_config(cfg), ["A1"])
     tuned = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.0, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    artifact = tuning_artifact_path(tmp_path, expected)
     artifact.write_text(json.dumps({"config_signature": expected, "best_weights": tuned, "best_lambda_div": 0.0}))
-    rec_cfg, source = script.audit_config(cfg, cohort, args, artifact)
+    rec_cfg, source = script.audit_config(cfg, cohort, args, tmp_path)
     assert rec_cfg.weights.w_cite == 1.0 and rec_cfg.weights.w_facet == 0.0 and rec_cfg.lambda_div == 0.0
-    assert "signature matched" in source
+    assert artifact.name in source and "signature matched" in source
 
     # the same cache must not be reused for the enhanced configuration (pool 250, w_pop 0.2)
-    with pytest.raises(ValueError, match="different configuration"):
-        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=False), artifact)
+    with pytest.raises(FileNotFoundError, match="matches this configuration"):
+        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=False), tmp_path)
 
-    rec_cfg, source = script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=True), artifact)
+    rec_cfg, source = script.audit_config(cfg, cohort, SimpleNamespace(enhanced=True, skip_tuning=True), tmp_path)
     assert rec_cfg.pool_size == 250 and rec_cfg.weights.w_pop == 0.2 and rec_cfg.weights.w_cite == 0.5
     assert "--skip-tuning" in source
+
+
+def test_audit_span_check_raises_facet_weights_on_top_of_the_tuned_ones(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}]
+    expected = tuning_signature(RecommendConfig.from_config(cfg), ["A1"])
+    tuned = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.25, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    tuning_artifact_path(tmp_path, expected).write_text(
+        json.dumps({"config_signature": expected, "best_weights": tuned, "best_lambda_div": 0.5})
+    )
+    rec_cfg, source = script.audit_config(cfg, cohort, SimpleNamespace(enhanced=False, skip_tuning=False, span_check=True), tmp_path)
+    assert rec_cfg.weights.w_facet == 1.0 and rec_cfg.weights.w_nov == 1.0
+    assert rec_cfg.weights.w_cite == 1.0 and rec_cfg.lambda_div == 0.5  # everything else stays tuned
+    assert "not the evaluated system" in source
+    with pytest.raises(ValueError, match="facet-active"):
+        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=False, skip_tuning=False, span_check=True, facet_active=True), tmp_path)
 
 
 def test_audit_facet_active_uses_only_a_matching_frozen_selection(tmp_path):
@@ -419,17 +439,36 @@ def test_audit_facet_active_uses_only_a_matching_frozen_selection(tmp_path):
     cohort = [{"author_id": "A1", "split": "tuning"}]
     expected = tuning_signature(RecommendConfig.from_config(cfg), ["A1"])
     tuned = {"w_pers": 1.0, "w_cite": 1.0, "w_facet": 0.0, "w_nov": 0.25, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
-    artifact = tmp_path / "tuning_results.json"
+    artifact = tmp_path / "tuning_results.json"  # a legacy shared file is still used when its signature matches
     artifact.write_text(json.dumps({"config_signature": expected, "best_weights": tuned, "best_lambda_div": 0.0}))
     args = SimpleNamespace(enhanced=False, skip_tuning=False, facet_active=True)
 
     with pytest.raises(FileNotFoundError):
-        script.audit_config(cfg, cohort, args, artifact)
+        script.audit_config(cfg, cohort, args, tmp_path)
     (tmp_path / "facet_config_selection.json").write_text(json.dumps({
         "config_signature": expected,
         "selected": {"weights": {**tuned, "w_facet": 0.5}, "lambda_div": 0.1},
     }))
-    rec_cfg, source = script.audit_config(cfg, cohort, args, artifact)
+    rec_cfg, source = script.audit_config(cfg, cohort, args, tmp_path)
     assert rec_cfg.weights.w_facet == 0.5 and rec_cfg.lambda_div == 0.1 and "facet-active" in source
     with pytest.raises(ValueError, match="skip-tuning"):
-        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=False, skip_tuning=True, facet_active=True), artifact)
+        script.audit_config(cfg, cohort, SimpleNamespace(enhanced=False, skip_tuning=True, facet_active=True), tmp_path)
+
+
+def test_tuning_files_are_per_configuration_and_legacy_files_need_a_matching_signature(tmp_path):
+    base = RecommendConfig(pool_size=100, channel_depth=200)
+    main_sig = tuning_signature(base, ["A1"])
+    enh_sig = tuning_signature(base.with_overrides(pool_size=250, weights={"w_pop": 0.2}), ["A1"])
+    assert tuning_artifact_path(tmp_path, main_sig) != tuning_artifact_path(tmp_path, enh_sig)
+    assert find_tuning_artifact(tmp_path, main_sig) is None
+
+    legacy = tmp_path / "tuning_results.json"  # the old shared file, last written by the enhanced run
+    legacy.write_text(json.dumps({"config_signature": enh_sig}))
+    assert find_tuning_artifact(tmp_path, main_sig) is None
+    assert find_tuning_artifact(tmp_path, enh_sig) == legacy
+
+    own = tuning_artifact_path(tmp_path, enh_sig)  # the per-configuration file wins over the legacy one
+    own.write_text(json.dumps({"config_signature": enh_sig}))
+    assert find_tuning_artifact(tmp_path, enh_sig) == own
+    (tmp_path / "tuning_results_broken.json").write_text("{not json")
+    assert find_tuning_artifact(tmp_path, main_sig) is None
