@@ -244,28 +244,14 @@ def citation_only_baseline(
     cite both p and an authored paper: the same definitions as the system's citation feature (D§4.4, §9), but over
     the whole eligible corpus instead of the 100 candidates. Not applicable to zero-publication users (returns []).
     """
-    from collections import Counter
-
-    from paperfeed.rec.features import edges
+    from paperfeed.rec.features import corpus_citation_scores, rank_by_citation
 
     ctx = profile.citation_ctx
     if not ctx.authored:
         return []
     excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)
-
-    bc: Counter = Counter()  # paper -> references it shares with the authored papers
-    for src, _tgt in edges(resources.db, "target_paper_id", sorted(ctx.ref_to_authored), resources.cutoff_year):
-        bc[src] += 1
-    cc: Counter = Counter()  # paper -> third-party papers co-citing it with an authored paper
-    for _src, tgt in edges(resources.db, "source_paper_id", sorted(ctx.citer_to_authored), resources.cutoff_year):
-        cc[tgt] += 1
-
-    scores = {
-        p: math.log1p(bc[p] + cc[p])
-        for p in set(bc) | set(cc)
-        if p in resources.eligible and p not in excluded
-    }
-    return sorted(scores, key=lambda p: (-scores[p], p))[:k]
+    scores = corpus_citation_scores(resources.db, ctx, resources.cutoff_year)
+    return [p for p, _ in rank_by_citation(scores, resources.eligible, excluded, k)]
 
 
 # ---------------------------------------------------------------------------

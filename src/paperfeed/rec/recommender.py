@@ -14,7 +14,7 @@ Identical inputs give identical outputs: every sort breaks ties by paper_id.
 
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -28,6 +28,7 @@ from paperfeed.rec.candidates import (
     DEFAULT_RHO,
     eligible_paper_ids,
     feed_candidates,
+    graph_channel_hits,
     search_candidates,
 )
 from paperfeed.rec.explain import Explainer, ExplanationResult
@@ -67,6 +68,7 @@ class RecommendConfig:
     gamma_pivot: float = 0.35
     gamma_rec: float = DEFAULT_GAMMA_REC  # persona recency decay, used by ``build_user_profile``
     adaptive_graph: bool = True  # adaptive scaling of w_cite for sparse authors
+    graph_channel: bool = False  # Extended V4 (D§13.8): citation-graph candidate channel; off in Core
     explain: bool = True
 
     @classmethod
@@ -335,10 +337,11 @@ class RecommendedItem:
     dense_rank: Optional[int]
     lexical_rank: Optional[int]
     explanation: Optional[ExplanationResult] = None
+    graph_rank: Optional[int] = None  # V4 citation-graph channel rank (None in Core and when the channel missed it)
 
     def to_dict(self) -> Dict[str, Any]:
         expl = self.explanation
-        return {
+        out = {
             "rank": self.rank, "paper_id": self.paper_id, "title": self.title, "year": self.year,
             "score": self.score, "mmr_value": self.mmr_value, "contributions": self.contributions,
             "rrf_score": self.rrf_score, "dense_rank": self.dense_rank, "lexical_rank": self.lexical_rank,
@@ -346,6 +349,9 @@ class RecommendedItem:
             "explanation": expl.explanation.text if expl and expl.explanation else None,
             "explanation_failure": expl.failure if expl else None,
         }
+        if self.graph_rank is not None:  # only with the V4 channel, so Core outputs are unchanged
+            out["graph_rank"] = self.graph_rank
+        return out
 
 
 @dataclass
@@ -406,6 +412,18 @@ def effective_weights(weights: ScoringWeights, adaptive_graph: bool, profile: Us
     return weights
 
 
+def graph_hits_for(
+    resources: RecommenderResources, profile: UserProfile, excluded: Iterable[str], cfg: RecommendConfig
+) -> Optional[List[Tuple[str, float]]]:
+    """The V4 graph channel for this profile, or None when it is off (Core) or the profile has no authored papers."""
+    if not cfg.graph_channel or cfg.zero_pub or profile.zero_pub:
+        return None
+    depth = cfg.channel_depth if cfg.channel_depth is not None else resources.retriever.channel_depth
+    return graph_channel_hits(
+        resources.db, profile.citation_ctx, resources.cutoff_year, resources.eligible, excluded, depth
+    )
+
+
 def recommend(
     resources: RecommenderResources,
     profile: UserProfile,
@@ -446,6 +464,7 @@ def recommend(
     cands = feed_candidates(
         r.retriever, profile.persona.vector, pseudo_query, session_vec, excluded, r.eligible,
         cfg.rho, cfg.normalize_session, cfg.channel_depth, cfg.pool_size,
+        graph_hits=graph_hits_for(r, profile, excluded, cfg),
     )
     by_id: Dict[str, RetrievedCandidate] = {c.paper_id: c for c in cands}
     features = compute_features(
@@ -468,7 +487,7 @@ def recommend(
             year=(meta.get(p.paper_id) or {}).get("year"), score=p.scored.score, mmr_value=p.mmr_value,
             contributions=dict(p.scored.contributions), rrf_score=by_id[p.paper_id].rrf_score,
             dense_rank=by_id[p.paper_id].dense_rank, lexical_rank=by_id[p.paper_id].lexical_rank,
-            explanation=explanations.get(p.paper_id),
+            explanation=explanations.get(p.paper_id), graph_rank=by_id[p.paper_id].graph_rank,
         )
         for p in picks
     ]

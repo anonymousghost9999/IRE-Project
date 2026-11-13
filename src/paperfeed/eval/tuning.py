@@ -24,7 +24,14 @@ from paperfeed.eval.metrics import ndcg_at_k
 from paperfeed.rec.candidates import feed_candidates
 from paperfeed.rec.features import CandidateFeatures, compute_features
 from paperfeed.rec.mmr import select_top_k
-from paperfeed.rec.recommender import RecommendConfig, RecommenderResources, UserProfile, build_user_profile, effective_weights
+from paperfeed.rec.recommender import (
+    RecommendConfig,
+    RecommenderResources,
+    UserProfile,
+    build_user_profile,
+    effective_weights,
+    graph_hits_for,
+)
 from paperfeed.rec.scoring import ScoringWeights, score_candidates
 from paperfeed.user.query import build_feed_query
 from paperfeed.user.session import SessionState
@@ -126,6 +133,7 @@ def precompute_tuning_cache(
                 rho=cfg.rho,
                 channel_depth=cfg.channel_depth,
                 top_m=cfg.pool_size,
+                graph_hits=graph_hits_for(r, profile, excluded, cfg),
             )
             cand_ids = [c.paper_id for c in cands]
 
@@ -412,7 +420,7 @@ def tuning_signature(
     """What a cached tuning file (``tuning_artifact_path``) is valid for. Any script that reuses tuned weights must match it exactly,
     so weights tuned for one configuration (pool size, w_pop, popularity filter, tuning authors) are never reused for
     another."""
-    return {
+    signature = {
         "pool_size": config.pool_size,
         "channel_depth": config.channel_depth,
         "w_pop": config.weights.w_pop,
@@ -421,6 +429,10 @@ def tuning_signature(
         "tuning_version": TUNING_VERSION,
         "tuning_authors": sorted(clean_id(a) for a in tuning_author_ids),
     }
+    # Added only when on, so the Core signatures (and their existing tuning files) are unchanged
+    if config.graph_channel:
+        signature["graph_channel"] = True
+    return signature
 
 
 def signature_hash(signature: Mapping[str, Any]) -> str:

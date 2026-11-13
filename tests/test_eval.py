@@ -808,3 +808,39 @@ def test_load_facet_selection_checks_the_configuration(tmp_path):
     path.write_text(_json.dumps({"config_signature": sig, "selected": None}))
     with pytest.raises(ValueError, match="no grid point met"):
         load_facet_selection(path, sig)
+
+
+# ---------------------------------------------------------------------------
+# V4 citation-graph candidate channel (D§13.8, plan 10.4a)
+# ---------------------------------------------------------------------------
+
+def test_graph_channel_ranks_exactly_like_the_citation_only_baseline(cite_world):
+    from paperfeed.rec.candidates import graph_channel_hits
+
+    resources, profile = cite_world
+    excluded = profile.exclusion_sources.build(diagnostic=False, zero_pub=False)
+    hits = graph_channel_hits(resources.db, profile.citation_ctx, 2024, resources.eligible, excluded, depth=200)
+    assert [p for p, _ in hits] == citation_only_baseline(resources, profile, k=200) == ["P", "Q"]
+    assert hits[0][1] == pytest.approx(math.log1p(2))
+    assert "X" not in dict(hits)  # its edges are after T
+    assert not set(dict(hits)) & set(excluded)  # nothing the user authored or already cites
+    assert graph_channel_hits(resources.db, profile.citation_ctx, 2024, resources.eligible, excluded, depth=1) == hits[:1]
+    assert graph_channel_hits(resources.db, profile.citation_ctx, 2024, {"Q"}, excluded, depth=200) == [hits[1]]
+
+
+def test_graph_channel_is_empty_for_zero_publication_users(cite_world):
+    from paperfeed.rec.candidates import graph_channel_hits
+
+    resources, _ = cite_world
+    empty = build_citation_context(resources.db, [], 2024)
+    assert graph_channel_hits(resources.db, empty, 2024, resources.eligible, set(), depth=200) == []
+
+
+def test_tuning_signature_marks_the_graph_channel_without_changing_core_signatures():
+    from paperfeed.eval.tuning import tuning_signature
+    from paperfeed.rec.recommender import RecommendConfig
+
+    core = tuning_signature(RecommendConfig(pool_size=100, channel_depth=200), ["A1"])
+    v4 = tuning_signature(RecommendConfig(pool_size=100, channel_depth=200, graph_channel=True), ["A1"])
+    assert "graph_channel" not in core  # existing Core tuning files keep matching
+    assert v4 == {**core, "graph_channel": True} and v4 != core

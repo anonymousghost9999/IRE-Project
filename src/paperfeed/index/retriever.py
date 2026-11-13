@@ -56,6 +56,8 @@ class RetrievedCandidate:
     dense_score: Optional[float] = None
     lexical_rank: Optional[int] = None
     lexical_score: Optional[float] = None
+    graph_rank: Optional[int] = None  # V4 citation-graph channel (feed mode only, off in Core)
+    graph_score: Optional[float] = None
 
 
 class HybridRetriever:
@@ -85,6 +87,7 @@ class HybridRetriever:
         top_m: Optional[int] = None,
         exclusion_set: Optional[Union[Set[str], Iterable[str]]] = None,
         candidate_filter: Optional[Union[Set[str], Iterable[str]]] = None,
+        graph_hits: Optional[List[Tuple[str, float]]] = None,
     ) -> List[Tuple[str, float]]:
         """Unified multi-channel retrieval with RRF fusion, as ``(paper_id, rrf_score)`` pairs.
 
@@ -93,7 +96,7 @@ class HybridRetriever:
         return [
             (c.paper_id, c.rrf_score)
             for c in self.retrieve_candidates(
-                dense_query_vec, lexical_query, channel_depth, top_m, exclusion_set, candidate_filter
+                dense_query_vec, lexical_query, channel_depth, top_m, exclusion_set, candidate_filter, graph_hits
             )
         ]
 
@@ -105,6 +108,7 @@ class HybridRetriever:
         top_m: Optional[int] = None,
         exclusion_set: Optional[Union[Set[str], Iterable[str]]] = None,
         candidate_filter: Optional[Union[Set[str], Iterable[str]]] = None,
+        graph_hits: Optional[List[Tuple[str, float]]] = None,
     ) -> List[RetrievedCandidate]:
         """
         Unified multi-channel retrieval with RRF fusion, keeping each channel's rank and score per candidate.
@@ -116,6 +120,9 @@ class HybridRetriever:
             top_m: Number of candidates to return after RRF fusion (default 100).
             exclusion_set: User exclusion set E_u (past authored/citations/session-consumed).
             candidate_filter: Whitelist of allowed candidate paper IDs (year <= T, in_candidates = 1).
+            graph_hits: Optional third channel, a ranked ``(paper_id, score)`` list (the V4 citation-graph channel,
+                D§13.8). It gets the same exclusion and whitelist filters and the same depth as the other channels.
+                ``None`` (Core) keeps the two-channel fusion; an empty list adds nothing.
         """
         depth = channel_depth if channel_depth is not None else self.channel_depth
         m_out = top_m if top_m is not None else self.candidate_pool_size
@@ -146,10 +153,24 @@ class HybridRetriever:
             ranked_lists.append([pid for pid, _ in lexical_hits])
             lexical_info = {pid: (rank, score) for rank, (pid, score) in enumerate(lexical_hits, start=1)}
 
+        # 3. Optional citation-graph channel (V4): already ranked by the caller, filtered again here
+        graph_info: Dict[str, Tuple[int, float]] = {}
+        if graph_hits:
+            excl = {clean_id(e) for e in exclusion_set} if exclusion_set else set()
+            allowed = {clean_id(c) for c in candidate_filter} if candidate_filter is not None else None
+            kept = [
+                (clean_id(pid), float(score))
+                for pid, score in graph_hits
+                if clean_id(pid) not in excl and (allowed is None or clean_id(pid) in allowed)
+            ][:depth]
+            if kept:
+                ranked_lists.append([pid for pid, _ in kept])
+                graph_info = {pid: (rank, score) for rank, (pid, score) in enumerate(kept, start=1)}
+
         if not ranked_lists:
             return []
 
-        # 3. Reciprocal Rank Fusion
+        # 4. Reciprocal Rank Fusion
         fused = reciprocal_rank_fusion(ranked_lists, k_rrf=self.rrf_k)[:m_out]
         return [
             RetrievedCandidate(
@@ -159,6 +180,8 @@ class HybridRetriever:
                 dense_score=dense_info[pid][1] if pid in dense_info else None,
                 lexical_rank=lexical_info[pid][0] if pid in lexical_info else None,
                 lexical_score=lexical_info[pid][1] if pid in lexical_info else None,
+                graph_rank=graph_info[pid][0] if pid in graph_info else None,
+                graph_score=graph_info[pid][1] if pid in graph_info else None,
             )
             for pid, score in fused
         ]

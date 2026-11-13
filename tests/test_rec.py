@@ -1294,3 +1294,51 @@ def test_feed_exposes_the_exact_pool_and_weights_it_was_ranked_with(world):
     replay = [p.paper_id for p in select_top_k(res.scored_pool, world.store, cfg.k, cfg.lambda_div)]
     assert replay == res.paper_ids  # re-ranking the exposed pool reproduces the feed exactly
     assert "scored_pool" not in res.to_dict()
+
+
+# ---------------------------------------------------------------------------
+# V4 citation-graph channel in the retriever and in recommend() (plan 10.4a)
+# ---------------------------------------------------------------------------
+
+def test_graph_hits_add_a_third_rrf_channel(retriever):
+    core = feed_candidates(retriever, _unit(1, 0.1), "information retrieval")
+    assert all(c.graph_rank is None for c in core)
+    # P_AST2 is far from the IR query in both text channels; the graph channel ranks it first
+    v4 = feed_candidates(retriever, _unit(1, 0.1), "information retrieval", graph_hits=[("P_AST2", 2.0), ("P_IR1", 1.0)])
+    by_id = {c.paper_id: c for c in v4}
+    assert by_id["P_IR1"].graph_rank == 2 and by_id["P_IR1"].graph_score == 1.0
+    ir1 = by_id["P_IR1"]
+    expected = sum(1 / (60 + r) for r in (ir1.dense_rank, ir1.lexical_rank, ir1.graph_rank) if r is not None)
+    assert ir1.rrf_score == pytest.approx(expected)
+    assert v4[0].paper_id == "P_IR1"  # in all three channels
+    assert feed_candidates(retriever, _unit(1, 0.1), "information retrieval", graph_hits=[]) == core  # empty = Core
+
+
+def test_graph_hits_get_the_same_filters_and_depth_as_the_other_channels(retriever):
+    hits = [("P_FUTURE", 9.0), ("P_AUTHORED", 8.0)] + [(f"P_IR{i}", 1.0) for i in (1, 2, 3)] + [("P_AST1", 0.5), ("P_AST2", 0.4)]
+    allowed = {"P_IR1", "P_IR2", "P_IR3", "P_AST1", "P_AST2", "P_AUTHORED"}
+    cands = feed_candidates(
+        retriever, _unit(1, 0.1), "information retrieval", exclusion_set={"P_AUTHORED"}, candidate_filter=allowed,
+        graph_hits=hits, top_m=10,
+    )
+    ids = {c.paper_id for c in cands}
+    assert "P_FUTURE" not in ids and "P_AUTHORED" not in ids
+    graph_ranked = sorted((c.graph_rank, c.paper_id) for c in cands if c.graph_rank is not None)
+    assert [r for r, _ in graph_ranked] == list(range(1, len(graph_ranked) + 1))  # re-ranked after filtering
+    assert len(graph_ranked) == 5 == retriever.channel_depth  # truncated to M_channel after filtering
+
+
+def test_recommend_with_graph_channel_ranks_graph_neighbours(world):
+    # world: U1 cites R1 and R9, U2 cites R9; I1 also cites R9, so I1 has BC 1 and is the graph channel's only hit
+    cfg = CFG.with_overrides(k=12, graph_channel=True)
+    res = recommend(world, _profile(world), config=cfg)
+    graph = {i.paper_id: i.graph_rank for i in res.items if i.graph_rank is not None}
+    assert graph == {"I1": 1}
+    assert res.items[[i.paper_id for i in res.items].index("I1")].to_dict()["graph_rank"] == 1
+    core = recommend(world, _profile(world), config=CFG.with_overrides(k=12))
+    assert all(i.graph_rank is None and "graph_rank" not in i.to_dict() for i in core.items)
+    zero_prof = build_user_profile(world, "z1", seed_topics=["information retrieval", "dense retrieval"], config=CFG)
+    zero = recommend(world, zero_prof, config=cfg)  # zero-publication: Core pool
+    assert zero.items and all(i.graph_rank is None for i in zero.items)
+    switched = recommend(world, _profile(world), config=cfg.with_overrides(zero_pub=True))  # zero-pub slice run
+    assert all(i.graph_rank is None for i in switched.items)

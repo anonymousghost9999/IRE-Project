@@ -5,12 +5,13 @@ M_channel (200) per channel after filtering, fuse by RRF (k = 60) and keep M (10
 keeps its rank in each channel (needed by the V3 learned ranker and for the Recall@100 candidate ceiling).
 
 - Feed mode: dense kNN on q_t = normalize((1 - rho) v_sess + rho v_pers) (the persona alone when the session is
-  empty) + BM25s on the pseudo-query of 4.5.
+  empty) + BM25s on the pseudo-query of 4.5. Extended V4 (D§13.8, off in Core): a third channel ranking the
+  eligible corpus by log(1 + BC + CC) with the user's authored papers (``graph_channel_hits``).
 - Search mode: ``adhoc_query`` embedding of the query text + BM25s on the same text. The optional cross-encoder
   rerank is an Extended experiment and is not part of this module.
 """
 
-from typing import Any, Iterable, List, Mapping, Optional, Protocol, Set
+from typing import Any, Iterable, List, Mapping, Optional, Protocol, Set, Tuple
 
 import numpy as np
 
@@ -81,10 +82,12 @@ def feed_candidates(
     normalize_session: bool = False,
     channel_depth: Optional[int] = None,
     top_m: Optional[int] = None,
+    graph_hits: Optional[List[Tuple[str, float]]] = None,
 ) -> List[RetrievedCandidate]:
-    """Feed-mode candidates: dense kNN on q_t + BM25s on the pseudo-query, fused by RRF.
+    """Feed-mode candidates: dense kNN on q_t + BM25s on the pseudo-query (+ the V4 graph channel), fused by RRF.
 
-    ``channel_depth`` / ``top_m`` override the retriever's M_channel / M for this call (ablations).
+    ``channel_depth`` / ``top_m`` override the retriever's M_channel / M for this call (ablations). ``graph_hits``
+    (from ``graph_channel_hits``) adds the V4 citation-graph channel; ``None`` is the Core two-channel pool.
     """
     q_t = query_vector(persona_vec, session_vec, rho, normalize_session)
     return retriever.retrieve_candidates(
@@ -94,7 +97,24 @@ def feed_candidates(
         top_m=top_m,
         exclusion_set=exclusion_set,
         candidate_filter=candidate_filter,
+        graph_hits=graph_hits,
     )
+
+
+def graph_channel_hits(
+    db,
+    citation_ctx,
+    cutoff_year: int,
+    eligible: Optional[Set[str]],
+    exclusion_set: Optional[Iterable[str]],
+    depth: int,
+) -> List[Tuple[str, float]]:
+    """V4 citation-graph channel (D§13.8): eligible, non-excluded papers by log(1 + BC + CC), ties by paper ID, top
+    ``depth``. Same ranking code as the Citation-only baseline. Empty for zero-publication users."""
+    from paperfeed.rec.features import corpus_citation_scores, rank_by_citation
+
+    scores = corpus_citation_scores(db, citation_ctx, cutoff_year)
+    return rank_by_citation(scores, eligible, exclusion_set, depth)
 
 
 def search_candidates(

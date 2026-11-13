@@ -14,7 +14,7 @@ paper behind the largest BC / CC contribution, the matched facets and the new me
 import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 import numpy as np
 
@@ -116,6 +116,38 @@ def build_citation_context(db, authored_ids: Sequence[str], cutoff_year: int) ->
             citer_to_authored[src].add(tgt)
     ctx.ref_to_authored, ctx.citer_to_authored = dict(ref_to_authored), dict(citer_to_authored)
     return ctx
+
+
+def corpus_citation_scores(db, ctx: UserCitationContext, cutoff_year: int) -> Dict[str, float]:
+    """log(1 + BC + CC) for every paper with BC + CC > 0, over the whole graph (no eligibility or exclusion filter).
+
+    BC(p) counts p's references shared with the authored papers, CC(p) the third-party papers (year <= T) citing both
+    p and an authored paper: the definitions of the citation feature (D§4.4), but computed for every paper instead of
+    a candidate pool. Shared by the Citation-only baseline and the V4 graph candidate channel (D§13.8), so the two
+    rank identically. Zero-publication users get {}.
+    """
+    if not ctx.authored:
+        return {}
+    bc: Counter = Counter()  # paper -> references it shares with the authored papers
+    for src, _tgt in _edges(db, "target_paper_id", sorted(ctx.ref_to_authored), cutoff_year):
+        bc[src] += 1
+    cc: Counter = Counter()  # paper -> third-party papers co-citing it with an authored paper
+    for _src, tgt in _edges(db, "source_paper_id", sorted(ctx.citer_to_authored), cutoff_year):
+        cc[tgt] += 1
+    return {p: math.log1p(bc[p] + cc[p]) for p in set(bc) | set(cc)}
+
+
+def rank_by_citation(
+    scores: Mapping[str, float],
+    eligible: Optional[Set[str]] = None,
+    excluded: Optional[Iterable[str]] = None,
+    k: Optional[int] = None,
+) -> List[Tuple[str, float]]:
+    """Papers of ``scores`` that are eligible and not excluded, by descending score, ties by paper ID, top ``k``."""
+    banned = {clean_id(e) for e in excluded} if excluded else set()
+    kept = [(p, s) for p, s in scores.items() if (eligible is None or p in eligible) and p not in banned]
+    kept.sort(key=lambda kv: (-kv[1], kv[0]))
+    return kept if k is None else kept[:k]
 
 
 def _best(counter: Counter) -> Tuple[Optional[str], int]:
