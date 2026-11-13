@@ -1,0 +1,2292 @@
+{
+  "n_sampled": 100,
+  "n_users_in_sample": 95,
+  "total_evaluated_recommendations": 3200,
+  "total_covered_recommendations": 2928,
+  "explanation_coverage": 0.915,
+  "extractive_grounding_rate": 1.0,
+  "counterfactual_dropout_rate": 0.85,
+  "left_top_k_count": 75,
+  "dropped_gte_3_count": 10,
+  "retained_near_rank_count": 15,
+  "mean_rank_drop": 4.58,
+  "median_rank_drop": 4.0,
+  "template_distribution": {
+    "facet": 13,
+    "citation": 56,
+    "persona": 25,
+    "new_method": 6
+  },
+  "template_proportions": {
+    "facet": 0.13,
+    "citation": 0.56,
+    "persona": 0.25,
+    "new_method": 0.06
+  },
+  "per_template": {
+    "facet": {
+      "n": 13,
+      "grounded": 13,
+      "necessary": 11,
+      "left_top_k": 9,
+      "dropped_gte_3": 2
+    },
+    "citation": {
+      "n": 56,
+      "grounded": 56,
+      "necessary": 50,
+      "left_top_k": 47,
+      "dropped_gte_3": 3
+    },
+    "persona": {
+      "n": 25,
+      "grounded": 25,
+      "necessary": 22,
+      "left_top_k": 18,
+      "dropped_gte_3": 4
+    },
+    "new_method": {
+      "n": 6,
+      "grounded": 6,
+      "necessary": 2,
+      "left_top_k": 1,
+      "dropped_gte_3": 1
+    }
+  },
+  "population_template_distribution": {
+    "citation": 1880,
+    "persona": 741,
+    "facet": 286,
+    "new_method": 21
+  },
+  "n_span_explanations_audited": 19,
+  "n_reranker_dominant": null,
+  "n_rank_dominant": 1042,
+  "v3_explanations_reliable": true,
+  "audited_explanations": [
+    {
+      "author_id": "A5024751564",
+      "paper_id": "W4396855402",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Evaluates on **data**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 6,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_3a6eb0790f39",
+        "span": "data",
+        "start_char": 1367,
+        "end_char": 1371,
+        "evidence_sentence": "Moreover, qualitative analysis reveals that to address sustainability via digitalization, it is important to link sustainability goals to Key Performance Indicators, which requires data for traceability."
+      }
+    },
+    {
+      "author_id": "A5027988796",
+      "paper_id": "W2404402506",
+      "original_rank": 8,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *Improvement of the DAA protocol based on TPM*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": 9,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2156744640",
+        "title": "Improvement of the DAA protocol based on TPM",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5107077385",
+      "paper_id": "W4404514854",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9471284747123718
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9471284747123718
+      }
+    },
+    {
+      "author_id": "A5044037112",
+      "paper_id": "W4401539871",
+      "original_rank": 2,
+      "template": "new_method",
+      "text": "Proposes **sliding-mode mechanism**, which is new to your work, for **simulation example** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 2,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_ea74dae92d07",
+          "span": "sliding-mode mechanism",
+          "start_char": 708,
+          "end_char": 730,
+          "evidence_sentence": "Second, to achieve a high-order canonical dynamic consensus and enhance the efficiency of the consensus control strategy, a sliding-mode mechanism is employed to regulate tracking errors."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_e9557fe97600",
+          "span": "simulation example",
+          "start_char": 1174,
+          "end_char": 1192,
+          "evidence_sentence": "Finally, the proposed control methodology's effectiveness is validated through a simulation example."
+        }
+      }
+    },
+    {
+      "author_id": "A5028604274",
+      "paper_id": "W4403980797",
+      "original_rank": 9,
+      "template": "new_method",
+      "text": "Proposes **neural networks**, which is new to your work, for **classification** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_cc7ce65da4a1",
+          "span": "neural networks",
+          "start_char": 731,
+          "end_char": 746,
+          "evidence_sentence": "This renewed enthusiasm was also due to the increase in computational power with graphical processing units and the availability of large digital databases to be mined by neural networks."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification",
+          "start_char": 913,
+          "end_char": 927,
+          "evidence_sentence": "AI soon began to be applied in medicine, first through expert systems designed to support the clinician's decision and later with neural networks for the detection, classification, or segmentation of malignant lesions in medical images."
+        }
+      }
+    },
+    {
+      "author_id": "A5025254339",
+      "paper_id": "W4401879778",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9244837164878845
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9244837164878845
+      }
+    },
+    {
+      "author_id": "A5007729521",
+      "paper_id": "W4401210436",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *How Shift Equivariance Impacts Metric Learning for Instance Segmentation*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3125427540",
+        "title": "How Shift Equivariance Impacts Metric Learning for Instance Segmentation",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5100342308",
+      "paper_id": "W4225847472",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *Large-Scale Transcriptional Profiling of Molecular Perturbations Reveals Cell Type Specific Responses and Implications for Environmental Screening*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3080647244",
+        "title": "Large-Scale Transcriptional Profiling of Molecular Perturbations Reveals Cell Type Specific Responses and Implications for Environmental Screening",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5102974206",
+      "paper_id": "W4400579489",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *Rapid A*: a robust path planning scheme for UAVs*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4384133640",
+        "title": "Rapid A*: a robust path planning scheme for UAVs",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5102634892",
+      "paper_id": "W4409685329",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9260148406028748
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9260148406028748
+      }
+    },
+    {
+      "author_id": "A5019483041",
+      "paper_id": "W4321249043",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *Deep Learning in Image Classification Using Modified ResNet50 and Texture Features for Lung Cancer Detection*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4404915334",
+        "title": "Deep Learning in Image Classification Using Modified ResNet50 and Texture Features for Lung Cancer Detection",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5081660906",
+      "paper_id": "W1494484168",
+      "original_rank": 8,
+      "template": "facet",
+      "text": "Evaluates on **biological sequences**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_849432aef11f",
+        "span": "biological sequences",
+        "start_char": 651,
+        "end_char": 671,
+        "evidence_sentence": "Furthermore, the number of their built-in properties is limited, and hence it is often difficult for users to formulate the biological sequences according to their desired features or properties."
+      }
+    },
+    {
+      "author_id": "A5003613031",
+      "paper_id": "W111380116",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *The Relationship Between Self-Esteem and Self-Presentation Strategies and the Construction of a Network Self-Image by Users of Social Networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4396865667",
+        "title": "The Relationship Between Self-Esteem and Self-Presentation Strategies and the Construction of a Network Self-Image by Users of Social Networks",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5088581659",
+      "paper_id": "W2976187852",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **15** references with your paper *QSFVQA: A Time Efficient, Scalable and Optimized VQA Framework*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 15,
+        "actual_refs": 15
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4321233963",
+        "title": "QSFVQA: A Time Efficient, Scalable and Optimized VQA Framework",
+        "shared_references": 15
+      }
+    },
+    {
+      "author_id": "A5013754013",
+      "paper_id": "W255556494",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *Comprehensive analysis of clustering algorithms: exploring limitations and innovative solutions*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4402011054",
+        "title": "Comprehensive analysis of clustering algorithms: exploring limitations and innovative solutions",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5001473724",
+      "paper_id": "W4291000812",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *Gannet optimization algorithm : A new metaheuristic algorithm for solving engineering optimization problems*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4283012435",
+        "title": "Gannet optimization algorithm : A new metaheuristic algorithm for solving engineering optimization problems",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5084221816",
+      "paper_id": "W3000676973",
+      "original_rank": 8,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Measuring User Experience, Usability and Interactivity of a Personalized Mobile Augmented Reality Training System*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": 8,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3171537175",
+        "title": "Measuring User Experience, Usability and Interactivity of a Personalized Mobile Augmented Reality Training System",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5012572669",
+      "paper_id": "W2782730293",
+      "original_rank": 8,
+      "template": "facet",
+      "text": "Evaluates on **Big Data**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_8a0a675375c2",
+        "span": "Big Data",
+        "start_char": 217,
+        "end_char": 225,
+        "evidence_sentence": "Among them, Artificial Neural Networks are nowadays reinvented with the peak of the Machine Learning, Big Data, etc. In the process to find the best classification and be sure on it, one of the biggest concerns that we can come up against is the problem of overfitting."
+      }
+    },
+    {
+      "author_id": "A5055756070",
+      "paper_id": "W3177440780",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *Medical and nursing students\u2019 satisfaction with e-learning platforms during the COVID-19 pandemic: Initial findings of an experimental project in China*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4391847843",
+        "title": "Medical and nursing students\u2019 satisfaction with e-learning platforms during the COVID-19 pandemic: Initial findings of an experimental project in China",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5069589370",
+      "paper_id": "W4311041597",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Generative adversarial network based data augmentation and gender-last training strategy with application to bone age assessment*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3206155853",
+        "title": "Generative adversarial network based data augmentation and gender-last training strategy with application to bone age assessment",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5101864675",
+      "paper_id": "W4391288972",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Artificial Intelligence driven Intrusion Detection Framework for the Internet of Medical Things*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4324195296",
+        "title": "Artificial Intelligence driven Intrusion Detection Framework for the Internet of Medical Things",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5021494379",
+      "paper_id": "W4407303839",
+      "original_rank": 7,
+      "template": "facet",
+      "text": "Evaluates on **Network Intrusion Detection dataset**, used in 5 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 8,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "user_papers_with_facet": 5,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_8253d181c80a",
+        "span": "Network Intrusion Detection dataset",
+        "start_char": 176,
+        "end_char": 211,
+        "evidence_sentence": "We utilize the Network Intrusion Detection dataset, which simulates various intrusions in a military network environment, to train and test our model."
+      }
+    },
+    {
+      "author_id": "A5046533689",
+      "paper_id": "W4402980222",
+      "original_rank": 8,
+      "template": "facet",
+      "text": "Evaluates on **test set**, used in 4 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 8,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "user_papers_with_facet": 4,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_0604209f3e77",
+        "span": "test set",
+        "start_char": 998,
+        "end_char": 1006,
+        "evidence_sentence": "8 3 \\%}$ on the test set, with precision, recall, and F1-score values reaching up to $\\mathbf{9 6."
+      }
+    },
+    {
+      "author_id": "A5095690828",
+      "paper_id": "W4404711453",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9485119581222534
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9485119581222534
+      }
+    },
+    {
+      "author_id": "A5053822883",
+      "paper_id": "W2994536315",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **19** references with your paper *Deep Clustering for Unsupervised Learning of Visual Features*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 19,
+        "actual_refs": 19
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2883725317",
+        "title": "Deep Clustering for Unsupervised Learning of Visual Features",
+        "shared_references": 19
+      }
+    },
+    {
+      "author_id": "A5102580507",
+      "paper_id": "W4405672713",
+      "original_rank": 3,
+      "template": "new_method",
+      "text": "Proposes **hyperparameter optimization**, which is new to your work, for **classification task** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_0b52f28968a1",
+          "span": "hyperparameter optimization",
+          "start_char": 943,
+          "end_char": 970,
+          "evidence_sentence": "The results show that the CNN-based MobileNetV2 model is a reliable and effective tool for skin cancer diagnosis, but small fluctuations in the validation phase require further data and hyperparameter optimization to further improve the generalization ability of the model."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification task",
+          "start_char": 446,
+          "end_char": 465,
+          "evidence_sentence": "The model was trained with MobileNetV2 architecture and performed the classification task with high accuracy on images of skin lesions."
+        }
+      }
+    },
+    {
+      "author_id": "A5074421743",
+      "paper_id": "W4402789488",
+      "original_rank": 8,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Automated multi-modal Transformer network (AMTNet) for 3D medical images segmentation*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4311041597",
+        "title": "Automated multi-modal Transformer network (AMTNet) for 3D medical images segmentation",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5010566508",
+      "paper_id": "W4398218418",
+      "original_rank": 4,
+      "template": "new_method",
+      "text": "Proposes **AI**, which is new to your work, for **decision making** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 4,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_32e83e92d45d",
+          "span": "AI",
+          "start_char": 1085,
+          "end_char": 1087,
+          "evidence_sentence": "By increasing productivity, automating business processes, financial solutions and government services, AI can drive economic growth in these emerging economies."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_8de65c884945",
+          "span": "decision making",
+          "start_char": 292,
+          "end_char": 307,
+          "evidence_sentence": "This book explores the multifarious capabilities and applications of AI in the context of these emerging economies and its role as a driver for decision making in current management practices."
+        }
+      }
+    },
+    {
+      "author_id": "A5100658356",
+      "paper_id": "W4225404354",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **11** references with your paper *Semi-supervised adversarial model for benign\u2013malignant lung nodule classification on chest CT*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 11,
+        "actual_refs": 11
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2957352479",
+        "title": "Semi-supervised adversarial model for benign\u2013malignant lung nodule classification on chest CT",
+        "shared_references": 11
+      }
+    },
+    {
+      "author_id": "A5006542544",
+      "paper_id": "W4391128608",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Vdd: Varied Drone Dataset for Semantic Segmentation*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4400900420",
+        "title": "Vdd: Varied Drone Dataset for Semantic Segmentation",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5100360494",
+      "paper_id": "W4307321660",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *A scoping review of COVID-19 research adopting quantitative geographical methods in geography, urban studies, and planning: a text mining approach*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4391349534",
+        "title": "A scoping review of COVID-19 research adopting quantitative geographical methods in geography, urban studies, and planning: a text mining approach",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5088884073",
+      "paper_id": "W4214712602",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **2** references with your paper *Explainable deep inherent learning for multi-classes skin lesion classification*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 2,
+        "actual_refs": 2
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4394958520",
+        "title": "Explainable deep inherent learning for multi-classes skin lesion classification",
+        "shared_references": 2
+      }
+    },
+    {
+      "author_id": "A5089434001",
+      "paper_id": "W4386645116",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.97419273853302
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.97419273853302
+      }
+    },
+    {
+      "author_id": "A5034682935",
+      "paper_id": "W4402508171",
+      "original_rank": 8,
+      "template": "citation",
+      "text": "Shares **31** references with your paper *All-In-One Image Restoration for Unknown Corruption*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 31,
+        "actual_refs": 31
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4312373367",
+        "title": "All-In-One Image Restoration for Unknown Corruption",
+        "shared_references": 31
+      }
+    },
+    {
+      "author_id": "A5047501656",
+      "paper_id": "W4404024201",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *Can molecular dynamics simulations improve predictions of protein-ligand binding affinity with machine learning?*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4317702934",
+        "title": "Can molecular dynamics simulations improve predictions of protein-ligand binding affinity with machine learning?",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5100324043",
+      "paper_id": "W3190772738",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9555628299713135
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9555628299713135
+      }
+    },
+    {
+      "author_id": "A5059086882",
+      "paper_id": "W4392984773",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *Erasure conversion in a high-fidelity Rydberg quantum simulator*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4387527421",
+        "title": "Erasure conversion in a high-fidelity Rydberg quantum simulator",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5102026679",
+      "paper_id": "W4225598836",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *PAC-Bayesian framework based drop-path method for 2D discriminative convolutional network pruning*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2980377888",
+        "title": "PAC-Bayesian framework based drop-path method for 2D discriminative convolutional network pruning",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5116548271",
+      "paper_id": "W4401109657",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **2** references with your paper *Securing IoT Systems using Blockchain Algorithms*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 2,
+        "actual_refs": 2
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3091083792",
+        "title": "Securing IoT Systems using Blockchain Algorithms",
+        "shared_references": 2
+      }
+    },
+    {
+      "author_id": "A5058751960",
+      "paper_id": "W4400128681",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9322687387466431
+      },
+      "counterfactual_rank": 8,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "persona_cosine": 0.9322687387466431
+      }
+    },
+    {
+      "author_id": "A5007611122",
+      "paper_id": "W2125725603",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **2** references with your paper *Eye-tracking analysis of computer networks exam question besides different skilled groups*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 2,
+        "actual_refs": 2
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2570350136",
+        "title": "Eye-tracking analysis of computer networks exam question besides different skilled groups",
+        "shared_references": 2
+      }
+    },
+    {
+      "author_id": "A5025448575",
+      "paper_id": "W4405672713",
+      "original_rank": 2,
+      "template": "new_method",
+      "text": "Proposes **hyperparameter optimization**, which is new to your work, for **classification task** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_0b52f28968a1",
+          "span": "hyperparameter optimization",
+          "start_char": 943,
+          "end_char": 970,
+          "evidence_sentence": "The results show that the CNN-based MobileNetV2 model is a reliable and effective tool for skin cancer diagnosis, but small fluctuations in the validation phase require further data and hyperparameter optimization to further improve the generalization ability of the model."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_9f0c8aa52657",
+          "span": "classification task",
+          "start_char": 446,
+          "end_char": 465,
+          "evidence_sentence": "The model was trained with MobileNetV2 architecture and performed the classification task with high accuracy on images of skin lesions."
+        }
+      }
+    },
+    {
+      "author_id": "A5100442534",
+      "paper_id": "W4379015004",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9318364858627319
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9318364858627319
+      }
+    },
+    {
+      "author_id": "A5100306735",
+      "paper_id": "W3009734829",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **12** references with your paper *Multiscale Global-Aware Channel Attention for Person Re-identification*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 12,
+        "actual_refs": 12
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4311423181",
+        "title": "Multiscale Global-Aware Channel Attention for Person Re-identification",
+        "shared_references": 12
+      }
+    },
+    {
+      "author_id": "A5088581659",
+      "paper_id": "W4312715257",
+      "original_rank": 6,
+      "template": "facet",
+      "text": "Evaluates on **visual features**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_c5e969b58494",
+        "span": "visual features",
+        "start_char": 249,
+        "end_char": 264,
+        "evidence_sentence": "Most current methods rely on an image extractor to obtain visual features and a text extractor to capture semantic features, and then a fusion module to merge the information from the two modalities to predict the final result."
+      }
+    },
+    {
+      "author_id": "A5104268035",
+      "paper_id": "W3048190664",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9483904242515564
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9483904242515564
+      }
+    },
+    {
+      "author_id": "A5026864256",
+      "paper_id": "W4408048423",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9601319432258606
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9601319432258606
+      }
+    },
+    {
+      "author_id": "A5092611926",
+      "paper_id": "W4404326042",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9571970701217651
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9571970701217651
+      }
+    },
+    {
+      "author_id": "A5100734776",
+      "paper_id": "W4404035348",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **17** references with your paper *Hierarchical knowledge graph relationship prediction leverage of axiomatic fuzzy set graph structure*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 17,
+        "actual_refs": 17
+      },
+      "counterfactual_rank": 7,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4395080726",
+        "title": "Hierarchical knowledge graph relationship prediction leverage of axiomatic fuzzy set graph structure",
+        "shared_references": 17
+      }
+    },
+    {
+      "author_id": "A5101966856",
+      "paper_id": "W4401207036",
+      "original_rank": 9,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *Pedagogical agents in K-12 education: a scoping review*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4401326716",
+        "title": "Pedagogical agents in K-12 education: a scoping review",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5043120571",
+      "paper_id": "W4405906776",
+      "original_rank": 1,
+      "template": "facet",
+      "text": "Evaluates on **Global Burden of Disease study**, used in 28 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": 9,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 28,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_0d1430f13e91",
+        "span": "Global Burden of Disease study",
+        "start_char": 218,
+        "end_char": 248,
+        "evidence_sentence": "Data from the Global Burden of Disease study was used to calculate age-standardized rates of incidence (ASIR), prevalence (ASPR), and disability-adjusted life years (ASDR)."
+      }
+    },
+    {
+      "author_id": "A5091224174",
+      "paper_id": "W4220885155",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *More is not always better? Vocabulary learning strategies instruction in online environment*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4392845353",
+        "title": "More is not always better? Vocabulary learning strategies instruction in online environment",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5116548271",
+      "paper_id": "W4211108011",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9575278162956238
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9575278162956238
+      }
+    },
+    {
+      "author_id": "A5088140645",
+      "paper_id": "W4381425968",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Analysis of Cyber Security Attacks and Its Solutions for the Smart grid Using Machine Learning and Blockchain Methods*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4321372786",
+        "title": "Analysis of Cyber Security Attacks and Its Solutions for the Smart grid Using Machine Learning and Blockchain Methods",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5013103670",
+      "paper_id": "W4400447734",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Explainable Spatio-Temporal Graph Neural Networks for multi-site photovoltaic energy production*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4388242026",
+        "title": "Explainable Spatio-Temporal Graph Neural Networks for multi-site photovoltaic energy production",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5009919157",
+      "paper_id": "W4403295565",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *TESSERACT: Gradient Flip Score to Secure Federated Learning Against Model Poisoning Attacks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3207773172",
+        "title": "TESSERACT: Gradient Flip Score to Secure Federated Learning Against Model Poisoning Attacks",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5065793456",
+      "paper_id": "W4205546568",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9493159055709839
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9493159055709839
+      }
+    },
+    {
+      "author_id": "A5040252691",
+      "paper_id": "W4309026313",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *Semi-Supervised Person Detection in Aerial Images with Instance Segmentation and Maximum Mean Discrepancy Distance*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4379386148",
+        "title": "Semi-Supervised Person Detection in Aerial Images with Instance Segmentation and Maximum Mean Discrepancy Distance",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5029166810",
+      "paper_id": "W4224143021",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9366604089736938
+      },
+      "counterfactual_rank": 9,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9366604089736938
+      }
+    },
+    {
+      "author_id": "A5009129791",
+      "paper_id": "W4396556338",
+      "original_rank": 9,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Developing feedback literacy, scaffolded writing, and resilience through intervention on feedback processes for L2 writing students*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4393938427",
+        "title": "Developing feedback literacy, scaffolded writing, and resilience through intervention on feedback processes for L2 writing students",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5050708271",
+      "paper_id": "W3013425452",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Alliance Entrepreneurship and Entrepreneurial Orientation: The Mediating Effect of Knowledge Transfer*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2576172486",
+        "title": "Alliance Entrepreneurship and Entrepreneurial Orientation: The Mediating Effect of Knowledge Transfer",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5100343402",
+      "paper_id": "W4402775822",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **19** references with your paper *Model-Informed Multistage Unsupervised Network for Hyperspectral Image Super-Resolution*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 19,
+        "actual_refs": 19
+      },
+      "counterfactual_rank": 9,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4394938955",
+        "title": "Model-Informed Multistage Unsupervised Network for Hyperspectral Image Super-Resolution",
+        "shared_references": 19
+      }
+    },
+    {
+      "author_id": "A5006995271",
+      "paper_id": "W4224048112",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Exploring the Potential Impact of Artificial Intelligence (AI) on International Students in Higher Education: Generative AI, Chatbots, Analytics, and International Student Success*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4379057711",
+        "title": "Exploring the Potential Impact of Artificial Intelligence (AI) on International Students in Higher Education: Generative AI, Chatbots, Analytics, and International Student Success",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5008583155",
+      "paper_id": "W4378227250",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **1** references with your paper *The Implications of Lean Thinking in Digital Transformation Projects*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 1,
+        "actual_refs": 1
+      },
+      "counterfactual_rank": 3,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4388999588",
+        "title": "The Implications of Lean Thinking in Digital Transformation Projects",
+        "shared_references": 1
+      }
+    },
+    {
+      "author_id": "A5020264645",
+      "paper_id": "W4384937220",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **13** references with your paper *Exploring fine-grained syntactic information for aspect-based sentiment classification with dual graph neural networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 13,
+        "actual_refs": 13
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3208152475",
+        "title": "Exploring fine-grained syntactic information for aspect-based sentiment classification with dual graph neural networks",
+        "shared_references": 13
+      }
+    },
+    {
+      "author_id": "A5030439538",
+      "paper_id": "W3035625205",
+      "original_rank": 8,
+      "template": "citation",
+      "text": "Shares **12** references with your paper *Research on Chinese Nested Entity Recognition Based on IDCNNLR and GlobalPointer*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 12,
+        "actual_refs": 12
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4390674122",
+        "title": "Research on Chinese Nested Entity Recognition Based on IDCNNLR and GlobalPointer",
+        "shared_references": 12
+      }
+    },
+    {
+      "author_id": "A5100655268",
+      "paper_id": "W3074741277",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Dual-distribution discrepancy with self-supervised refinement for anomaly detection in medical images*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4324044570",
+        "title": "Dual-distribution discrepancy with self-supervised refinement for anomaly detection in medical images",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5009971252",
+      "paper_id": "W3000775737",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **13** references with your paper *Image Super-Resolution with Multi-scale Residual Dense Feature aggregation Networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 13,
+        "actual_refs": 13
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4317396526",
+        "title": "Image Super-Resolution with Multi-scale Residual Dense Feature aggregation Networks",
+        "shared_references": 13
+      }
+    },
+    {
+      "author_id": "A5045879529",
+      "paper_id": "W4403912257",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *Constrained Optimal Control for Nonlinear Multi-Input Safety-Critical Systems with Time-Varying Safety Constraints*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4289731764",
+        "title": "Constrained Optimal Control for Nonlinear Multi-Input Safety-Critical Systems with Time-Varying Safety Constraints",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5049169545",
+      "paper_id": "W4405843158",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9463630318641663
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9463630318641663
+      }
+    },
+    {
+      "author_id": "A5047962414",
+      "paper_id": "W2898081700",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **11** references with your paper *Mobile app review analysis for crowdsourcing of software requirements: a mapping study of automated and semi-automated tools*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 11,
+        "actual_refs": 11
+      },
+      "counterfactual_rank": 9,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4404082006",
+        "title": "Mobile app review analysis for crowdsourcing of software requirements: a mapping study of automated and semi-automated tools",
+        "shared_references": 11
+      }
+    },
+    {
+      "author_id": "A5052257805",
+      "paper_id": "W4401567681",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *Feature Selection and Extraction for Graph Neural Networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": 2,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2981527664",
+        "title": "Feature Selection and Extraction for Graph Neural Networks",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5063351753",
+      "paper_id": "W4405615319",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **18** references with your paper *DRMF: Degradation-Robust Multi-Modal Image Fusion via Composable Diffusion Prior*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 18,
+        "actual_refs": 18
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4403791267",
+        "title": "DRMF: Degradation-Robust Multi-Modal Image Fusion via Composable Diffusion Prior",
+        "shared_references": 18
+      }
+    },
+    {
+      "author_id": "A5086294753",
+      "paper_id": "W4399562917",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *Multiscale Adjacency Matrix CNN: Learning on Multispectral LiDAR Point Cloud via Multiscale Local Graph Convolution*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4388878453",
+        "title": "Multiscale Adjacency Matrix CNN: Learning on Multispectral LiDAR Point Cloud via Multiscale Local Graph Convolution",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5013754013",
+      "paper_id": "W4391312031",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9267085790634155
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9267085790634155
+      }
+    },
+    {
+      "author_id": "A5093388263",
+      "paper_id": "W2906610670",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9305990934371948
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9305990934371948
+      }
+    },
+    {
+      "author_id": "A5072512285",
+      "paper_id": "W4396218245",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Shaping the Metaverse into Reality: A Holistic Multidisciplinary Understanding of Opportunities, Challenges, and Avenues for Future Investigation*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4319066461",
+        "title": "Shaping the Metaverse into Reality: A Holistic Multidisciplinary Understanding of Opportunities, Challenges, and Avenues for Future Investigation",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5055194945",
+      "paper_id": "W3119496851",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9247147440910339
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9247147440910339
+      }
+    },
+    {
+      "author_id": "A5101643509",
+      "paper_id": "W4395036801",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Pre-Service Teachers\u2019 GenAI Anxiety, Technology Self-Efficacy, and TPACK: Their Structural Relations with Behavioral Intention to Design GenAI-Assisted Teaching*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4396518639",
+        "title": "Pre-Service Teachers\u2019 GenAI Anxiety, Technology Self-Efficacy, and TPACK: Their Structural Relations with Behavioral Intention to Design GenAI-Assisted Teaching",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5079258366",
+      "paper_id": "W2057932305",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Evaluates on **three real world data sets**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_46b0b08ff69d",
+        "span": "three real world data sets",
+        "start_char": 1069,
+        "end_char": 1095,
+        "evidence_sentence": "Systematic experiments on three real world data sets have demonstrated the effectiveness of our proposed approach."
+      }
+    },
+    {
+      "author_id": "A5101640495",
+      "paper_id": "W2612256750",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9637548327445984
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9637548327445984
+      }
+    },
+    {
+      "author_id": "A5007252064",
+      "paper_id": "W3021538279",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9310994744300842
+      },
+      "counterfactual_rank": 5,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "persona_cosine": 0.9310994744300842
+      }
+    },
+    {
+      "author_id": "A5006391718",
+      "paper_id": "W4366327286",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *ConvMB: Improving Convolution-Based Knowledge Graph Embeddings by Adopting Multi-Branch 3D Convolution Filters*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": 10,
+      "rank_drop": 0,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4200350474",
+        "title": "ConvMB: Improving Convolution-Based Knowledge Graph Embeddings by Adopting Multi-Branch 3D Convolution Filters",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5082007071",
+      "paper_id": "W4308453110",
+      "original_rank": 1,
+      "template": "new_method",
+      "text": "Proposes **complex deep learning**, which is new to your work, for **pulmonary nodule detection** that you work on",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "new_method",
+        "method_grounded": true,
+        "task_grounded": true
+      },
+      "counterfactual_rank": 3,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "method": {
+          "facet_type": "method",
+          "canonical_id": "canon_method_3cfb4eb51c78",
+          "span": "complex deep learning",
+          "start_char": 1226,
+          "end_char": 1247,
+          "evidence_sentence": "It is found superior to other existing methods including complex deep learning, simple machine learning, and the hybrid techniques used on lung CT images for nodule detection."
+        },
+        "task": {
+          "facet_type": "task",
+          "canonical_id": "canon_task_7ddb19f79874",
+          "span": "pulmonary nodule detection",
+          "start_char": 1104,
+          "end_char": 1130,
+          "evidence_sentence": "The proposed deep learning-assisted SVM-based model yields 94% accuracy for pulmonary nodule detection representing early-stage lung cancer."
+        }
+      }
+    },
+    {
+      "author_id": "A5050199179",
+      "paper_id": "W2505410382",
+      "original_rank": 9,
+      "template": "facet",
+      "text": "Addresses **decision making process**, studied in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "task",
+        "canonical_id": "canon_task_8de65c884945",
+        "span": "decision making process",
+        "start_char": 98,
+        "end_char": 121,
+        "evidence_sentence": "The aggregation operators play an important role in the fusion of multidimensional information in decision making process."
+      }
+    },
+    {
+      "author_id": "A5087020441",
+      "paper_id": "W4396904268",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Geometric Sketching Compactly Summarizes the Single-Cell Transcriptomic Landscape*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2949681238",
+        "title": "Geometric Sketching Compactly Summarizes the Single-Cell Transcriptomic Landscape",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5085944663",
+      "paper_id": "W4389937903",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *Improved Binary Gray Wolf Optimizer Based on Adaptive \u03b2-Hill Climbing for Feature Selection*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4380681924",
+        "title": "Improved Binary Gray Wolf Optimizer Based on Adaptive \u03b2-Hill Climbing for Feature Selection",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5086382599",
+      "paper_id": "W4408696531",
+      "original_rank": 5,
+      "template": "facet",
+      "text": "Addresses **monitoring**, studied in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "task",
+        "canonical_id": "canon_task_14a2326b6bb5",
+        "span": "monitoring",
+        "start_char": 1332,
+        "end_char": 1342,
+        "evidence_sentence": "Internet of Things (IoT) is redefining the energy sector as it enables the monitoring, control, and optimization of energy production, distribution, and consumption."
+      }
+    },
+    {
+      "author_id": "A5004310412",
+      "paper_id": "W4408359429",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9112792611122131
+      },
+      "counterfactual_rank": 3,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": false,
+      "evidence": {
+        "persona_cosine": 0.9112792611122131
+      }
+    },
+    {
+      "author_id": "A5019483041",
+      "paper_id": "W1559060276",
+      "original_rank": 6,
+      "template": "facet",
+      "text": "Addresses **classification tasks**, studied in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "task",
+        "canonical_id": "canon_task_9f0c8aa52657",
+        "span": "classification tasks",
+        "start_char": 91,
+        "end_char": 111,
+        "evidence_sentence": "Naive-Bayes induction algorithms were previously shown to be surprisingly accurate on many classification tasks even when the conditional independence assumption on which they are based is violated."
+      }
+    },
+    {
+      "author_id": "A5080357202",
+      "paper_id": "W4288075601",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9477840065956116
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9477840065956116
+      }
+    },
+    {
+      "author_id": "A5034214326",
+      "paper_id": "W2907641712",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9494701623916626
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9494701623916626
+      }
+    },
+    {
+      "author_id": "A5025324850",
+      "paper_id": "W4220739108",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9197647571563721
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9197647571563721
+      }
+    },
+    {
+      "author_id": "A5010113677",
+      "paper_id": "W1492802215",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9476696252822876
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9476696252822876
+      }
+    },
+    {
+      "author_id": "A5100438513",
+      "paper_id": "W2129846902",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **20** references with your paper *Silver triflate\u2013copper(ii) acetate cooperative catalysis in a cascade reaction for concise synthesis of 2-carbonyl H-pyrazolo[5,1-a]isoquinolines*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 20,
+        "actual_refs": 20
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W1982954749",
+        "title": "Silver triflate\u2013copper(ii) acetate cooperative catalysis in a cascade reaction for concise synthesis of 2-carbonyl H-pyrazolo[5,1-a]isoquinolines",
+        "shared_references": 20
+      }
+    },
+    {
+      "author_id": "A5022849698",
+      "paper_id": "W4386824701",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **18** references with your paper *ORSI Salient Object Detection via Bidimensional Attention and Full-Stage Semantic Guidance*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 18,
+        "actual_refs": 18
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4319663751",
+        "title": "ORSI Salient Object Detection via Bidimensional Attention and Full-Stage Semantic Guidance",
+        "shared_references": 18
+      }
+    },
+    {
+      "author_id": "A5100324043",
+      "paper_id": "W4401414580",
+      "original_rank": 4,
+      "template": "facet",
+      "text": "Evaluates on **local data**, used in 3 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 3,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_e4d6f89c0dfa",
+        "span": "local data",
+        "start_char": 177,
+        "end_char": 187,
+        "evidence_sentence": "Federated Learning is a decentralized machine learning technique that creates a global model by aggregating local models from multiple edge devices without a need to access the local data."
+      }
+    },
+    {
+      "author_id": "A5112111677",
+      "paper_id": "W2101651025",
+      "original_rank": 3,
+      "template": "facet",
+      "text": "Addresses **types of tasks**, studied in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "task",
+        "canonical_id": "canon_task_085154084c74",
+        "span": "types of tasks",
+        "start_char": 485,
+        "end_char": 499,
+        "evidence_sentence": "A good task scheduler should adapt its scheduling strategy to the changing environment and the types of tasks."
+      }
+    },
+    {
+      "author_id": "A5047770079",
+      "paper_id": "W4399562917",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **19** references with your paper *Semantic Segmentation of Terrestrial Laser Scanning Point Clouds Using Locally Enhanced Image-Based Geometric Representations*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 19,
+        "actual_refs": 19
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4220840476",
+        "title": "Semantic Segmentation of Terrestrial Laser Scanning Point Clouds Using Locally Enhanced Image-Based Geometric Representations",
+        "shared_references": 19
+      }
+    },
+    {
+      "author_id": "A5084617577",
+      "paper_id": "W3194368700",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Artificial intelligence, machine learning, and drug repurposing in cancer*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3128618129",
+        "title": "Artificial intelligence, machine learning, and drug repurposing in cancer",
+        "shared_references": 4
+      }
+    }
+  ]
+}
