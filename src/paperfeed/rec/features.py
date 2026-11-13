@@ -259,6 +259,7 @@ class CandidateFeatures:
     new_method: NewMethod
     penalty: float
     citation_count: int = 0
+    ce_score: Optional[float] = None  # V2 cross-encoder score (rec.rerank); None when the reranker is off (Core)
 
     @property
     def log_cite(self) -> float:

@@ -32,8 +32,9 @@ from paperfeed.rec.candidates import (
     search_candidates,
 )
 from paperfeed.rec.explain import Explainer, ExplanationResult
-from paperfeed.rec.features import UserCitationContext, build_citation_context, compute_features
+from paperfeed.rec.features import CandidateFeatures, UserCitationContext, build_citation_context, compute_features
 from paperfeed.rec.mmr import DEFAULT_K, DEFAULT_LAMBDA_DIV, select_top_k
+from paperfeed.rec.rerank import add_reranker_scores, candidate_texts
 from paperfeed.rec.scoring import ScoredCandidate, ScoringWeights, score_candidates
 from paperfeed.user.exclusion import ExclusionSources, load_exclusion_sources
 from paperfeed.user.facets import UserFacets, build_user_facets, build_zero_pub_facets
@@ -69,6 +70,7 @@ class RecommendConfig:
     gamma_rec: float = DEFAULT_GAMMA_REC  # persona recency decay, used by ``build_user_profile``
     adaptive_graph: bool = True  # adaptive scaling of w_cite for sparse authors
     graph_channel: bool = False  # Extended V4 (D§13.8): citation-graph candidate channel; off in Core
+    cross_encoder: Optional[str] = None  # Extended V2 (D§13.8): reranker model name for the w_ce feature; off in Core
     explain: bool = True
 
     @classmethod
@@ -118,6 +120,7 @@ class RecommenderResources:
     eligible: Set[str]  # papers that may be recommended: in_candidates and year <= T
     facet_store: Optional[FacetStore] = None  # None until facets are extracted and canonicalized
     encoder: Any = None  # SPECTER2Encoder; needed for title-only authored papers, seed topics and search mode
+    reranker: Any = None  # V2 FeedReranker (rec.rerank); only needed when RecommendConfig.cross_encoder is set
 
     @classmethod
     def load(
@@ -369,6 +372,7 @@ class RecommendationResult:
     # as the faithfulness counterfactual re-rank exactly what produced this feed. Not serialized by ``to_dict``.
     scored_pool: List[ScoredCandidate] = field(default_factory=list)
     effective_weights: Optional[ScoringWeights] = None
+    rerank_seconds: Optional[float] = None  # V2: reranker time for this feed (latency, plan 10.2b)
 
     @property
     def paper_ids(self) -> List[str]:
@@ -424,6 +428,22 @@ def graph_hits_for(
     )
 
 
+def apply_reranker(
+    resources: RecommenderResources, features: List[CandidateFeatures], pseudo_query: str, cfg: RecommendConfig
+) -> Tuple[List[CandidateFeatures], Optional[float]]:
+    """V2: the features with the reranker score added, and the reranker time; unchanged (and None) when it is off."""
+    if not cfg.cross_encoder:
+        return features, None
+    reranker = resources.reranker
+    if reranker is None or getattr(reranker, "model_name", None) != cfg.cross_encoder:
+        raise ValueError(
+            f"RecommendConfig.cross_encoder = {cfg.cross_encoder!r} but resources.reranker is "
+            f"{getattr(reranker, 'model_name', None)!r}: load that reranker into the resources first."
+        )
+    texts = candidate_texts(resources.db, [f.paper_id for f in features])
+    return add_reranker_scores(features, pseudo_query, texts, reranker)
+
+
 def recommend(
     resources: RecommenderResources,
     profile: UserProfile,
@@ -471,6 +491,7 @@ def recommend(
         [c.paper_id for c in cands], r.store, profile.persona.vector, profile.user_facets, profile.citation_ctx, r.db,
         r.cutoff_year, session_vec, session.negatives, r.facet_store,
     )
+    features, rerank_seconds = apply_reranker(r, features, pseudo_query, cfg)
     weights = effective_weights(cfg.weights, cfg.adaptive_graph, profile)
     scored = score_candidates(features, weights)
     picks = select_top_k(scored, r.store, cfg.k, cfg.lambda_div)
@@ -493,7 +514,8 @@ def recommend(
     ]
     _check_output([i.paper_id for i in items], r, excluded)
     return RecommendationResult(profile.user_id, mode, items, len(cands), [c.paper_id for c in cands], session_active,
-                                pseudo_query, len(excluded), cfg, scored_pool=scored, effective_weights=weights)
+                                pseudo_query, len(excluded), cfg, scored_pool=scored, effective_weights=weights,
+                                rerank_seconds=rerank_seconds)
 
 
 def _search_item(rank: int, c: RetrievedCandidate, meta: Mapping[str, Mapping[str, Any]]) -> RecommendedItem:

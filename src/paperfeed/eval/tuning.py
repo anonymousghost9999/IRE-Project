@@ -30,6 +30,7 @@ from paperfeed.rec.recommender import (
     UserProfile,
     build_user_profile,
     effective_weights,
+    apply_reranker,
     graph_hits_for,
 )
 from paperfeed.rec.scoring import ScoringWeights, score_candidates
@@ -149,6 +150,7 @@ def precompute_tuning_cache(
                 negative_ids=(),
                 facet_store=r.facet_store,
             )
+            features, _ = apply_reranker(r, features, pseudo_query, cfg)  # V2 only; unchanged in Core
 
             cached.append(
                 CachedUserCandidateData(
@@ -442,6 +444,8 @@ def tuning_signature(
     # Added only when on, so the Core signatures (and their existing tuning files) are unchanged
     if config.graph_channel:
         signature["graph_channel"] = True
+    if config.cross_encoder:
+        signature["cross_encoder"] = config.cross_encoder
     return signature
 
 

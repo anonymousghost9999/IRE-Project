@@ -1342,3 +1342,91 @@ def test_recommend_with_graph_channel_ranks_graph_neighbours(world):
     assert zero.items and all(i.graph_rank is None for i in zero.items)
     switched = recommend(world, _profile(world), config=cfg.with_overrides(zero_pub=True))  # zero-pub slice run
     assert all(i.graph_rank is None for i in switched.items)
+
+
+# ---------------------------------------------------------------------------
+# V2 cross-encoder feature (plan 10.2a)
+# ---------------------------------------------------------------------------
+
+class FakeReranker:
+    """Scores a pair by how often "astronomy" appears in the text: the opposite of the IR-leaning persona."""
+
+    model_name = "fake-ce"
+
+    def __init__(self):
+        self.calls = []
+
+    def score(self, query, texts):
+        self.calls.append((query, list(texts)))
+        return [float(t.lower().count("astronomy")) for t in texts]
+
+
+def _ce_feat(pid, ce=None):
+    from paperfeed.rec.features import CandidateFeatures, CitationSignal, FacetMatch, NewMethod
+
+    return CandidateFeatures(paper_id=pid, persona_cos=0.5, session_cos=None, citation=CitationSignal(),
+                             facet=FacetMatch(), new_method=NewMethod(), penalty=0.0, ce_score=ce)
+
+
+def test_cross_encoder_term_is_min_max_scaled_and_off_without_scores():
+    w = ScoringWeights(w_ce=0.5)
+    on = score_candidates([_ce_feat("a", 1.0), _ce_feat("b", 3.0), _ce_feat("c", 2.0)], w)
+    assert [s.scaled["cross_encoder"] for s in on] == [0.0, 1.0, 0.5]
+    assert [s.contributions["cross_encoder"] for s in on] == [0.0, 0.5, 0.25]
+    off = score_candidates([_ce_feat("a"), _ce_feat("b")], w)
+    assert all(s.contributions["cross_encoder"] == 0.0 for s in off)
+    mixed = score_candidates([_ce_feat("a", 1.0), _ce_feat("b")], w)  # a pool is either fully scored or not at all
+    assert all(s.contributions["cross_encoder"] == 0.0 for s in mixed)
+
+
+def test_add_reranker_scores_and_texts():
+    from paperfeed.rec.rerank import add_reranker_scores, candidate_text
+
+    assert candidate_text({"title": "T", "abstract": "A b."}) == "T. A b"
+    assert candidate_text({"title": "Only title", "abstract": None}) == "Only title"
+    fake = FakeReranker()
+    feats, secs = add_reranker_scores([_ce_feat("a"), _ce_feat("b")], "q", {"a": "astronomy", "b": "ir"}, fake)
+    assert [f.ce_score for f in feats] == [1.0, 0.0] and secs >= 0.0 and fake.calls == [("q", ["astronomy", "ir"])]
+    feats, secs = add_reranker_scores([_ce_feat("a")], "  ", {"a": "astronomy"}, fake)  # empty query: no signal
+    assert feats[0].ce_score == 0.0 and secs == 0.0 and len(fake.calls) == 1
+
+    class Broken(FakeReranker):
+        def score(self, query, texts):
+            return [1.0]
+
+    with pytest.raises(RuntimeError, match="returned 1 scores"):
+        add_reranker_scores([_ce_feat("a"), _ce_feat("b")], "q", {}, Broken())
+
+
+def test_recommend_with_cross_encoder(world):
+    from dataclasses import replace as dc_replace
+    from paperfeed.rec.explain import EXPLAINABLE_FEATURES
+
+    cfg = CFG.with_overrides(k=4)
+    core = recommend(world, _profile(world), config=cfg)
+    assert core.rerank_seconds is None
+
+    with pytest.raises(ValueError, match="load that reranker"):  # configured but not loaded
+        recommend(world, _profile(world), config=cfg.with_overrides(cross_encoder="fake-ce"))
+
+    fake = FakeReranker()
+    ce_world = dc_replace(world, reranker=fake)
+    zero = recommend(ce_world, _profile(world), config=cfg.with_overrides(cross_encoder="fake-ce"))  # w_ce = 0
+    assert zero.paper_ids == core.paper_ids and zero.rerank_seconds is not None
+    assert fake.calls and fake.calls[0][0] == zero.pseudo_query  # the query is the feed pseudo-query
+
+    strong = cfg.with_overrides(cross_encoder="fake-ce", weights={"w_ce": 10.0})
+    res = recommend(ce_world, _profile(world), config=strong)
+    assert set(res.paper_ids[:3]) == {"A1", "A2", "A3"}  # the reranker term now dominates the score
+    for item in res.items:
+        assert item.contributions["cross_encoder"] > 0 or item.paper_id not in {"A1", "A2", "A3"}
+        assert item.explanation is None or item.explanation.dominant_feature in EXPLAINABLE_FEATURES + (None,)
+
+
+def test_tuning_signature_names_the_cross_encoder_only_when_on():
+    from paperfeed.eval.tuning import tuning_signature
+    from paperfeed.rec.recommender import RecommendConfig
+
+    core = tuning_signature(RecommendConfig(pool_size=100), ["A1"])
+    v2 = tuning_signature(RecommendConfig(pool_size=100, cross_encoder="BAAI/bge-reranker-base"), ["A1"])
+    assert "cross_encoder" not in core and v2 == {**core, "cross_encoder": "BAAI/bge-reranker-base"}

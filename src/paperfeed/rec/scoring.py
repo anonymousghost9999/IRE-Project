@@ -1,7 +1,7 @@
 """Feature scaling and the linear score (Phase 5.3 / docs/plan.md §5.3 / docs/design.md §9).
 
     Score(p) = w_pers mm[cos_pers] + w_sess mm[cos_sess] + w_cite mm[log(1+BC+CC)] + w_facet mm[S_facet]
-               + w_nov 1_new-method - lambda_neg Penalty
+               + w_nov 1_new-method - lambda_neg Penalty  [+ w_ce mm[CE], Extended V2; + w_pop mm[log(1+cites)], enhanced]
 
 Continuous features are min-max scaled to [0, 1] within the candidate pool (a constant feature scales to 0, so a
 one-paper pool scores 0 on all of them). The new-method indicator stays 0/1 and the penalty is not scaled. While the
@@ -19,7 +19,7 @@ import numpy as np
 from paperfeed.rec.features import CandidateFeatures
 
 # Names of the score terms, in the order of the formula.
-FEATURE_NAMES = ("persona", "session", "citation", "facet", "new_method", "penalty", "popularity")
+FEATURE_NAMES = ("persona", "session", "citation", "facet", "new_method", "penalty", "popularity", "cross_encoder")
 
 
 @dataclass(frozen=True)
@@ -33,6 +33,7 @@ class ScoringWeights:
     w_nov: float = 0.5
     lambda_neg: float = 0.5
     w_pop: float = 0.0
+    w_ce: float = 0.0  # V2 cross-encoder term (design §13.8); 0 and absent features in Core
 
     def __post_init__(self) -> None:
         for name, value in self.__dict__.items():
@@ -87,6 +88,8 @@ def score_candidates(
     mm_cite = min_max([f.log_cite for f in features])
     mm_facet = min_max([f.facet.s_facet for f in features])
     mm_pop = min_max([math.log1p(max(0, f.citation_count)) for f in features])
+    ce_active = all(f.ce_score is not None for f in features)
+    mm_ce = min_max([f.ce_score for f in features]) if ce_active else np.zeros(len(features))
 
     scored: List[ScoredCandidate] = []
     for i, f in enumerate(features):
@@ -98,6 +101,7 @@ def score_candidates(
             "new_method": 1.0 if f.new_method.flag else 0.0,
             "penalty": float(f.penalty),
             "popularity": float(mm_pop[i]),
+            "cross_encoder": float(mm_ce[i]),
         }
         contributions = {
             "persona": w.w_pers * scaled["persona"],
@@ -107,6 +111,7 @@ def score_candidates(
             "new_method": w.w_nov * scaled["new_method"],
             "penalty": 0.0 - w.lambda_neg * scaled["penalty"],  # "0.0 -" keeps an unpenalised paper at 0.0, not -0.0
             "popularity": w.w_pop * scaled["popularity"],
+            "cross_encoder": w.w_ce * scaled["cross_encoder"],
         }
         scored.append(
             ScoredCandidate(
