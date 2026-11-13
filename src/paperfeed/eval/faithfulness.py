@@ -27,6 +27,7 @@ from paperfeed.data.cohort import clean_id
 from paperfeed.data.ground_truth import to_uri
 from paperfeed.index.store import EmbeddingStore
 from paperfeed.rec.explain import EXPLAINABLE_FEATURES, Explainer, Explanation, ExplanationResult
+from paperfeed.rec.learned import counterfactual_pool, ranks_outweigh_explanation
 from paperfeed.rec.features import edges
 from paperfeed.rec.mmr import select_top_k
 from paperfeed.rec.recommender import (
@@ -55,6 +56,8 @@ class ExplanationSample:
     dominant_feature: str
     explanation: Explanation
     scored_candidates: List[ScoredCandidate]  # candidate pool for counterfactual re-scoring
+    lambda_div: Optional[float] = None  # the MMR lambda that produced this feed (None: the audit's config value)
+    v3: bool = False  # ranked by the V3 learned ranker: the counterfactual re-predicts instead of subtracting
 
 
 @dataclass
@@ -103,6 +106,9 @@ class FaithfulnessAuditResult:
     # V2 (design §13.8 point 6): Top-10 items whose reranker contribution exceeds every explainable contribution, i.e.
     # where the shown explanation is not the main reason for the rank. None when the reranker is off.
     n_reranker_dominant: Optional[int] = None
+    # V3 (design §13.8 point 7): Top-10 items whose channel-rank SHAP outweighs every explainable feature; None when
+    # V3 is off. With the drop-out rate it decides whether the SHAP explanations count as reliable.
+    n_rank_dominant: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -124,8 +130,19 @@ class FaithfulnessAuditResult:
             "population_template_distribution": self.population_template_distribution,
             "n_span_explanations_audited": self.n_span_explanations,
             "n_reranker_dominant": self.n_reranker_dominant,
+            "n_rank_dominant": self.n_rank_dominant,
+            "v3_explanations_reliable": self.v3_explanations_reliable,
             "audited_explanations": [a.to_dict() for a in self.audited_explanations],
         }
+
+    @property
+    def v3_explanations_reliable(self) -> Optional[bool]:
+        """design §13.8, V3 point 7: unreliable if the drop-out rate is below 50% or the channel ranks outweigh every
+        explainable feature in more than 50% of Top-10 items. None when V3 is off."""
+        if self.n_rank_dominant is None:
+            return None
+        share = self.n_rank_dominant / max(self.total_evaluated_recommendations, 1)
+        return bool(self.counterfactual_dropout_rate >= 0.5 and share <= 0.5)
 
     @property
     def n_span_explanations(self) -> int:
@@ -207,6 +224,16 @@ class FaithfulnessAuditResult:
             notes.append(
                 "- **No span-quoting explanation was audited**, so the Extractive Grounding Rate above covers only citation "
                 f"edges (re-verified in the database) and persona/session cosines, not verbatim spans. With the audited weights {why}."
+            )
+        if self.n_rank_dominant is not None:
+            share = self.n_rank_dominant / max(self.total_evaluated_recommendations, 1)
+            verdict = ("reliable" if self.v3_explanations_reliable else
+                       "**unreliable**: V3 is reported as an accuracy experiment only")
+            notes.append(
+                f"- **Learned ranker (V3):** explanations come from SHAP contributions and the counterfactual switches the "
+                f"explained feature off and re-predicts. In {self.n_rank_dominant} of {self.total_evaluated_recommendations} "
+                f"Top-10 items ({share:.1%}) the channel ranks outweigh every explainable feature. Reliability rule "
+                f"(design §13.8, V3 point 7: drop-out >= 50% and that share <= 50%): {verdict}."
             )
         if self.n_reranker_dominant is not None:
             share = self.n_reranker_dominant / max(self.total_evaluated_recommendations, 1)
@@ -357,6 +384,7 @@ def compute_counterfactual_impact(
     store: EmbeddingStore,
     k: int = 10,
     lambda_div: float = 0.2,
+    ranker: Any = None,
 ) -> Tuple[Optional[int], int, bool]:
     """Zero out the explained feature contribution, re-score, re-run MMR, and evaluate rank drop.
 
@@ -367,9 +395,15 @@ def compute_counterfactual_impact(
     target_pid = sample.paper_id
     dom_feature = sample.dominant_feature
     pool_size = len(sample.scored_candidates)
+    if sample.lambda_div is not None:
+        lambda_div = sample.lambda_div
 
     cf_scored: List[ScoredCandidate] = []
-    for sc in sample.scored_candidates:
+    if sample.v3:  # a tree model: switch the explained feature off and re-predict (design §13.8, V3 point 7)
+        if ranker is None:
+            raise ValueError("The counterfactual of a V3 feed needs the ranker.")
+        cf_scored = counterfactual_pool(ranker, sample.scored_candidates, target_pid, dom_feature)
+    for sc in ([] if sample.v3 else sample.scored_candidates):
         if sc.paper_id == target_pid:
             cf_contributions = dict(sc.contributions)
             cf_contributions[dom_feature] = 0.0
@@ -532,6 +566,8 @@ def run_faithfulness_audit(
     total_recs = 0
     covered_recs = 0
     reranker_dominant = 0
+    rank_dominant = 0
+    v3_feeds = False
 
     for idx, author_info in enumerate(authors_to_eval):
         aid = clean_id(author_info["author_id"])
@@ -546,7 +582,8 @@ def run_faithfulness_audit(
         # The counterfactual must re-rank exactly what produced this feed: the scored pool and the effective weights
         # (adaptive_graph changes w_cite for sparse authors). Re-ranking it unchanged must give back the feed.
         scored_candidates = res.scored_pool
-        replay = [p.paper_id for p in select_top_k(scored_candidates, resources.store, k=cfg.k, lambda_div=cfg.lambda_div)]
+        lam = res.lambda_div_used if res.lambda_div_used is not None else cfg.lambda_div
+        replay = [p.paper_id for p in select_top_k(scored_candidates, resources.store, k=cfg.k, lambda_div=lam)]
         if replay != res.paper_ids:
             raise RuntimeError(
                 f"Faithfulness audit: re-ranking the scored pool of author {aid} does not reproduce the feed; "
@@ -555,6 +592,10 @@ def run_faithfulness_audit(
 
         for item in res.items:
             total_recs += 1
+            if res.learned_ranker_used:
+                v3_feeds = True
+                if ranks_outweigh_explanation(item.contributions):
+                    rank_dominant += 1
             if cfg.cross_encoder:
                 explainable = max((item.contributions.get(f, 0.0) for f in EXPLAINABLE_FEATURES), default=0.0)
                 if item.contributions.get("cross_encoder", 0.0) > explainable + 1e-12:
@@ -572,6 +613,8 @@ def run_faithfulness_audit(
                         dominant_feature=exp_res.dominant_feature,
                         explanation=exp_res.explanation,
                         scored_candidates=scored_candidates,
+                        lambda_div=lam,
+                        v3=res.learned_ranker_used,
                     )
                 )
 
@@ -609,7 +652,7 @@ def run_faithfulness_audit(
 
         # 2. Counterfactual impact
         cf_rank, r_drop, is_necessary = compute_counterfactual_impact(
-            sample, resources.store, k=cfg.k, lambda_div=cfg.lambda_div
+            sample, resources.store, k=cfg.k, lambda_div=cfg.lambda_div, ranker=getattr(resources, "ranker", None)
         )
         rank_drops.append(r_drop)
 
@@ -669,5 +712,6 @@ def run_faithfulness_audit(
         per_template=per_template,
         population_template_distribution=population_templates,
         n_reranker_dominant=reranker_dominant if cfg.cross_encoder else None,
+        n_rank_dominant=rank_dominant if v3_feeds else None,
     )
 

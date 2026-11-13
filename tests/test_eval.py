@@ -990,3 +990,22 @@ def test_with_reranker_scores_keeps_the_pool_and_adds_scores(monkeypatch):
     assert [f.ce_score for f in out[0].features] == [0.1, 0.9] and out[0].candidate_ids == ["a", "b"]
     assert user.features[0].ce_score is None  # the Core cache is not modified
     assert len(secs) == 1 and latency_summary(secs)["n_feeds"] == 1
+
+
+def test_v3_ablations_switch_model_inputs_off(monkeypatch):
+    from paperfeed.eval import lfo
+    from paperfeed.rec.recommender import RecommendConfig
+
+    seen = []
+    monkeypatch.setattr(lfo, "build_user_profile", lambda *a, **k: SimpleNamespace(user_facets=SimpleNamespace(ids=[])))
+    monkeypatch.setattr(lfo, "recommend", lambda r, p, session=None, mode="feed", config=None: seen.append(config)
+                        or SimpleNamespace(paper_ids=["p1"], candidate_ids=["p1"]))
+    monkeypatch.setattr(lfo, "run_baseline", lambda *a, **k: ["p1"])
+    monkeypatch.setattr(lfo, "per_user_metrics", lambda **k: {"ndcg_at_10": 0.0})
+    cfg = RecommendConfig(learned_ranker="m.txt", v3_lambda_div=0.3, lambda_div=0.5)
+    lfo.evaluate_author(None, {"author_id": "A1"}, ["p1"], [], {}, {}, np.zeros((1, 2)), {}, base_config=cfg,
+                        include_anchors=False)
+    full, no_mmr, no_graph, no_facets, _ = seen
+    assert full.v3_off_features == () and full.v3_lambda_div == 0.3
+    assert no_mmr.lambda_div == 0.0 and no_mmr.v3_lambda_div == 0.0
+    assert no_graph.v3_off_features == ("citation",) and no_facets.v3_off_features == ("facet", "new_method")

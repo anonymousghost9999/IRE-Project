@@ -97,14 +97,31 @@ def shap_contributions(model, X: np.ndarray) -> np.ndarray:
     return contrib[:, : len(V3_FEATURES)]
 
 
+# The "off" value of each explainable feature (design §13.8, V3 point 7): scaled value 0, indicator 0.
+OFF_VALUE = 0.0
+
+
+def switch_off(X: np.ndarray, features: Sequence[str], rows: Optional[Sequence[int]] = None) -> np.ndarray:
+    """A copy of ``X`` with ``features`` set to their off value (all rows, or only ``rows``)."""
+    X = np.array(X, dtype=np.float64, copy=True)
+    cols = [V3_FEATURES.index(f) for f in features]
+    if cols:
+        idx = slice(None) if rows is None else list(rows)
+        for c in cols:
+            X[idx, c] = OFF_VALUE
+    return X
+
+
 def model_scored_pool(
-    model, scored: Sequence[ScoredCandidate], channel_ranks: ChannelRanks, channel_depth: int
+    model, scored: Sequence[ScoredCandidate], channel_ranks: ChannelRanks, channel_depth: int,
+    off_features: Sequence[str] = (),
 ) -> List[ScoredCandidate]:
     """The pool re-scored by the model: ``score`` is the model output min-max scaled within the pool (the scale MMR
-    expects) and ``contributions`` are the SHAP values per feature. ``extra["model_score"]`` keeps the raw output."""
+    expects) and ``contributions`` are the SHAP values per feature. ``extra["model_score"]`` keeps the raw output and
+    ``extra["v3_row"]`` the model input, for the counterfactual. ``off_features`` switches inputs off (ablations)."""
     if not scored:
         return []
-    X = feature_matrix(scored, channel_ranks, channel_depth)
+    X = switch_off(feature_matrix(scored, channel_ranks, channel_depth), off_features)
     raw = np.asarray(model.predict(X), dtype=np.float64)
     scaled = min_max(raw)
     shap = shap_contributions(model, X)
@@ -112,16 +129,51 @@ def model_scored_pool(
     for i, s in enumerate(scored):
         contributions = {name: float(shap[i, j]) for j, name in enumerate(V3_FEATURES)}
         out.append(replace(s, score=float(scaled[i]), contributions=contributions,
-                           extra={**s.extra, "model_score": float(raw[i])}))
+                           extra={**s.extra, "model_score": float(raw[i]), "v3_row": X[i].tolist()}))
     return out
+
+
+def counterfactual_pool(model, pool: Sequence[ScoredCandidate], paper_id: str, feature: str) -> List[ScoredCandidate]:
+    """The model-scored ``pool`` after switching ``feature`` off for ``paper_id`` only: re-predict, rescale, keep the
+    rest (design §13.8, V3 point 7). The caller re-runs MMR on it."""
+    rows = [s.extra.get("v3_row") for s in pool]
+    if any(r is None for r in rows):
+        raise ValueError("counterfactual_pool needs a pool scored by model_scored_pool.")
+    ids = [s.paper_id for s in pool]
+    X = switch_off(np.asarray(rows, dtype=np.float64), [feature], rows=[ids.index(paper_id)])
+    scaled = min_max(np.asarray(model.predict(X), dtype=np.float64))
+    return [replace(s, score=float(scaled[i])) for i, s in enumerate(pool)]
+
+
+@dataclass
+class LoadedRanker:
+    """The frozen V3 model as the recommender uses it (``RecommenderResources.ranker``)."""
+
+    name: str
+    booster: object
+    channel_depth: int
+
+    def predict(self, X: np.ndarray, pred_contrib: bool = False) -> np.ndarray:
+        return np.asarray(self.booster.predict(X, pred_contrib=pred_contrib), dtype=np.float64)
+
+
+def load_ranker(path, channel_depth: int) -> LoadedRanker:
+    """A LightGBM text model file as a ``LoadedRanker`` named after the file."""
+    from pathlib import Path
+
+    from lightgbm import Booster
+
+    p = Path(path)
+    return LoadedRanker(name=p.name, booster=Booster(model_file=str(p)), channel_depth=int(channel_depth))
 
 
 def rank_with_model(
     model, scored: Sequence[ScoredCandidate], channel_ranks: ChannelRanks, channel_depth: int, store, k: int,
-    lambda_div: float,
+    lambda_div: float, off_features: Sequence[str] = (),
 ) -> List[Selection]:
     """Top-k by the model's pool-scaled score, diversified by MMR."""
-    return select_top_k(model_scored_pool(model, scored, channel_ranks, channel_depth), store, k=k, lambda_div=lambda_div)
+    pool = model_scored_pool(model, scored, channel_ranks, channel_depth, off_features)
+    return select_top_k(pool, store, k=k, lambda_div=lambda_div)
 
 
 def dominant_explainable(contributions: Mapping[str, float]) -> Optional[str]:

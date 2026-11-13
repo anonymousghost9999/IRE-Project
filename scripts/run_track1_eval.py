@@ -53,6 +53,8 @@ from paperfeed.eval.tuning import (
     tuning_signature,
 )
 from paperfeed.rec.recommender import RecommendConfig, RecommenderResources
+from paperfeed.eval.learned_cv import load_v3_decision
+from paperfeed.rec.learned import load_ranker
 from paperfeed.rec.rerank import CrossEncoderScorer
 from paperfeed.rec.scoring import ScoringWeights
 
@@ -85,6 +87,12 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run the V2 cross-encoder variant (design §13.8, plan 10.2d) with the reranker and weights frozen by "
         "scripts/decide_cross_encoder.py",
+    )
+    parser.add_argument(
+        "--learned-ranker",
+        action="store_true",
+        help="Run the V3 learned ranker (design §13.8, plan 10.3d) with the model frozen by "
+        "scripts/decide_learned_ranker.py",
     )
     parser.add_argument("--facet-active", action="store_true", help="Run the facet-active variant frozen by scripts/select_facet_config.py (design §9) instead of the grid optimum")
     parser.add_argument("--skip-zero-pub", action="store_true", help="Skip the Zero-Publication Seed-Only slice (a full extra pass over the test cohort)")
@@ -309,6 +317,7 @@ def main():
         "_facet_active" if args.facet_active else "",
         "_graph_channel" if args.graph_channel else "",
         "_cross_encoder" if args.cross_encoder else "",
+        "_learned_ranker" if args.learned_ranker else "",
     ])
     run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
@@ -386,6 +395,19 @@ def run(args, root, cfg, manifest):
             name = Path(getattr(args, attr))
             if name.stem.startswith("track1_lfo") and not name.stem.endswith("_cross_encoder"):
                 setattr(args, attr, f"{name.stem}_cross_encoder{name.suffix}")
+
+    # V3 was cross-validated for the headline configuration only (plan 10.3b-c)
+    v3_decision = None
+    if args.learned_ranker:
+        if args.enhanced or args.filter_popular is not None or args.facet_active or args.graph_channel or args.cross_encoder:
+            raise ValueError("--learned-ranker was decided for the headline configuration only; drop --enhanced, "
+                             "--filter-popular, --facet-active, --graph-channel and --cross-encoder.")
+        v3_decision = load_v3_decision(root / cfg["paths"]["artifacts_dir"])
+        resources = replace(resources, ranker=load_ranker(v3_decision["model_path"], v3_decision["channel_depth"]))
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith("_learned_ranker"):
+                setattr(args, attr, f"{name.stem}_learned_ranker{name.suffix}")
 
     # The facet-active variant writes its own files next to the run it varies
     if args.facet_active:
@@ -527,6 +549,20 @@ def run(args, root, cfg, manifest):
         manifest.extra_metadata["v2_decision"] = {
             k: v2_decision.get(k) for k in ("adopt_v2", "chosen_model", "core", "v2", "ndcg_gain", "latency")
         }
+    if args.learned_ranker:
+        # The linear tuned weights stay for the zero-publication slice, which V3 does not rank (design §13.8 V3 point 8)
+        tuned_config = tuned_config.with_overrides(
+            learned_ranker=resources.ranker.name, v3_lambda_div=float(v3_decision["final_lambda_div"])
+        )
+        variant = (
+            "V3 learned ranker, LightGBM LambdaMART (design §13.8; exploratory, plan 10.3d); tuning-split decision: "
+            + ("adopt V3" if v3_decision.get("adopt_v3") else "keep the linear scorer")
+            + "; the zero-publication slice keeps the linear scorer"
+        )
+        manifest.extra_metadata["v3_decision"] = {
+            k: v3_decision.get(k) for k in ("adopt_v3", "linear_oof_ndcg", "v3_oof_ndcg", "ndcg_gain", "final_lambda_div",
+                                            "model_file", "model_sha256")
+        }
     manifest.extra_metadata["variant"] = variant
 
     # 2. Main LFO evaluation run on test split
@@ -602,6 +638,8 @@ def run(args, root, cfg, manifest):
         f"> - Candidate Pool Size (M): {tuned_config.pool_size or 100}\n"
         f"> - Candidate Channels: {'SPECTER2 + BM25s + citation graph (V4)' if tuned_config.graph_channel else 'SPECTER2 + BM25s'}\n"
         + (f"> - Reranker Feature (V2): {tuned_config.cross_encoder}, w_ce={tuned_config.weights.w_ce:.2f}\n" if tuned_config.cross_encoder else "")
+        + (f"> - Scorer (V3): learned ranker {tuned_config.learned_ranker}, its lambda_div={tuned_config.v3_lambda_div:.2f} "
+           "(the linear weights below are used only for the zero-publication slice)\n" if tuned_config.learned_ranker else "")
         + f"> - Channel Depth (M_channel): {tuned_config.channel_depth or 200}\n"
         f"> - Popularity Prior Weight (w_pop): {tuned_config.weights.w_pop:.2f}\n"
         f"> - Scoring Weights: w_pers={tuned_config.weights.w_pers:.2f}, w_cite={tuned_config.weights.w_cite:.2f}, "

@@ -34,6 +34,7 @@ from paperfeed.rec.candidates import (
 from paperfeed.rec.explain import Explainer, ExplanationResult
 from paperfeed.rec.features import CandidateFeatures, UserCitationContext, build_citation_context, compute_features
 from paperfeed.rec.mmr import DEFAULT_K, DEFAULT_LAMBDA_DIV, select_top_k
+from paperfeed.rec.learned import model_scored_pool
 from paperfeed.rec.rerank import add_reranker_scores, candidate_texts
 from paperfeed.rec.scoring import ScoredCandidate, ScoringWeights, score_candidates
 from paperfeed.user.exclusion import ExclusionSources, load_exclusion_sources
@@ -71,6 +72,11 @@ class RecommendConfig:
     adaptive_graph: bool = True  # adaptive scaling of w_cite for sparse authors
     graph_channel: bool = False  # Extended V4 (D§13.8): citation-graph candidate channel; off in Core
     cross_encoder: Optional[str] = None  # Extended V2 (D§13.8): reranker model name for the w_ce feature; off in Core
+    # Extended V3 (D§13.8): name of the frozen LightGBM model file that ranks the pool instead of the linear score; its
+    # own lambda_div; and model inputs switched off (V3 ablations). Zero-publication profiles keep the linear scorer.
+    learned_ranker: Optional[str] = None
+    v3_lambda_div: Optional[float] = None
+    v3_off_features: Tuple[str, ...] = ()
     explain: bool = True
 
     @classmethod
@@ -121,6 +127,7 @@ class RecommenderResources:
     facet_store: Optional[FacetStore] = None  # None until facets are extracted and canonicalized
     encoder: Any = None  # SPECTER2Encoder; needed for title-only authored papers, seed topics and search mode
     reranker: Any = None  # V2 FeedReranker (rec.rerank); only needed when RecommendConfig.cross_encoder is set
+    ranker: Any = None  # V3 LoadedRanker (rec.learned); only needed when RecommendConfig.learned_ranker is set
 
     @classmethod
     def load(
@@ -373,6 +380,8 @@ class RecommendationResult:
     scored_pool: List[ScoredCandidate] = field(default_factory=list)
     effective_weights: Optional[ScoringWeights] = None
     rerank_seconds: Optional[float] = None  # V2: reranker time for this feed (latency, plan 10.2b)
+    lambda_div_used: Optional[float] = None  # the MMR lambda that produced this feed (V3 has its own)
+    learned_ranker_used: bool = False  # V3 ranked this feed (False for zero-publication profiles and in Core)
 
     @property
     def paper_ids(self) -> List[str]:
@@ -494,7 +503,19 @@ def recommend(
     features, rerank_seconds = apply_reranker(r, features, pseudo_query, cfg)
     weights = effective_weights(cfg.weights, cfg.adaptive_graph, profile)
     scored = score_candidates(features, weights)
-    picks = select_top_k(scored, r.store, cfg.k, cfg.lambda_div)
+    lambda_used = cfg.lambda_div
+    use_v3 = bool(cfg.learned_ranker) and not (cfg.zero_pub or profile.zero_pub)
+    if use_v3:
+        ranker = r.ranker
+        if ranker is None or getattr(ranker, "name", None) != cfg.learned_ranker:
+            raise ValueError(
+                f"RecommendConfig.learned_ranker = {cfg.learned_ranker!r} but resources.ranker is "
+                f"{getattr(ranker, 'name', None)!r}: load that model into the resources first."
+            )
+        ranks = {c.paper_id: (c.dense_rank, c.lexical_rank) for c in cands}
+        scored = model_scored_pool(ranker, scored, ranks, ranker.channel_depth, cfg.v3_off_features)
+        lambda_used = cfg.v3_lambda_div if cfg.v3_lambda_div is not None else cfg.lambda_div
+    picks = select_top_k(scored, r.store, cfg.k, lambda_used)
 
     explanations: Dict[str, ExplanationResult] = {}
     if cfg.explain and picks:
@@ -515,7 +536,7 @@ def recommend(
     _check_output([i.paper_id for i in items], r, excluded)
     return RecommendationResult(profile.user_id, mode, items, len(cands), [c.paper_id for c in cands], session_active,
                                 pseudo_query, len(excluded), cfg, scored_pool=scored, effective_weights=weights,
-                                rerank_seconds=rerank_seconds)
+                                rerank_seconds=rerank_seconds, lambda_div_used=lambda_used, learned_ranker_used=use_v3)
 
 
 def _search_item(rank: int, c: RetrievedCandidate, meta: Mapping[str, Mapping[str, Any]]) -> RecommendedItem:

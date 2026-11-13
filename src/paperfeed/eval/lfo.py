@@ -152,10 +152,19 @@ def evaluate_author(
 
     # 2. Ablations (one component changed at a time, same candidate pool). With the V4 graph channel, No-Graph also
     #    drops the channel (design §13.8 point 5), so it removes every use of the citation graph.
+    #    With the V3 learned ranker the same components are removed from the model's input instead (zeroing a linear
+    #    weight would not change a tree model), and No-MMR also sets V3's own lambda to 0.
+    v3 = bool(cfg.learned_ranker)
     ablations = {
-        "Ablation: No-MMR": cfg.with_overrides(lambda_div=0.0),
-        "Ablation: No-Graph": cfg.with_overrides(weights=cfg.weights.with_overrides(w_cite=0.0), graph_channel=False),
-        "Ablation: No-Facets": cfg.with_overrides(weights=cfg.weights.with_overrides(w_facet=0.0, w_nov=0.0)),
+        "Ablation: No-MMR": cfg.with_overrides(lambda_div=0.0, v3_lambda_div=0.0 if v3 else cfg.v3_lambda_div),
+        "Ablation: No-Graph": cfg.with_overrides(
+            weights=cfg.weights.with_overrides(w_cite=0.0), graph_channel=False,
+            v3_off_features=("citation",) if v3 else cfg.v3_off_features,
+        ),
+        "Ablation: No-Facets": cfg.with_overrides(
+            weights=cfg.weights.with_overrides(w_facet=0.0, w_nov=0.0),
+            v3_off_features=("facet", "new_method") if v3 else cfg.v3_off_features,
+        ),
     }
     for name, ablation_cfg in ablations.items():
         res = recommend(resources, profile, session=None, mode="feed", config=ablation_cfg)

@@ -150,3 +150,24 @@ def decide_learned_ranker(cv: Mapping[str, Any], n_resamples: int = 10000, seed:
         "folds": cv["folds"],
         "adopt_v3": bool(lo > 0),
     }
+
+
+def load_v3_decision(artifacts_dir) -> Dict[str, Any]:
+    """The frozen V3 decision (plan 10.3c), required before any --learned-ranker test run or audit. The model file
+    must be the one frozen with it (same SHA-256), so the test run cannot use a retrained model."""
+    import hashlib
+    import json
+    from pathlib import Path
+
+    path = Path(artifacts_dir) / "variant_v3_decision.json"
+    if not path.exists():
+        raise FileNotFoundError(f"{path} not found: freeze the V3 decision with scripts/decide_learned_ranker.py "
+                                "before the test run (plan 10.3c).")
+    decision = json.loads(path.read_text(encoding="utf-8"))
+    model_path = Path(artifacts_dir) / decision.get("model_file", "")
+    if not decision.get("model_file") or not model_path.is_file():
+        raise FileNotFoundError(f"The V3 model file {model_path} frozen with the decision is missing.")
+    if hashlib.sha256(model_path.read_bytes()).hexdigest() != decision.get("model_sha256"):
+        raise ValueError(f"{model_path} is not the model frozen with the decision (SHA-256 differs).")
+    decision["model_path"] = str(model_path)
+    return decision

@@ -1430,3 +1430,33 @@ def test_tuning_signature_names_the_cross_encoder_only_when_on():
     core = tuning_signature(RecommendConfig(pool_size=100), ["A1"])
     v2 = tuning_signature(RecommendConfig(pool_size=100, cross_encoder="BAAI/bge-reranker-base"), ["A1"])
     assert "cross_encoder" not in core and v2 == {**core, "cross_encoder": "BAAI/bge-reranker-base"}
+
+
+def test_recommend_with_the_v3_learned_ranker(world, tmp_path):
+    pytest.importorskip("lightgbm")
+    from dataclasses import replace as dc_replace
+
+    from paperfeed.rec.learned import V3_EXPLAINABLE, V3_PARAMS, TrainingQuery, load_ranker, train_ranker
+
+    rng = np.random.default_rng(0)
+    queries = []
+    for u in range(10):
+        feats = [_feat(f"q{u}_{i}", persona=float(rng.uniform(0.2, 0.9)), bc=(10 if i < 3 else int(rng.integers(0, 3))))
+                 for i in range(25)]
+        queries.append(TrainingQuery(score_candidates(feats), {f.paper_id: (i + 1, i + 1) for i, f in enumerate(feats)},
+                                     [f.paper_id for f in feats[:3]]))
+    path = tmp_path / "v3.txt"
+    train_ranker(queries, channel_depth=12, params={**V3_PARAMS, "min_child_samples": 5}).booster_.save_model(str(path))
+
+    cfg = CFG.with_overrides(k=4, learned_ranker="v3.txt", v3_lambda_div=0.1)
+    with pytest.raises(ValueError, match="load that model"):
+        recommend(world, _profile(world), config=cfg)
+    v3_world = dc_replace(world, ranker=load_ranker(path, channel_depth=12))
+    res = recommend(v3_world, _profile(world), config=cfg)
+    assert res.learned_ranker_used and res.lambda_div_used == 0.1
+    assert all(set(i.contributions) >= set(V3_EXPLAINABLE) for i in res.items)  # SHAP contributions
+    assert all(i.explanation is None or i.explanation.dominant_feature in V3_EXPLAINABLE + (None,) for i in res.items)
+    assert not {"U1", "U2", "R1", "F", "N"} & set(res.paper_ids)  # the same filters as Core
+    zero = recommend(v3_world, build_user_profile(world, "z", seed_topics=["information retrieval", "x y"], config=CFG),
+                     config=cfg)
+    assert not zero.learned_ranker_used and zero.lambda_div_used == cfg.lambda_div  # linear for zero-pub profiles

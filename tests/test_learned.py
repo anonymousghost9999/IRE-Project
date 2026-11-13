@@ -19,6 +19,7 @@ from paperfeed.rec.learned import (
     shap_contributions,
     train_ranker,
 )
+from paperfeed.rec.mmr import select_top_k
 from paperfeed.rec.scoring import ScoringWeights, score_candidates
 
 
@@ -161,3 +162,115 @@ def test_v3_not_adopted_when_the_gain_is_not_reliable():
     v3[0] = 0.9  # one lucky author
     d = decide_learned_ranker({"oof_linear": lin, "oof_v3": v3, "folds": [], "n_folds": 5, "fold_seed": 42}, n_resamples=500)
     assert d["v3_oof_ndcg"] > d["linear_oof_ndcg"] and d["adopt_v3"] is False
+
+
+# ---------------------------------------------------------------------------
+# Test-run plumbing: off-switching, counterfactual, frozen model (plan 10.3d)
+# ---------------------------------------------------------------------------
+
+from paperfeed.rec.learned import counterfactual_pool, load_ranker, switch_off
+
+
+def _trained(seed=4):
+    rng = np.random.default_rng(seed)
+    return train_ranker([_query(u, rng) for u in range(12)], channel_depth=200), rng
+
+
+def test_switch_off_and_ablated_pool():
+    X = np.arange(12, dtype=float).reshape(2, 6)
+    Y = switch_off(X, ["citation", "new_method"], rows=[1])
+    assert Y[1, 1] == 0 and Y[1, 3] == 0 and Y[0, 1] == 1 and X[1, 1] == 7  # copy, only the chosen row
+    model, rng = _trained()
+    q = _query(70, rng)
+    pool = model_scored_pool(model, q.scored, q.channel_ranks, 200, off_features=("citation",))
+    assert all(s.extra["v3_row"][1] == 0.0 for s in pool)
+    # SHAP credit is measured against the training data, so a switched-off input can still carry credit; what must
+    # hold is that the model no longer sees citation, so its output changes. (In this toy data the dense ranks also
+    # identify the targets, so the ranking itself may survive.)
+    full = model_scored_pool(model, q.scored, q.channel_ranks, 200)
+    assert any(a.extra["model_score"] != b.extra["model_score"] for a, b in zip(full, pool))
+
+
+def test_counterfactual_switches_the_explained_feature_off_for_one_paper():
+    model, rng = _trained()
+    q = _query(71, rng)
+    pool = model_scored_pool(model, q.scored, q.channel_ranks, 200)
+    top = max(pool, key=lambda s: s.score)
+    cf = counterfactual_pool(model, pool, top.paper_id, "citation")
+    assert [s.paper_id for s in cf] == [s.paper_id for s in pool]
+    by_id = {s.paper_id: s for s in cf}
+    assert by_id[top.paper_id].score < 1.0  # the target lost its citation signal and is no longer the best
+    others = [s for s in pool if s.paper_id != top.paper_id]
+    assert all(s.extra["v3_row"] == by_id[s.paper_id].extra["v3_row"] for s in others)  # only the target changed
+    with pytest.raises(ValueError, match="model_scored_pool"):
+        counterfactual_pool(model, q.scored, top.paper_id, "citation")
+
+
+def test_frozen_model_round_trip(tmp_path):
+    model, rng = _trained()
+    path = tmp_path / "variant_v3_model.txt"
+    model.booster_.save_model(str(path))
+    loaded = load_ranker(path, channel_depth=200)
+    assert loaded.name == "variant_v3_model.txt" and loaded.channel_depth == 200
+    q = _query(72, rng)
+    X = feature_matrix(q.scored, q.channel_ranks, 200)
+    np.testing.assert_allclose(loaded.predict(X), model.predict(X), rtol=1e-9)
+    np.testing.assert_allclose(loaded.predict(X, pred_contrib=True), model.predict(X, pred_contrib=True), rtol=1e-9)
+
+
+def test_v3_decision_loader_checks_the_frozen_model(tmp_path):
+    import hashlib
+    import json
+
+    from paperfeed.eval.learned_cv import load_v3_decision
+
+    with pytest.raises(FileNotFoundError, match="decide_learned_ranker"):
+        load_v3_decision(tmp_path)
+    model_file = tmp_path / "variant_v3_model.txt"
+    model_file.write_text("tree")
+    decision = {"model_file": model_file.name, "model_sha256": hashlib.sha256(b"tree").hexdigest(),
+                "final_lambda_div": 0.1, "channel_depth": 200}
+    (tmp_path / "variant_v3_decision.json").write_text(json.dumps(decision))
+    assert load_v3_decision(tmp_path)["model_path"] == str(model_file)
+    model_file.write_text("retrained tree")
+    with pytest.raises(ValueError, match="SHA-256"):
+        load_v3_decision(tmp_path)
+    model_file.unlink()
+    with pytest.raises(FileNotFoundError, match="missing"):
+        load_v3_decision(tmp_path)
+
+
+def test_v3_reliability_rule():
+    from paperfeed.eval.faithfulness import FaithfulnessAuditResult
+
+    def result(dropout, rank_dominant):
+        return FaithfulnessAuditResult(
+            n_sampled=10, n_users_in_sample=10, total_evaluated_recommendations=100, total_covered_recommendations=100,
+            explanation_coverage=1.0, extractive_grounding_rate=1.0, counterfactual_dropout_rate=dropout,
+            left_top_k_count=0, dropped_gte_3_count=0, retained_near_rank_count=0, mean_rank_drop=0.0,
+            median_rank_drop=0.0, template_distribution={}, template_proportions={}, n_rank_dominant=rank_dominant,
+        )
+
+    assert result(0.9, None).v3_explanations_reliable is None  # V3 off
+    assert result(0.9, 20).v3_explanations_reliable is True
+    assert result(0.4, 20).v3_explanations_reliable is False  # explained feature rarely necessary
+    assert result(0.9, 60).v3_explanations_reliable is False  # channel ranks drive most of the feed
+    assert "accuracy experiment only" in result(0.9, 60).to_markdown()
+
+
+def test_audit_counterfactual_uses_re_prediction_for_v3_feeds():
+    from paperfeed.eval.faithfulness import ExplanationSample, compute_counterfactual_impact
+
+    model, rng = _trained()
+    q = _query(73, rng)
+    pool = model_scored_pool(model, q.scored, q.channel_ranks, 200)
+    picks = select_top_k(pool, _Store(), k=10, lambda_div=0.0)
+    first = picks[0].scored
+    sample = ExplanationSample("A", first.paper_id, 1, "citation", None, pool, lambda_div=0.0, v3=True)
+    cf_rank, drop, necessary = compute_counterfactual_impact(sample, _Store(), k=10, ranker=model)
+    cf = select_top_k(counterfactual_pool(model, pool, first.paper_id, "citation"), _Store(), k=10, lambda_div=0.0)
+    expected = next((p.rank for p in cf if p.paper_id == first.paper_id), None)
+    assert cf_rank == expected
+    with pytest.raises(ValueError, match="needs the ranker"):
+        compute_counterfactual_impact(sample, _Store(), k=10)
+
