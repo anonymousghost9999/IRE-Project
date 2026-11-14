@@ -89,6 +89,12 @@ def parse_args() -> argparse.Namespace:
         "scripts/decide_cross_encoder.py",
     )
     parser.add_argument(
+        "--sota-comparison",
+        action="store_true",
+        help="Phase 11e: run the frozen best configuration (configs/best.yaml) together with the Phase 11 comparison "
+        "systems (RP3beta, Scholar Inbox-style classifier, SciNCL centroid kNN, RankGPT reranker) in one test run",
+    )
+    parser.add_argument(
         "--encoder",
         default=None,
         metavar="KEY",
@@ -310,6 +316,103 @@ def cold_start_classes(db, target_ids, cutoff_year):
     return classify_cold_start_targets(counts, {p: y for p, y in years.items() if y is not None}, cutoff_year)
 
 
+def build_sota_systems(resources, root, cfg):
+    """The four Phase 11 comparison systems with their frozen tuning (plan 11e)."""
+    import numpy as np
+
+    from paperfeed.eval.encoder_study import paper_texts
+    from paperfeed.eval.rankgpt import LocalRanker, RerankStats
+    from paperfeed.eval.sota import (
+        CitationGraph,
+        fit_pca_space,
+        make_centroid_system,
+        make_rankgpt_system,
+        make_rp3beta_system,
+        make_scholar_inbox_system,
+    )
+    from paperfeed.index.encoders import make_encoder
+    from paperfeed.rec.recommender import load_encoder_index
+
+    artifacts = root / cfg["paths"]["artifacts_dir"]
+    processed = root / cfg["paths"]["processed_dir"]
+    rp3 = json.loads((artifacts / "sota_rp3beta_tuning.json").read_text(encoding="utf-8"))["best"]
+    si = json.loads((artifacts / "sota_scholar_inbox_tuning.json").read_text(encoding="utf-8"))["best"]
+    texts = lambda ids: paper_texts(resources.db, ids)  # noqa: E731
+
+    logger.info("Phase 11e: loading the citation graph for RP3beta...")
+    graph = CitationGraph.from_db(resources.db, resources.cutoff_year)
+    logger.info("Phase 11e: GTE-large vectors and PCA for the Scholar Inbox-style classifier...")
+    gte_store, _ = load_encoder_index(processed, "gte")
+    gte_ids = list(gte_store.paper_id_index)
+    space = fit_pca_space(gte_ids, gte_store.select(gte_ids))
+    allowed_idx = np.array(sorted(space.index[p] for p in resources.eligible if p in space.index), dtype=np.int64)
+    logger.info("Phase 11e: SciNCL vectors for the centroid kNN...")
+    scincl_store, scincl_dense = load_encoder_index(processed, "scincl")
+    logger.info("Phase 11e: loading the RankGPT reranker...")
+    ranker = LocalRanker()
+    stats = RerankStats()
+    systems = {
+        "RP3beta": make_rp3beta_system(graph, resources.eligible, rp3["alpha"], rp3["beta"]),
+        "Scholar Inbox (GTE-large + LR)": make_scholar_inbox_system(space, allowed_idx, si["C"]),
+        "SciNCL centroid kNN": make_centroid_system(scincl_store, scincl_dense, resources.eligible, texts,
+                                                    make_encoder("scincl", track1=True)),
+        "RankGPT (Qwen2.5-3B)": make_rankgpt_system(ranker, texts, stats),
+    }
+    info = {
+        "RP3beta": {"alpha": rp3["alpha"], "beta": rp3["beta"], "tuning_ndcg": rp3["mean_ndcg"],
+                    "graph_papers": len(graph.ids), "graph_edges": int(graph.A.nnz)},
+        "Scholar Inbox (GTE-large + LR)": {"C": si["C"], "tuning_ndcg": si["mean_ndcg"], "pca_explained_variance":
+                                           space.explained_variance, "model": "thenlper/gte-large"},
+        "SciNCL centroid kNN": {"model": "malteos/scincl", "n_papers": len(scincl_store)},
+        "RankGPT (Qwen2.5-3B)": {"model": ranker.model_name, "precision": ranker.precision, "window": 20, "step": 10},
+    }
+    return systems, info, stats
+
+
+def phase11_sections(lfo_results, best_cfg, sota_info, rankgpt_stats, n_bootstrap):
+    """The plan 11.5 tables and the best-vs-comparison tests (BH over this family)."""
+    import numpy as np
+
+    from paperfeed.eval.report import format_best_config_table, format_comparisons_markdown, format_sota_table
+
+    rows = lfo_results.per_user_results
+    latency = {}
+    for name in {n for r in rows for n in r.latency_seconds}:
+        vals = [r.latency_seconds[name] for r in rows if name in r.latency_seconds]
+        latency[name] = float(np.mean(vals))
+    cov = [r.explanation_coverage for r in rows if r.explanation_coverage is not None]
+    coverage = float(np.mean(cov)) if cov else None
+    sota_names = [n for n in lfo_results.system_aggregates if n.startswith("SOTA: ")]
+    comparisons = compare_system_to_baselines(_series(rows), "Paper Feed (Full)", sota_names, metrics=H1_METRICS,
+                                              n_resamples=n_bootstrap)
+    params = "\n".join(f"- **{name}:** {json.dumps(v)}" for name, v in sota_info.items())
+    rg = rankgpt_stats
+    body = "\n".join([
+        "Plan 11.3-11.5 / design §13.9. The best configuration (`configs/best.yaml`) is Core, so this run compares Core "
+        "with the comparison systems fixed by the literature review of 2026-11-14 (design §13.9 Phase 11 specification). "
+        "Every system uses the same eligible papers, exclusion set E_u and test authors; each was tuned on the tuning "
+        "split with a grid fixed in advance. The test split was already used once for the Phase 10 variant table, so "
+        "this run is confirmatory. Published numbers from other datasets are context only.\n",
+        format_sota_table(lfo_results.system_aggregates, latency, coverage),
+        "",
+        "Paper Feed against each comparison system (positive = Paper Feed better; BH over this family of "
+        f"{len(comparisons)} comparisons):\n",
+        format_comparisons_markdown(comparisons),
+        "",
+        "Comparison systems and their frozen settings:\n",
+        params,
+        "",
+        f"RankGPT: {rg.windows} windows, {rg.unparsable} unparsable (kept their input order)." if rg else "",
+        "",
+        "Excluded (design §13.9 Phase 11 spec point 5): LightGCN-style graph neural recommenders (compute and a "
+        "collaborative user base; RP3beta represents graph recommenders); hosted feeds such as Semantic Scholar, Google "
+        "Scholar and Scholar Inbox itself (cannot be restricted to <= T); SPECTER2 user-centroid kNN is the Dense "
+        "Centroid baseline. The zero-publication slice below is Core only: the comparison systems need authored papers.",
+    ])
+    return [("Phase 11: Comparison with SOTA Paper Recommenders", body),
+            ("Phase 11: Best Configuration", format_best_config_table(best_cfg))]
+
+
 def main():
     args = parse_args()
     root = Path(__file__).resolve().parent.parent
@@ -326,6 +429,7 @@ def main():
         "_cross_encoder" if args.cross_encoder else "",
         "_learned_ranker" if args.learned_ranker else "",
         f"_encoder_{args.encoder}" if args.encoder else "",
+        "_sota_comparison" if args.sota_comparison else "",
     ])
     run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
@@ -341,6 +445,26 @@ def run(args, root, cfg, manifest):
     t_start = time.time()
     processed_dir = root / cfg["paths"]["processed_dir"]
     logger.info("Loading recommender resources from %s...", processed_dir)
+    best_cfg = None
+    if args.sota_comparison:
+        if (args.enhanced or args.filter_popular is not None or args.facet_active or args.graph_channel
+                or args.cross_encoder or args.learned_ranker or args.encoder or args.skip_tuning):
+            raise ValueError("--sota-comparison runs the frozen best configuration; drop the variant options and "
+                             "--skip-tuning.")
+        best_path = root / "configs" / "best.yaml"
+        if not best_path.exists():
+            raise FileNotFoundError(f"{best_path} not found: freeze it with scripts/freeze_best_config.py (plan 11a).")
+        best_cfg = yaml.safe_load(best_path.read_text(encoding="utf-8"))
+        if best_cfg.get("best_configuration") != "core":
+            raise ValueError("configs/best.yaml is not Core; run the assembled configuration with its own options.")
+        for name in ("sota_rp3beta_tuning.json", "sota_scholar_inbox_tuning.json"):
+            if not (root / cfg["paths"]["artifacts_dir"] / name).exists():
+                raise FileNotFoundError(f"{name} not found: freeze the comparison systems' tuning first (plan 11b-11c).")
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith("_sota_comparison"):
+                setattr(args, attr, f"{name.stem}_sota_comparison{name.suffix}")
+
     v1_decision = None
     if args.encoder:
         # V1 was decided for the headline configuration only, and only its frozen candidate gets a test run
@@ -605,6 +729,15 @@ def run(args, root, cfg, manifest):
         }
     manifest.extra_metadata["variant"] = variant
 
+    # Phase 11e: the comparison systems, built from their frozen tuning (design §13.9 Phase 11 spec points 4 and 6)
+    extra_systems, sota_info, rankgpt_stats = None, {}, None
+    if args.sota_comparison:
+        extra_systems, sota_info, rankgpt_stats = build_sota_systems(resources, root, cfg)
+        manifest.extra_metadata["sota_systems"] = sota_info
+        manifest.extra_metadata["best_config_sha256"] = _sha256(root / "configs" / "best.yaml")
+        variant = "frozen best configuration (configs/best.yaml: Core) with the Phase 11 comparison systems"
+        manifest.extra_metadata["variant"] = variant
+
     # 2. Main LFO evaluation run on test split
     logger.info("Running Track 1 LFO evaluation across %d test authors...", len(test_authors))
     t0 = time.time()
@@ -622,6 +755,7 @@ def run(args, root, cfg, manifest):
         include_anchors=True,
         filter_empty_targets=(args.filter_popular is not None),
         baseline_kwargs={"hybrid_persona": hybrid_params},
+        extra_systems=extra_systems,
     )
     logger.info("Evaluation loop finished in %.1fs.", time.time() - t0)
 
@@ -637,6 +771,8 @@ def run(args, root, cfg, manifest):
     )
     cold_start = item_cold_start_breakdown(lfo_results.per_user_results, evaluated_targets, target_class)
     extra_sections = [("Item Cold-Start Slice", format_cold_start_table(cold_start))]
+    if args.sota_comparison:
+        extra_sections += phase11_sections(lfo_results, best_cfg, sota_info, rankgpt_stats, args.n_bootstrap)
 
     zero_pub_results = None
     if not args.skip_zero_pub:

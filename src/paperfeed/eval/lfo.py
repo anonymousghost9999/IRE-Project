@@ -20,8 +20,9 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import json
+import time
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Set
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Set
 
 import numpy as np
 
@@ -63,6 +64,9 @@ class UserEvaluationRow:
     # system_name -> its top-k paper IDs (not kept for the random anchor, which is a mean over many draws).
     # Saved so slices over items (item cold start) and any later re-analysis work from the same run.
     system_recommendations: Dict[str, List[str]] = field(default_factory=dict)
+    # Phase 11: seconds per feed for each system that was timed, and the full system's Explanation Coverage
+    latency_seconds: Dict[str, float] = field(default_factory=dict)
+    explanation_coverage: Optional[float] = None
 
 
 @dataclass
@@ -87,6 +91,8 @@ class LFOEvaluationResult:
                     "n_targets": r.n_targets,
                     "system_metrics": r.system_metrics,
                     "system_recommendations": r.system_recommendations,
+                    "latency_seconds": r.latency_seconds,
+                    "explanation_coverage": r.explanation_coverage,
                 }
                 for r in self.per_user_results
             ],
@@ -113,8 +119,12 @@ def evaluate_author(
     include_anchors: bool = True,
     n_random_draws: int = 100,
     baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
+    extra_systems: Optional[Mapping[str, Callable[..., List[str]]]] = None,
 ) -> UserEvaluationRow:
-    """Evaluate one author across full system, ablations, baselines, and diagnostic runs."""
+    """Evaluate one author across full system, ablations, baselines, and diagnostic runs.
+
+    ``extra_systems`` (Phase 11 comparison systems): name -> callable(profile, author_info, full_result) returning a
+    ranked list of paper IDs; each is scored like a baseline as "SOTA: <name>" and timed per feed."""
     cfg = base_config or RecommendConfig()
     aid = clean_id(author_info["author_id"])
     authored_ids = [clean_id(p) for p in author_info.get("authored_paper_ids_T", [])]
@@ -147,8 +157,13 @@ def evaluate_author(
         system_recommendations[name] = list(rec_pids[:k])
 
     # 1. Full tuned system
+    latency: Dict[str, float] = {}
+    t0 = time.perf_counter()
     res_full = recommend(resources, profile, session=None, mode="feed", config=cfg)
+    latency["Paper Feed (Full)"] = time.perf_counter() - t0
     _record("Paper Feed (Full)", res_full.paper_ids, res_full.candidate_ids, targets)
+    items = getattr(res_full, "items", None) or []
+    coverage = (sum(1 for it in items if it.explanation is not None and it.explanation.covered) / len(items)) if items else None
 
     # 2. Ablations (one component changed at a time, same candidate pool). With the V4 graph channel, No-Graph also
     #    drops the channel (design §13.8 point 5), so it removes every use of the citation graph.
@@ -179,6 +194,13 @@ def evaluate_author(
         b_pids = run_baseline(b_name, resources, profile, k=k, baseline_kwargs=(baseline_kwargs or {}).get(b_name))
         _record(f"Baseline: {b_name}", b_pids, b_pids, targets)
 
+    # 4b. Phase 11 comparison systems (same eligible pool and E_u, applied inside each callable)
+    for name, fn in (extra_systems or {}).items():
+        t0 = time.perf_counter()
+        ids = list(fn(profile, author_info, res_full))
+        latency[f"SOTA: {name}"] = time.perf_counter() - t0
+        _record(f"SOTA: {name}", ids, ids, targets)
+
     # 5. Anchors
     if include_anchors:
         draws = random_anchor_ids(resources, profile, k=k, n_draws=n_random_draws)
@@ -193,6 +215,8 @@ def evaluate_author(
         n_targets=len(targets),
         system_metrics=system_metrics,
         system_recommendations=system_recommendations,
+        latency_seconds=latency,
+        explanation_coverage=coverage,
     )
 
 
@@ -326,6 +350,7 @@ def run_lfo_evaluation(
     include_anchors: bool = True,
     filter_empty_targets: bool = False,
     baseline_kwargs: Optional[Mapping[str, Mapping[str, Any]]] = None,
+    extra_systems: Optional[Mapping[str, Callable[..., List[str]]]] = None,
 ) -> LFOEvaluationResult:
     """Run Track 1 LFO evaluation over all authors in cohort."""
     cfg = config or RecommendConfig()
@@ -363,6 +388,7 @@ def run_lfo_evaluation(
                 k=k,
                 include_anchors=include_anchors,
                 baseline_kwargs=baseline_kwargs,
+                extra_systems=extra_systems,
             )
             rows.append(row)
         except Exception as exc:

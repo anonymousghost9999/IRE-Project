@@ -231,3 +231,60 @@ def centroid_recommend(store, dense_index, authored_ids: Sequence[str], excluded
         return []
     hits = dense_index.search(centroid / norm, k=k, exclusion_set=excluded, candidate_filter=allowed)
     return [clean_id(p) for p, _ in hits][:k]
+
+
+# ---------------------------------------------------------------------------
+# The Phase 11 comparison systems for the final run (plan 11e; design §13.9 Phase 11 spec points 4 and 6)
+# ---------------------------------------------------------------------------
+
+SOTA_NAMES = ("RP3beta", "Scholar Inbox (GTE-large + LR)", "SciNCL centroid kNN", "RankGPT (Qwen2.5-3B)")
+
+
+def _author_ids(profile) -> List[str]:
+    return [clean_id(p["paper_id"]) for p in getattr(profile, "authored_papers", []) if p.get("paper_id")]
+
+
+def _excluded(profile) -> Set[str]:
+    return profile.exclusion_sources.build(diagnostic=False, zero_pub=profile.zero_pub)
+
+
+def make_rp3beta_system(graph: CitationGraph, allowed: Set[str], alpha: float, beta: float, k: int = 10):
+    def run(profile, author_info, full_result) -> List[str]:
+        if profile.zero_pub:
+            return []
+        return rp3beta_recommend(graph, _author_ids(profile), allowed, _excluded(profile), alpha, beta, k)
+    return run
+
+
+def make_scholar_inbox_system(space: EmbeddingSpace, allowed_idx: np.ndarray, C: float, k: int = 10):
+    def run(profile, author_info, full_result) -> List[str]:
+        if profile.zero_pub:
+            return []
+        return scholar_inbox_recommend(space, str(author_info["author_id"]), _excluded(profile), allowed_idx, C, k)
+    return run
+
+
+def make_centroid_system(store, dense_index, allowed: Set[str], text_lookup, encoder=None, k: int = 10):
+    """``text_lookup(ids) -> {id: {"title", "abstract"}}`` supplies the text of authored papers without a vector."""
+    def run(profile, author_info, full_result) -> List[str]:
+        if profile.zero_pub:
+            return []
+        authored = _author_ids(profile)
+        missing = [p for p in authored if store.missing([p])]
+        texts = text_lookup(missing) if missing and encoder is not None else None
+        return centroid_recommend(store, dense_index, authored, _excluded(profile), allowed, k, encoder, texts)
+    return run
+
+
+def make_rankgpt_system(generate, text_lookup, stats, k: int = 10):
+    """Reranks the full system's own candidate pool against its feed pseudo-query (same pool, same E_u)."""
+    from paperfeed.eval.rankgpt import candidate_text, sliding_window_rerank
+
+    def run(profile, author_info, full_result) -> List[str]:
+        pool = list(full_result.candidate_ids)
+        if not pool:
+            return []
+        texts = text_lookup(pool)
+        items = [(p, candidate_text(texts.get(p, {}).get("title", ""), texts.get(p, {}).get("abstract", ""))) for p in pool]
+        return sliding_window_rerank(full_result.pseudo_query, items, generate, stats=stats)[:k]
+    return run

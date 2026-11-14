@@ -115,3 +115,48 @@ def test_centroid_knn_embeds_missing_authored_papers():
 
     texts = {"NEW": {"title": "t", "abstract": "a"}}
     assert centroid_recommend(store, dense, ["NEW"], {"P3"}, set(ids), k=1, encoder=Enc(), texts=texts) == ["P4"]
+
+
+def test_comparison_system_builders(graph):
+    from types import SimpleNamespace
+
+    from paperfeed.eval.rankgpt import RerankStats
+    from paperfeed.eval.sota import make_rankgpt_system, make_rp3beta_system
+
+    excl = SimpleNamespace(build=lambda diagnostic=False, zero_pub=False: {"U", "R1", "R2"})
+    prof = SimpleNamespace(zero_pub=False, authored_papers=[{"paper_id": "https://openalex.org/U"}], exclusion_sources=excl)
+    rp3 = make_rp3beta_system(graph, {"X", "Y", "Z"}, alpha=1.0, beta=0.0, k=2)
+    assert rp3(prof, {"author_id": "A1"}, None) == ["X", "Z"]
+    assert rp3(SimpleNamespace(**{**vars(prof), "zero_pub": True}), {}, None) == []
+
+    seen, stats = {}, RerankStats()
+
+    def generate(messages):
+        seen["prompt"] = messages[1]["content"]
+        return "[2] > [1]"
+
+    full = SimpleNamespace(candidate_ids=["A", "B"], pseudo_query="dense retrieval")
+    rg = make_rankgpt_system(generate, lambda ids: {i: {"title": f"T{i}", "abstract": "abs"} for i in ids}, stats)
+    assert rg(prof, {}, full) == ["B", "A"] and stats.windows == 1
+    assert "dense retrieval" in seen["prompt"] and "[1] TA. abs" in seen["prompt"]
+    assert rg(prof, {}, SimpleNamespace(candidate_ids=[], pseudo_query="q")) == []
+
+
+def test_phase11_tables():
+    from paperfeed.eval.report import format_best_config_table, format_sota_table
+
+    aggs = {"Paper Feed (Full)": {"ndcg_at_10": 0.02, "recall_at_10": 0.01}, "SOTA: RP3beta": {"ndcg_at_10": 0.06},
+            "Baseline: popularity": {"ndcg_at_10": 0.01}, "Anchor: Random (100-draw)": {"ndcg_at_10": 0.0001},
+            "Ablation: No-MMR": {"ndcg_at_10": 0.02}}
+    table = format_sota_table(aggs, {"Paper Feed (Full)": 0.25, "SOTA: RP3beta": 1.5}, coverage=0.98)
+    rows = [l for l in table.splitlines() if l.startswith("| ") and "System" not in l and not l.startswith("| :")]
+    assert [r.split("|")[1].strip() for r in rows] == ["**Paper Feed (Full)**", "SOTA: RP3beta", "Baseline: popularity",
+                                                       "Anchor: Random (100-draw)"]  # no ablations
+    assert "98.0%" in rows[0] and "0.25" in rows[0] and "| none | 1.50 |" in rows[1] and rows[2].endswith("| none | - |")
+    best = {"best_configuration": "core", "parts": {
+        "scorer": {"choice": "linear", "replaces_core": False, "rationale": "kept",
+                   "evidence": {"gain": 0.002, "ci95": [-0.01, 0.01], "n_users": 80}},
+        "session_model": {"choice": {"alpha_sess": 0.5}, "replaces_core": False, "evidence": None, "rationale": "deferred"}}}
+    md = format_best_config_table(best)
+    assert "| scorer | `linear` | no | gain +0.0020 [-0.0100, +0.0100] | 80 | kept |" in md
+    assert "| session_model |" in md and "| none | - | deferred |" in md

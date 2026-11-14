@@ -288,3 +288,60 @@ def generate_full_evaluation_report(
 
     return "\n".join(parts)
 
+
+
+# ---------------------------------------------------------------------------
+# Phase 11 tables (plan 11.5)
+# ---------------------------------------------------------------------------
+
+def format_sota_table(system_aggregates: Mapping[str, Mapping[str, float]], latency: Mapping[str, float],
+                      coverage: Optional[float]) -> str:
+    """Paper Feed, the comparison systems, the Track 1 baselines and the Random anchor on the same test authors."""
+    oracle = (system_aggregates.get("Anchor: Oracle@10") or {}).get("ndcg_at_10", 1.0) or 1.0
+    names = (["Paper Feed (Full)"] + [n for n in system_aggregates if n.startswith("SOTA: ")]
+             + [n for n in system_aggregates if n.startswith("Baseline: ")]
+             + [n for n in system_aggregates if n.startswith("Anchor: Random")])
+    lines = [
+        "| System | NDCG@10 | % of Oracle | Recall@10 | HitRate@10 | MRR | Topic Entropy | Explanation Coverage | "
+        "Latency per feed (s) |",
+        "| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |",
+    ]
+    for name in names:
+        m = system_aggregates.get(name)
+        if not m:
+            continue
+        cov = f"{coverage:.1%}" if (name == "Paper Feed (Full)" and coverage is not None) else "none"
+        lat = f"{latency[name]:.2f}" if name in latency else "-"
+        bold = "**" if name == "Paper Feed (Full)" else ""
+        lines.append(
+            f"| {bold}{name}{bold} | {m.get('ndcg_at_10', 0.0):.4f} | {m.get('ndcg_at_10', 0.0) / oracle * 100:.1f}% | "
+            f"{m.get('recall_at_10', 0.0):.4f} | {m.get('hit_rate_at_10', 0.0):.4f} | {m.get('mrr', 0.0):.4f} | "
+            f"{m.get('topic_entropy', 0.0):.4f} | {cov} | {lat} |"
+        )
+    lines.append("")
+    lines.append("*Explanation Coverage is a capability difference, not ranked against accuracy: only Paper Feed explains "
+                 "its recommendations. Latency is the mean time to produce one feed on the run machine; baselines and "
+                 "the anchor were not timed (\"-\"). The comparison systems' one-off setup (graph, PCA, model loading) "
+                 "is excluded.*")
+    return "\n".join(lines)
+
+
+def format_best_config_table(best: Mapping[str, Any]) -> str:
+    """configs/best.yaml as the plan's best-configuration table: part, choice, tuning evidence."""
+    lines = [
+        f"Best configuration: **{best.get('best_configuration')}**. {best.get('replacement_rule', '')} "
+        f"{best.get('assembled_check', '')}\n",
+        "| Part | Chosen option | Replaces Core | Tuning evidence | n | Rationale |",
+        "| :--- | :--- | :---: | :--- | :---: | :--- |",
+    ]
+    for part, p in (best.get("parts") or {}).items():
+        ev = p.get("evidence")
+        if not ev:
+            evidence, n = "none", "-"
+        elif "ci95" in ev:
+            evidence, n = f"gain {ev['gain']:+.4f} [{ev['ci95'][0]:+.4f}, {ev['ci95'][1]:+.4f}]", ev.get("n_users", "-")
+        else:
+            evidence, n = f"NDCG@10 {ev.get('value', 0.0):.4f}", ev.get("n_users", "-")
+        lines.append(f"| {part} | `{p.get('choice')}` | {'yes' if p.get('replaces_core') else 'no'} | {evidence} | {n} | "
+                     f"{p.get('rationale', '')} |")
+    return "\n".join(lines)

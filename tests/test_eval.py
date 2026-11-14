@@ -1009,3 +1009,26 @@ def test_v3_ablations_switch_model_inputs_off(monkeypatch):
     assert full.v3_off_features == () and full.v3_lambda_div == 0.3
     assert no_mmr.lambda_div == 0.0 and no_mmr.v3_lambda_div == 0.0
     assert no_graph.v3_off_features == ("citation",) and no_facets.v3_off_features == ("facet", "new_method")
+
+
+def test_extra_systems_are_scored_like_baselines_and_timed(monkeypatch):
+    from paperfeed.eval import lfo
+    from paperfeed.rec.recommender import RecommendConfig
+
+    expl = lambda covered: SimpleNamespace(covered=covered)  # noqa: E731
+    full = SimpleNamespace(paper_ids=["p1"], candidate_ids=["p1", "p2"], pseudo_query="q",
+                           items=[SimpleNamespace(explanation=expl(True)), SimpleNamespace(explanation=expl(False)),
+                                  SimpleNamespace(explanation=None), SimpleNamespace(explanation=expl(True))])
+    monkeypatch.setattr(lfo, "build_user_profile", lambda *a, **k: SimpleNamespace(user_facets=SimpleNamespace(ids=[])))
+    monkeypatch.setattr(lfo, "recommend", lambda *a, **k: full)
+    monkeypatch.setattr(lfo, "run_baseline", lambda *a, **k: ["p1"])
+    seen = []
+    monkeypatch.setattr(lfo, "per_user_metrics", lambda **k: seen.append(k["recommended_ids"]) or {"ndcg_at_10": 0.0})
+    calls = []
+    row = lfo.evaluate_author(None, {"author_id": "A1"}, ["p2"], [], {}, {}, np.zeros((1, 2)), {},
+                              base_config=RecommendConfig(), include_anchors=False,
+                              extra_systems={"X": lambda prof, info, res: calls.append(res) or ["p2", "p9"]})
+    assert "SOTA: X" in row.system_metrics and row.system_recommendations["SOTA: X"] == ["p2", "p9"]
+    assert calls == [full]  # it gets the full system's result (RankGPT reranks that pool)
+    assert set(row.latency_seconds) == {"Paper Feed (Full)", "SOTA: X"}
+    assert row.explanation_coverage == pytest.approx(0.5)  # 2 of 4 items carry a covered explanation
