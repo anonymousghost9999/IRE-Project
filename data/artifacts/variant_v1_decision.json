@@ -1,0 +1,91 @@
+{
+  "rule": {
+    "statement": "The alternative encoder with the higher full-system tuning NDCG@10 at its own grid optimum is the V1 candidate; it replaces SPECTER2 only if the paired-bootstrap 95% CI of its gain over SPECTER2 (both on the 20k subset, each at its own optimum) lies above zero (design \u00a713.8, V1 point 6).",
+    "n_resamples": 10000,
+    "alpha": 0.05,
+    "seed": 42
+  },
+  "n_users": 80,
+  "per_encoder": {
+    "specter2": {
+      "w_cite": 1.0,
+      "w_facet": 0.25,
+      "w_nov": 0.25,
+      "w_pop": 0.0,
+      "lambda_div": 0.0,
+      "mean_ndcg": 0.021480842835037362,
+      "dense_centroid_ndcg": 0.00673039144071815,
+      "candidate_recall_at_100": 0.06342872094274796
+    },
+    "scincl": {
+      "w_cite": 1.0,
+      "w_facet": 0.25,
+      "w_nov": 0.25,
+      "w_pop": 0.0,
+      "lambda_div": 0.0,
+      "mean_ndcg": 0.027829751908517962,
+      "dense_centroid_ndcg": 0.017414576599674058,
+      "candidate_recall_at_100": 0.06629363903178558
+    },
+    "bge": {
+      "w_cite": 1.0,
+      "w_facet": 0.5,
+      "w_nov": 0.0,
+      "w_pop": 0.0,
+      "lambda_div": 0.1,
+      "mean_ndcg": 0.031969627436175006,
+      "dense_centroid_ndcg": 0.012230093672601227,
+      "candidate_recall_at_100": 0.07855437682245245
+    }
+  },
+  "chosen_encoder": "bge",
+  "ndcg_gain": {
+    "mean_diff": 0.010488784601137646,
+    "relative": 0.4882855240684229,
+    "ci": [
+      -0.0019377092590617759,
+      0.02371230331181493
+    ],
+    "p_value": 0.1099,
+    "cohens_d": 0.1788415020577728
+  },
+  "candidate_recall_gain": {
+    "mean_diff": 0.015125655879704497,
+    "ci": [
+      -0.000309988886753255,
+      0.033215882676843944
+    ]
+  },
+  "dense_centroid_gain": {
+    "scincl": {
+      "mean_diff": 0.010684185158955905,
+      "ci": [
+        -0.0007619325866472006,
+        0.023270524998948952
+      ]
+    },
+    "bge": {
+      "mean_diff": 0.005499702231883078,
+      "ci": [
+        -0.0020972533951429764,
+        0.013227935452920399
+      ]
+    }
+  },
+  "adopt_v1": false,
+  "subset": {
+    "size": 20000,
+    "n_seeds": 1929,
+    "n_hop1": 6021,
+    "n_hop1_available": 6021,
+    "n_hop2": 12050,
+    "rule": "design \u00a713.8 V1 point 4",
+    "target_share": 0.672316384180791,
+    "sha256": "e9724eaf840d89dd3494231bfdd2bc4f20bf1ce8268c8e2dc2cdfe4712caf137"
+  },
+  "models": {
+    "specter2": "allenai/specter2_base",
+    "scincl": "malteos/scincl",
+    "bge": "BAAI/bge-base-en-v1.5"
+  }
+}
