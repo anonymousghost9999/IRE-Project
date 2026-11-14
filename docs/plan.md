@@ -365,6 +365,8 @@ BM25s, SPECTER2, RRF hybrid ($k=60$, top 200 per channel); optional cross-encode
 
 ## Phase 9 — Track 2: LLM Session Simulation (Extended)
 
+> **Status (2026-11-14): deferred.** 9a (simulator client, Gemini and OpenAI-format providers, probe script) is built and tested; the provider and model are not yet pinned (free-tier limits measured: Gemini Flash-Lite ~500 calls/day, NVIDIA NIM ~15 calls/min). Phases 11–13 do not depend on Track 2; Phase 11 keeps the default session parameters and the report states that Track 2 was deferred.
+
 **Goal:** session adaptation results with clearly simulated status (D§13.2, P§6E.2).
 
 **Fixed details:** D§13.2 "Track 2 specification" (Gemini via AI Studio, per-paper rating cache, persona and topic rules, episode lengths, pilot criterion, budget fallback). Steps:
@@ -474,6 +476,13 @@ Parts chosen one at a time can interact (for example, a new encoder changes whic
 - Run the assembled configuration on the tuning split against Core.
 - If it does not beat Core there, remove replaced components one at a time (backward elimination on the tuning split only) until it does. If nothing beats Core, the best configuration **is** Core, and that is reported as the finding.
 - Freeze `configs/best.yaml` before 11.4.
+
+**Fixed details:** D§13.9 "Phase 11 specification" (2026-11-14). Steps:
+- **11a** Pool-size decision on the tuning split ($M=250$, $M_{\text{channel}}=500$, no popularity prior, vs Core), then `configs/best.yaml` with every part's decision and evidence, frozen before 11e.
+- **11b** RP3β on the $\le T$ citation graph, with its tuning grid; unit tests on a toy graph.
+- **11c** Scholar Inbox-style classifier (GTE-large full-corpus vectors, PCA-256, per-author logistic regression) and SciNCL full-corpus vectors for the centroid kNN.
+- **11d** RankGPT-style reranker (Qwen2.5-3B-Instruct, 4-bit, window 20 / step 10); unit tests with a scripted model.
+- **11e** One final test run with a manifest (best configuration, included systems, baselines, anchors, latency) and the two 11.5 tables.
 
 ### 11.3 SOTA comparison systems
 - **Literature review first.** At the start of the phase, survey current state-of-the-art research-paper recommenders and scientific-document representation methods, and record the review date and sources in the report. The field moves quickly, so the shortlist below is a starting point to be confirmed, not a fixed list.

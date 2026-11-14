@@ -169,3 +169,45 @@ def test_gemini_client_request_and_reply(monkeypatch):
     with pytest.raises(RateLimited) as exc:
         client.generate("prompt", 0.7, 5)
     assert exc.value.wait_seconds == 12
+
+
+def test_openai_compatible_client_request_reply_and_limit_headers(monkeypatch):
+    import httpx
+
+    from paperfeed.sim.llm import OpenAICompatibleClient, make_client, rate_limit_headers
+
+    monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    with pytest.raises(RuntimeError, match="NVIDIA_API_KEY"):
+        OpenAICompatibleClient("nvidia", "m")
+    with pytest.raises(ValueError, match="Unknown provider"):
+        OpenAICompatibleClient("nope", "m", api_key="k")
+    monkeypatch.setenv("NVIDIA_API_KEY", "secret")
+    seen = {}
+
+    def fake_post(url, json, timeout, headers):
+        seen.update(url=url, body=json, headers=headers)
+        reply = '```json\n{"ratings": [{"id": "W1", "rating": 5}]}\n```'  # fenced despite JSON mode
+        return _Resp(200, {"model": "meta/llama-x", "choices": [{"message": {"content": reply}}]},
+                     headers={"x-ratelimit-limit-requests": "40", "x-ratelimit-remaining-requests": "39",
+                              "content-type": "application/json"})
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    client = make_client("nvidia", "meta/llama-x")
+    text, meta = client.generate("prompt", 0.7, 3)
+    assert parse_ratings(text, ["W1"]) == {"W1": 5} and meta["model_version"] == "meta/llama-x"
+    assert seen["url"] == "https://integrate.api.nvidia.com/v1/chat/completions"
+    assert seen["headers"] == {"Authorization": "Bearer secret"} and "secret" not in seen["url"]
+    body = seen["body"]
+    assert body["temperature"] == 0.7 and body["seed"] == 3 and body["response_format"] == {"type": "json_object"}
+    assert [m["role"] for m in body["messages"]] == ["system", "user"] and body["messages"][1]["content"] == "prompt"
+    assert client.last_headers == {"x-ratelimit-limit-requests": "40", "x-ratelimit-remaining-requests": "39"}
+
+    monkeypatch.setattr(httpx, "post", lambda *a, **k: _Resp(429, headers={"retry-after": "5"}))
+    with pytest.raises(RateLimited):
+        client.generate("prompt", 0.7, 3)
+    assert rate_limit_headers({"Retry-After": "5", "Server": "x"}) == {"Retry-After": "5"}
+
+    monkeypatch.setattr(httpx, "get", lambda url, timeout, headers: _Resp(200, {"data": [{"id": "b"}, {"id": "a"}]}))
+    assert client.list_models() == ["a", "b"]
+    monkeypatch.setenv("GEMINI_API_KEY", "g-secret")
+    assert isinstance(make_client("gemini", "g"), GeminiClient)

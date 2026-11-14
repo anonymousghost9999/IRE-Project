@@ -119,6 +119,17 @@ class GeminiClient:
         self.model = model
         self._key = key
         self.timeout = timeout
+        self.last_headers: Dict[str, str] = {}
+
+    def list_models(self) -> List[str]:
+        """Models this key can call with generateContent."""
+        import httpx
+
+        resp = httpx.get("https://generativelanguage.googleapis.com/v1beta/models", timeout=self.timeout,
+                         headers={"x-goog-api-key": self._key}, params={"pageSize": 200})
+        resp.raise_for_status()
+        return sorted(m["name"].removeprefix("models/") for m in resp.json().get("models", [])
+                      if "generateContent" in m.get("supportedGenerationMethods", []))
 
     def generate(self, prompt: str, temperature: float, seed: int) -> Tuple[str, Dict[str, Any]]:
         import httpx
@@ -130,6 +141,7 @@ class GeminiClient:
         }
         resp = httpx.post(self.URL.format(model=self.model), json=body, timeout=self.timeout,
                           headers={"x-goog-api-key": self._key})
+        self.last_headers = rate_limit_headers(resp.headers)
         if resp.status_code in (429, 503):
             raise RateLimited(float(resp.headers.get("retry-after", 30)))
         resp.raise_for_status()
@@ -139,6 +151,89 @@ class GeminiClient:
         except (KeyError, IndexError) as exc:
             raise RatingParseError(f"no text in the reply: {str(data)[:200]}") from exc
         return text, {"model_version": data.get("modelVersion", self.model), "usage": data.get("usageMetadata", {})}
+
+
+# OpenAI-format chat APIs (one client for all of them). Keys are read from the named environment variable only.
+OPENAI_COMPATIBLE: Dict[str, Tuple[str, str]] = {
+    "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY"),
+    "mistral": ("https://api.mistral.ai/v1", "MISTRAL_API_KEY"),
+    "groq": ("https://api.groq.com/openai/v1", "GROQ_API_KEY"),
+    "openrouter": ("https://openrouter.ai/api/v1", "OPENROUTER_API_KEY"),
+    "cerebras": ("https://api.cerebras.ai/v1", "CEREBRAS_API_KEY"),
+}
+
+RATE_LIMIT_HEADER_WORDS = ("ratelimit", "rate-limit", "remaining", "retry-after", "reset", "quota", "limit")
+
+
+def rate_limit_headers(headers: Mapping[str, str]) -> Dict[str, str]:
+    """The reply headers that describe rate limits (names differ between providers, so match loosely)."""
+    return {k: v for k, v in dict(headers).items() if any(w in k.lower() for w in RATE_LIMIT_HEADER_WORDS)}
+
+
+class OpenAICompatibleClient:
+    """``POST {base_url}/chat/completions`` in the OpenAI format (NVIDIA NIM, Mistral, Groq, OpenRouter, Cerebras)."""
+
+    def __init__(self, provider: str, model: str, api_key: Optional[str] = None, timeout: float = 90.0,
+                 json_mode: bool = True):
+        if provider not in OPENAI_COMPATIBLE:
+            raise ValueError(f"Unknown provider {provider!r}; expected one of {sorted(OPENAI_COMPATIBLE)} or 'gemini'.")
+        self.provider = provider
+        self.base_url, env = OPENAI_COMPATIBLE[provider]
+        key = api_key or os.environ.get(env)
+        if not key:
+            raise RuntimeError(f"Set the {env} environment variable; the key is never stored.")
+        self.model = model
+        self._key = key
+        self.timeout = timeout
+        self.json_mode = json_mode
+        self.last_headers: Dict[str, str] = {}
+
+    def _headers(self) -> Dict[str, str]:
+        return {"Authorization": f"Bearer {self._key}"}
+
+    def generate(self, prompt: str, temperature: float, seed: int) -> Tuple[str, Dict[str, Any]]:
+        import httpx
+
+        body: Dict[str, Any] = {
+            "model": self.model,
+            "messages": [{"role": "system", "content": SYSTEM_INSTRUCTION}, {"role": "user", "content": prompt}],
+            "temperature": temperature,
+            "seed": seed,
+        }
+        if self.json_mode:
+            body["response_format"] = {"type": "json_object"}
+        resp = httpx.post(f"{self.base_url}/chat/completions", json=body, timeout=self.timeout, headers=self._headers())
+        self.last_headers = rate_limit_headers(resp.headers)
+        if resp.status_code in (429, 503):
+            raise RateLimited(float(resp.headers.get("retry-after", 30)))
+        resp.raise_for_status()
+        data = resp.json()
+        try:
+            text = data["choices"][0]["message"]["content"] or ""
+        except (KeyError, IndexError, TypeError) as exc:
+            raise RatingParseError(f"no text in the reply: {str(data)[:200]}") from exc
+        return _strip_code_fence(text), {"model_version": data.get("model", self.model), "usage": data.get("usage", {})}
+
+    def list_models(self) -> List[str]:
+        import httpx
+
+        resp = httpx.get(f"{self.base_url}/models", timeout=self.timeout, headers=self._headers())
+        resp.raise_for_status()
+        return sorted(m["id"] for m in resp.json().get("data", []))
+
+
+def _strip_code_fence(text: str) -> str:
+    """Some models wrap JSON in a ```json fence even in JSON mode; the content inside is what gets parsed."""
+    t = text.strip()
+    if t.startswith("```"):
+        t = t.split("\n", 1)[1] if "\n" in t else ""
+        t = t.rsplit("```", 1)[0]
+    return t.strip()
+
+
+def make_client(provider: str, model: str):
+    """The simulator client for ``configs/default.yaml`` ``simulation.provider`` / ``simulation.model``."""
+    return GeminiClient(model) if provider == "gemini" else OpenAICompatibleClient(provider, model)
 
 
 @dataclass
