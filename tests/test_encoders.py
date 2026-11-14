@@ -40,8 +40,10 @@ def test_pooling_cls_and_last_token_with_either_padding_side():
     assert torch.equal(pool(hidden, right, "last_token"), torch.stack([hidden[0, 3], hidden[1, 1]]))
     left = torch.tensor([[1, 1, 1, 1], [0, 0, 1, 1]])
     assert torch.equal(pool(hidden, left, "last_token"), hidden[:, -1])
+    # mean over real tokens only: row 1 has two real tokens
+    assert torch.allclose(pool(hidden, right, "mean"), torch.stack([hidden[0].mean(0), hidden[1, :2].mean(0)]))
     with pytest.raises(ValueError):
-        pool(hidden, right, "mean")
+        pool(hidden, right, "max")
 
 
 class _Tok:
@@ -95,7 +97,8 @@ def test_hf_encoder_formats_pools_normalises_and_keeps_order():
 
 
 def test_make_encoder_keeps_post_t_models_out_of_track1():
-    assert ENCODER_KEYS == ("specter2", "scincl", "bge", "qwen3")
+    assert ENCODER_KEYS == ("specter2", "scincl", "bge", "gte", "qwen3")
+    assert ENCODER_SPECS["gte"].pooling == "mean" and ENCODER_SPECS["gte"].model_name == "thenlper/gte-large"
     assert make_encoder("bge", device="cpu").model_name == "BAAI/bge-base-en-v1.5"  # lazy: nothing downloaded
     assert make_encoder("qwen3", device="cpu").spec.track1_eligible is False
     with pytest.raises(ValueError, match="after T"):

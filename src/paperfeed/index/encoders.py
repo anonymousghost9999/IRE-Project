@@ -35,7 +35,7 @@ logger = get_logger("index.encoders")
 class EncoderSpec:
     key: str
     model_name: str
-    pooling: str  # "cls" or "last_token"
+    pooling: str  # "cls", "mean" or "last_token"
     doc_separator: str  # between title and abstract; "[SEP]" means the tokenizer's own sep token
     query_prefix: str = ""
     track1_eligible: bool = True  # False: released after T, retrieval benchmarks only (design §13.8 V1 point 1)
@@ -46,6 +46,9 @@ ENCODER_SPECS: Dict[str, EncoderSpec] = {
     "scincl": EncoderSpec("scincl", "malteos/scincl", "cls", "[SEP]"),
     "bge": EncoderSpec("bge", "BAAI/bge-base-en-v1.5", "cls", ". ",
                        query_prefix="Represent this sentence for searching relevant passages: "),
+    # Phase 11 comparison only (Scholar Inbox-style classifier, design §13.9 Phase 11 spec point 4); 2023, base usage:
+    # mean pooling over "title. abstract"
+    "gte": EncoderSpec("gte", "thenlper/gte-large", "mean", ". "),
     "qwen3": EncoderSpec("qwen3", "Qwen/Qwen3-Embedding-0.6B", "last_token", ". ",
                          query_prefix="Instruct: Given a research question, retrieve scientific papers that answer it\nQuery: ",
                          track1_eligible=False),
@@ -69,12 +72,15 @@ def format_query(spec: EncoderSpec, query: str) -> str:
 
 
 def pool(hidden, attention_mask, how: str):
-    """[CLS] (first position) or last-token pooling; the last real token is found from the mask, so it works with
-    left or right padding."""
+    """[CLS] (first position), mean over real tokens, or last-token pooling; the mask marks real tokens, so it works
+    with left or right padding."""
     import torch
 
     if how == "cls":
         return hidden[:, 0]
+    if how == "mean":
+        mask = attention_mask.unsqueeze(-1).to(hidden.dtype)
+        return (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1)
     if how != "last_token":
         raise ValueError(f"Unknown pooling {how!r}.")
     if bool((attention_mask[:, -1] == 1).all()):  # left padding: the last position is always a real token

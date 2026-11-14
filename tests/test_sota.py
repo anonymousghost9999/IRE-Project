@@ -63,3 +63,55 @@ def test_tuning_picks_the_best_grid_point_with_ties_to_the_earlier(graph):
     nobody = RP3Author("A1", ["U"], {"U", "R1", "R2"}, targets=["never-reached"])
     tied = tune_rp3beta(graph, [nobody], allowed, grid={"alpha": [1.0, 2.0], "beta": [0.0, 0.75]}, k=1)
     assert tied["best"] == {"alpha": 1.0, "beta": 0.0, "mean_ndcg": 0.0}  # all equal: the first grid point
+
+
+# ---------------------------------------------------------------------------
+# Scholar Inbox-style classifier and centroid kNN (plan 11c)
+# ---------------------------------------------------------------------------
+
+from paperfeed.eval.sota import author_seed, centroid_recommend, fit_pca_space, scholar_inbox_recommend
+
+
+def _space(n=400, d=32, seed=0):
+    """Papers on a 'topic axis': ids T* lie along +axis0 (the author's topic), O* elsewhere."""
+    rng = np.random.default_rng(seed)
+    vecs = rng.normal(size=(n, d)).astype(np.float32)
+    ids = [f"T{i}" if i < 60 else f"O{i}" for i in range(n)]
+    vecs[:60, 0] += 6.0
+    return ids, vecs
+
+
+def test_pca_space_and_classifier_find_the_authors_topic():
+    ids, vecs = _space()
+    space = fit_pca_space(ids, vecs, dim=8)
+    assert space.Z.shape == (400, 8) and 0 < space.explained_variance <= 1
+    excluded = {f"T{i}" for i in range(10)} | {"O100"}  # E_u: authored + cited (positives); never recommended
+    allowed = np.arange(400)
+    recs = scholar_inbox_recommend(space, "A1", excluded, allowed, C=1.0, k=20)
+    assert not set(recs) & excluded and len(recs) == 20
+    assert sum(r.startswith("T") for r in recs) >= 15  # the remaining topic papers rank first
+    assert recs == scholar_inbox_recommend(space, "A1", excluded, allowed, C=1.0, k=20)  # seeded: deterministic
+    assert scholar_inbox_recommend(space, "A1", set(), allowed, C=1.0) == []  # no positives: not applicable
+    only = np.array([space.index["O200"], space.index["T50"]])
+    assert set(scholar_inbox_recommend(space, "A1", excluded, only, C=1.0, k=5)) == {"O200", "T50"}  # eligibility
+    assert author_seed("https://openalex.org/A1") == author_seed("A1")
+
+
+def test_centroid_knn_embeds_missing_authored_papers():
+    from paperfeed.index.dense import DenseIndex
+    from paperfeed.index.store import EmbeddingStore
+
+    ids = ["P1", "P2", "P3", "P4"]
+    vecs = np.array([[1, 0], [0.9, 0.1], [0, 1], [0.1, 0.9]], dtype=np.float32)
+    vecs /= np.linalg.norm(vecs, axis=1, keepdims=True)
+    store, dense = EmbeddingStore(ids, vecs), DenseIndex(dimension=2)
+    dense.add_documents(ids, vecs)
+    assert centroid_recommend(store, dense, ["P1"], {"P1"}, set(ids), k=1) == ["P2"]
+    assert centroid_recommend(store, dense, ["NEW"], set(), set(ids), k=1) == []  # no vector, no encoder
+
+    class Enc:
+        def embed_papers(self, papers):
+            return np.array([[0.0, 1.0]], dtype=np.float32)
+
+    texts = {"NEW": {"title": "t", "abstract": "a"}}
+    assert centroid_recommend(store, dense, ["NEW"], {"P3"}, set(ids), k=1, encoder=Enc(), texts=texts) == ["P4"]

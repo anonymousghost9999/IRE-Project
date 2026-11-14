@@ -144,3 +144,90 @@ def tune_rp3beta(graph: CitationGraph, authors: Sequence[RP3Author], allowed: Se
     records = [{"alpha": a, "beta": b, "mean_ndcg": float(np.mean(v)) if v else 0.0} for (a, b), v in per_point.items()]
     best = max(records, key=lambda r: r["mean_ndcg"])  # max keeps the first of equal values (grid order)
     return {"grid": g, "points": records, "best": best, "n_users": len(authors)}
+
+
+# ---------------------------------------------------------------------------
+# Scholar Inbox-style per-author classifier (plan 11c; design §13.9 Phase 11 spec point 4)
+# ---------------------------------------------------------------------------
+
+SCHOLAR_INBOX_C = [0.01, 0.1, 1.0, 10.0]
+NEGATIVES_PER_POSITIVE = 10
+PCA_DIM = 256
+
+
+@dataclass
+class EmbeddingSpace:
+    """Corpus vectors reduced by PCA (fitted once on the whole corpus, as Scholar Inbox does)."""
+
+    ids: List[str]
+    index: Dict[str, int]
+    Z: np.ndarray  # (n, dim) float32
+    explained_variance: float
+
+
+def fit_pca_space(ids: Sequence[str], vectors: np.ndarray, dim: int = PCA_DIM, seed: int = 42) -> EmbeddingSpace:
+    from sklearn.decomposition import PCA
+
+    vectors = np.asarray(vectors, dtype=np.float32)
+    dim = min(dim, vectors.shape[0], vectors.shape[1])
+    pca = PCA(n_components=dim, random_state=seed, svd_solver="randomized" if vectors.shape[0] > 5000 else "full")
+    Z = pca.fit_transform(vectors).astype(np.float32)
+    ids = [clean_id(p) for p in ids]
+    return EmbeddingSpace(ids, {p: i for i, p in enumerate(ids)}, Z, float(pca.explained_variance_ratio_.sum()))
+
+
+def author_seed(author_id: str, base: int = 42) -> int:
+    import zlib
+
+    return (zlib.crc32(clean_id(author_id).encode("utf-8")) + base) % (2**31)
+
+
+def scholar_inbox_recommend(space: EmbeddingSpace, author_id: str, excluded: Set[str], allowed_idx: np.ndarray,
+                            C: float, k: int = 10) -> List[str]:
+    """Train a logistic regression on the author's positives (E_u: authored papers and their references with a vector)
+    against 10 random eligible negatives per positive, then rank the eligible, non-excluded papers by its score.
+    Empty when the author has no positive with a vector (not applicable, like Citation-only for zero-publication)."""
+    from sklearn.linear_model import LogisticRegression
+
+    pos = np.array(sorted(space.index[p] for p in excluded if p in space.index), dtype=np.int64)
+    if pos.size == 0:
+        return []
+    excl_idx = {space.index[p] for p in excluded if p in space.index}
+    pool = np.array([i for i in allowed_idx if i not in excl_idx], dtype=np.int64)
+    if pool.size == 0:
+        return []
+    rng = np.random.default_rng(author_seed(author_id))
+    neg = rng.choice(pool, size=min(pool.size, NEGATIVES_PER_POSITIVE * pos.size), replace=False)
+    X = np.vstack([space.Z[pos], space.Z[neg]])
+    y = np.r_[np.ones(pos.size), np.zeros(neg.size)]
+    clf = LogisticRegression(C=C, max_iter=2000)
+    clf.fit(X, y)
+    scores = clf.decision_function(space.Z[pool])
+    order = sorted(range(pool.size), key=lambda t: (-scores[t], space.ids[pool[t]]))[:k]
+    return [space.ids[pool[t]] for t in order]
+
+
+# ---------------------------------------------------------------------------
+# User-centroid kNN with another encoder (SciNCL; plan 11c)
+# ---------------------------------------------------------------------------
+
+def centroid_recommend(store, dense_index, authored_ids: Sequence[str], excluded: Set[str], allowed: Set[str],
+                       k: int = 10, encoder=None, texts: Optional[Mapping[str, Mapping[str, str]]] = None) -> List[str]:
+    """Dense kNN on the mean vector of the author's papers (the Dense Centroid baseline with another encoder).
+    Authored papers without a stored vector are embedded with ``encoder`` from ``texts`` when given."""
+    authored = [clean_id(p) for p in authored_ids]
+    present = [p for p in authored if not store.missing([p])]
+    vecs = [store.select(present)] if present else []
+    missing = [p for p in authored if p not in set(present)]
+    if missing and encoder is not None and texts is not None:
+        papers = [texts[p] for p in missing if p in texts and texts[p].get("title")]
+        if papers:
+            vecs.append(np.asarray(encoder.embed_papers(papers), dtype=np.float32))
+    if not vecs:
+        return []
+    centroid = np.vstack(vecs).mean(axis=0)
+    norm = float(np.linalg.norm(centroid))
+    if norm <= 0:
+        return []
+    hits = dense_index.search(centroid / norm, k=k, exclusion_set=excluded, candidate_filter=allowed)
+    return [clean_id(p) for p, _ in hits][:k]

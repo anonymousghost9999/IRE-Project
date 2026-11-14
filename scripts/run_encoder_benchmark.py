@@ -38,7 +38,7 @@ from paperfeed.index.encoders import ENCODER_KEYS, ENCODER_SPECS, make_encoder
 logger = get_logger("scripts.run_encoder_benchmark")
 
 MODES = {"csfcube": ("corpus", "pool"), "litsearch": ("corpus",)}
-LABEL = {"specter2": "SPECTER2", "scincl": "SciNCL", "bge": "BGE", "qwen3": "Qwen3-Emb-0.6B (post-T)"}
+LABEL = {"specter2": "SPECTER2", "scincl": "SciNCL", "bge": "BGE", "gte": "GTE-large", "qwen3": "Qwen3-Emb-0.6B (post-T)"}
 
 
 def expected_model(cfg, key: str) -> str:
@@ -117,7 +117,8 @@ def paired_table(run: BenchmarkRun, keys, n_bootstrap: int) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="V1 encoder study on the retrieval benchmarks.")
-    parser.add_argument("--encoders", nargs="+", default=list(ENCODER_KEYS), choices=list(ENCODER_KEYS))
+    # the V1 study's encoders (design §13.8 V1 point 1); GTE belongs to Phase 11 and is only run when asked for
+    parser.add_argument("--encoders", nargs="+", default=["specter2", "scincl", "bge", "qwen3"], choices=list(ENCODER_KEYS))
     parser.add_argument("--benchmarks", nargs="+", default=list(MODES), choices=list(MODES))
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--n-bootstrap", type=int, default=10000)

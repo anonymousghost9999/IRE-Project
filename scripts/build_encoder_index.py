@@ -3,6 +3,7 @@
 
 Usage:
     python scripts/build_encoder_index.py [--encoder bge] [--batch-size 32]
+    python scripts/build_encoder_index.py --comparison --encoder gte      # Phase 11 comparison vectors (scincl, gte)
 
 Embeds exactly the papers of the Core SPECTER2 store with the encoder chosen as the V1 candidate in
 data/artifacts/variant_v1_decision.json (refuses any other encoder) and writes <processed_dir>/encoder_<key>/:
@@ -28,23 +29,32 @@ from paperfeed.index.store import EmbeddingStore
 
 logger = get_logger("scripts.build_encoder_index")
 
+PHASE11_COMPARISON = ("scincl", "gte")  # comparison systems' vectors (never used by Paper Feed itself)
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build the full-corpus index for the V1 encoder candidate.")
     parser.add_argument("--encoder", default=None, help="Defaults to the frozen V1 candidate")
     parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--comparison", action="store_true",
+                        help="Build a Phase 11 comparison encoder (scincl or gte, design §13.9 Phase 11 spec point 4) "
+                        "instead of the V1 candidate")
     args = parser.parse_args()
 
     root = Path(__file__).resolve().parent.parent
     cfg = load_config()
     processed = root / cfg["paths"]["processed_dir"]
     decision_path = root / cfg["paths"]["artifacts_dir"] / "variant_v1_decision.json"
-    if not decision_path.exists():
+    if args.comparison:
+        if args.encoder not in PHASE11_COMPARISON:
+            print(f"--comparison builds one of {PHASE11_COMPARISON}.", file=sys.stderr)
+            return 1
+    elif not decision_path.exists():
         print(f"{decision_path} not found: freeze the V1 decision with scripts/decide_encoder.py first.", file=sys.stderr)
         return 1
-    candidate = json.loads(decision_path.read_text(encoding="utf-8"))["chosen_encoder"]
+    candidate = None if args.comparison else json.loads(decision_path.read_text(encoding="utf-8"))["chosen_encoder"]
     key = args.encoder or candidate
-    if key != candidate:
+    if not args.comparison and key != candidate:
         print(f"The frozen V1 candidate is {candidate!r}; only it gets a full-corpus index and test run.", file=sys.stderr)
         return 1
 
