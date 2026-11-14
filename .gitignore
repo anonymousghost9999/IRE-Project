@@ -30,6 +30,9 @@ wheels/
 *.env
 .env.*
 !.env.example
+*keys*.txt
+*.keys
+.nvidia_keys
 
 # IDE & OS
 .vscode/

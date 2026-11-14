@@ -1,0 +1,12 @@
+# Add your 8 NVIDIA NIM API keys below, one per line.
+# Lines starting with '#' and empty lines are ignored.
+# Save your real keys in: data/artifacts/nvidia_keys.txt (which is gitignored).
+
+# nvapi-account1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account2-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account3-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account4-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account5-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account6-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account7-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# nvapi-account8-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

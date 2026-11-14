@@ -111,11 +111,16 @@ corpus:
 
 
 
-# Track 2 LLM session simulation (docs/design.md §13.2 "Track 2 specification"). The model ID is pinned before the
-# pilot and never changed afterwards; the API key comes from the GEMINI_API_KEY environment variable, never from here.
+# Track 2 LLM session simulation (docs/design.md §13.2 "Track 2 specification").
+# Provider can be "nvidia" (OpenAI-compatible NVIDIA NIM) or "gemini".
+# For NVIDIA NIM: supports multiple keys with per-key rate limiting (e.g. 20 RPM per key across 8 accounts).
+# Keys can be specified in data/artifacts/nvidia_keys.txt (one per line) or NVIDIA_API_KEYS env var.
 simulation:
-  provider: "gemini"
-  model: "gemini-2.5-flash-lite"   # confirm it is offered to your AI Studio key before the pilot, then freeze
+  provider: "nvidia"
+  model: "meta/llama-3.3-70b-instruct"
   temperature: 0.7
   max_retries: 3
+  rpm_per_key: 20                  # Max requests per minute per key (e.g. 20 RPM per key)
+  max_workers: 8                   # Concurrent worker threads (e.g. 1 per key)
+  keys_file: "data/artifacts/nvidia_keys.txt"
   rating_cache: "data/artifacts/track2_rating_cache.jsonl"

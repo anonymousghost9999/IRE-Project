@@ -1,6 +1,7 @@
 """Track 2 simulator client (plan 9a): prompt, strict parsing, cache, retries. No network: fake clients only."""
 
 import json
+import os
 
 import pytest
 
@@ -211,3 +212,71 @@ def test_openai_compatible_client_request_reply_and_limit_headers(monkeypatch):
     assert client.list_models() == ["a", "b"]
     monkeypatch.setenv("GEMINI_API_KEY", "g-secret")
     assert isinstance(make_client("gemini", "g"), GeminiClient)
+
+
+def test_load_api_keys_from_env_and_file(tmp_path, monkeypatch):
+    from paperfeed.sim.llm import load_api_keys
+
+    # Clear env
+    for k in list(os.environ):
+        if "NVIDIA" in k:
+            monkeypatch.delenv(k, raising=False)
+
+    # 1. Test from file
+    kf = tmp_path / "nvidia_keys.txt"
+    kf.write_text("nvapi-key1\n  \n# comment\nnvapi-key2\nnvapi-key3\n")
+    assert load_api_keys("nvidia", keys_file=kf) == ["nvapi-key1", "nvapi-key2", "nvapi-key3"]
+
+    # 2. Test from NVIDIA_API_KEYS (comma separated)
+    monkeypatch.setenv("NVIDIA_API_KEYS", "nvapi-a, nvapi-b; nvapi-c")
+    assert load_api_keys("nvidia", keys_file=tmp_path / "nonexistent.txt") == ["nvapi-a", "nvapi-b", "nvapi-c"]
+
+    # 3. Test from numbered NVIDIA_API_KEY_1..N
+    monkeypatch.delenv("NVIDIA_API_KEYS")
+    monkeypatch.setenv("NVIDIA_API_KEY_1", "nvapi-num1")
+    monkeypatch.setenv("NVIDIA_API_KEY_2", "nvapi-num2")
+    assert load_api_keys("nvidia", keys_file=tmp_path / "nonexistent.txt") == ["nvapi-num1", "nvapi-num2"]
+
+
+def test_key_pool_rate_limiter_concurrency_and_rotation():
+    import time
+    from paperfeed.sim.llm import KeyPoolRateLimiter
+
+    keys = [f"key_{i}" for i in range(8)]
+    pool = KeyPoolRateLimiter(keys, rpm_per_key=20.0, min_interval=0.1)
+
+    # Acquire all 8 keys in rapid succession
+    acquired = [pool.acquire_key(timeout=2.0) for _ in range(8)]
+    assert set(acquired) == set(keys)  # All 8 distinct keys utilized
+
+    # Release them all
+    for k in acquired:
+        pool.release_key(k)
+
+    # Test 429 cooldown on one key
+    bad_key = keys[0]
+    pool.acquire_key()
+    pool.release_key(bad_key, rate_limited_wait=10.0)
+
+    # Subsequent acquisitions skip bad_key while it is cooling down
+    next_keys = [pool.acquire_key() for _ in range(7)]
+    assert bad_key not in next_keys
+    for k in next_keys:
+        pool.release_key(k)
+
+
+def test_concurrent_rater_with_workers(tmp_path):
+    from paperfeed.sim.llm import Rater, RatingCache
+
+    client = ScriptedClient()
+    cache = RatingCache(tmp_path / "cache_concurrent.jsonl")
+    rater = Rater(client, cache, sleep=lambda s: None, max_workers=4)
+
+    # Rate 30 papers (3 batches of 10) concurrently
+    papers = _papers(30)
+    res = rater.rate("P_conc", "persona", "A", "goal", papers, seed=42)
+
+    assert len(res) == 30
+    assert len(cache) == 30
+    assert all(res[f"W{i}"] == (i % 5 + 1) for i in range(30))
+
