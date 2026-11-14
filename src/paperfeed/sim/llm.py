@@ -333,13 +333,11 @@ def load_api_keys(
 
     # Check environment variables
     env_keys: List[str] = []
-    # 1. Plural variable: e.g. NVIDIA_API_KEYS
     plural_var = f"{provider.upper()}_API_KEYS"
     val = os.environ.get(plural_var)
     if val:
         env_keys.extend([k.strip() for k in re.split(r"[,;\s\n]+", val) if k.strip()])
 
-    # 2. Singular variable: e.g. NVIDIA_API_KEY
     sing_var = f"{provider.upper()}_API_KEY"
     val_sing = os.environ.get(sing_var)
     if val_sing:
@@ -347,37 +345,12 @@ def load_api_keys(
             if k.strip() and k.strip() not in env_keys:
                 env_keys.append(k.strip())
 
-    # 3. Numbered variables: e.g. NVIDIA_API_KEY_1 .. NVIDIA_API_KEY_32
     for i in range(1, 33):
         k_val = os.environ.get(f"{provider.upper()}_API_KEY_{i}")
         if k_val and k_val.strip() and k_val.strip() not in env_keys:
             env_keys.append(k_val.strip())
 
-    if env_keys:
-        return env_keys
-
-    # Check .env file
-    env_path = Path(".env")
-    if env_path.exists():
-        for line in env_path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            k, raw = line.split("=", 1)
-            k, raw = k.strip(), raw.strip().strip("'\"")
-            if not raw:
-                continue
-            if k == plural_var or k == sing_var:
-                for item in re.split(r"[,;\s\n]+", raw):
-                    if item.strip() and item.strip() not in env_keys:
-                        env_keys.append(item.strip())
-            elif k.startswith(f"{sing_var}_"):
-                if raw not in env_keys:
-                    env_keys.append(raw)
-        if env_keys:
-            return env_keys
-
-    return []
+    return env_keys
 
 
 class OpenAICompatibleClient:
@@ -403,10 +376,7 @@ class OpenAICompatibleClient:
         self.base_url, env = OPENAI_COMPATIBLE[provider]
         keys = load_api_keys(provider, explicit_keys=api_key, keys_file=keys_file)
         if not keys:
-            raise RuntimeError(
-                f"Set the {env} environment variable, provide {provider.upper()}_API_KEYS, "
-                f"or save keys in data/artifacts/{provider}_keys.txt (one per line); keys are never stored in git."
-            )
+            raise RuntimeError(f"Set the {env} environment variable; the key is never stored.")
         self.model = model
         self.timeout = timeout
         self.json_mode = json_mode

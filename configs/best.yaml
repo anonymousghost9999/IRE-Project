@@ -14,7 +14,8 @@ scoring_weights:
   w_nov: 0.25
   lambda_neg: 0.5
   w_pop: 0.0
-tuning_file: data/artifacts/tuning_results.json
+  w_ce: 0.0
+tuning_file: data/artifacts/tuning_results_429924a532a0.json
 parts:
   dense_encoder:
     choice: specter2
@@ -91,9 +92,9 @@ parts:
     replaces_core: false
     evidence:
       metric: tuning-split mean NDCG@10 (§9 grid optimum)
-      value: 0.03079094465442291
+      value: 0.024093721883872793
       n_users: 80
-      source: data/artifacts/tuning_results.json
+      source: data/artifacts/tuning_results_429924a532a0.json
     rationale: lambda_div is part of the §9 grid tuned on the tuning split.
   session_model:
     choice:
@@ -106,4 +107,4 @@ parts:
     rationale: 'No evidence: Track 2 (Phase 9) is deferred, so the design defaults
       are kept. Track 1 feeds use an empty session, so these values do not affect
       any Track 1 or Phase 11 number.'
-frozen_at: '2026-11-14T11:26:58Z'
+frozen_at: '2026-11-14T11:45:37Z'
