@@ -367,6 +367,13 @@ BM25s, SPECTER2, RRF hybrid ($k=60$, top 200 per channel); optional cross-encode
 
 **Goal:** session adaptation results with clearly simulated status (D§13.2, P§6E.2).
 
+**Fixed details:** D§13.2 "Track 2 specification" (Gemini via AI Studio, per-paper rating cache, persona and topic rules, episode lengths, pilot criterion, budget fallback). Steps:
+- **9a** Simulator client: Gemini call with strict JSON parsing, retries, the rating cache, recorded model metadata; unit tests with a fake client (no network).
+- **9b** Personas and topics: the eligibility and seeded selection rules, Topic A/B, search queries; files `data/artifacts/track2_personas.json` (pilot and evaluation).
+- **9c** Episode runner and arms: feeds, searches, the click policy, session updates, Pivot Latency and Retention@k; tests with a scripted fake rater.
+- **9d** Pilot tuning on the 10 pilot personas, frozen in `data/artifacts/track2_config.json`.
+- **9e** Evaluation run (30 × 5 × 5), $H_3$ table, released cache.
+
 ### 9.1 Personas
 - 30 evaluation personas and about 10 disjoint pilot personas, built from real OpenAlex authors (their papers $\le T$ define the persona and goal text).
 - Topic A = the persona's subfield; Topic B = a different CS/AI subfield with at least ~500 corpus papers; a short search query for Topic B.
