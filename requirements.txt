@@ -23,6 +23,8 @@ gliner>=0.2.0
 
 # Extended Scope
 lightgbm>=4.3.0
+bitsandbytes>=0.43.0      # Phase 11d: 4-bit loading of the RankGPT-style reranker
+accelerate>=0.30.0
 shap>=0.45.0
 streamlit>=1.35.0
 
