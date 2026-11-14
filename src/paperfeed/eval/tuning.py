@@ -552,6 +552,44 @@ def decide_graph_channel(
 
 
 # ---------------------------------------------------------------------------
+# Phase 11a: pool size (design §13.9 "Phase 11 specification", point 2)
+# ---------------------------------------------------------------------------
+
+POOL_ALTERNATIVE = {"pool_size": 250, "channel_depth": 500}  # the larger pool, without the popularity prior
+
+
+def decide_pool_size(
+    core_points: Sequence[GridPoint],
+    alt_points: Sequence[GridPoint],
+    core_cached: Sequence[CachedUserCandidateData],
+    alt_cached: Sequence[CachedUserCandidateData],
+    n_resamples: int = 10000,
+    seed: int = 42,
+    alpha: float = 0.05,
+) -> Dict[str, Any]:
+    """The larger pool (M = 250, M_channel = 500, w_pop = 0) replaces M = 100, M_channel = 200 only if the
+    paired-bootstrap 95% CI of its tuning-split NDCG@10 gain, each arm at its own grid optimum, lies above zero."""
+    cmp = _compare_to_core(core_points, alt_points, core_cached, alt_cached, n_resamples, seed, alpha)
+    return {
+        "rule": {
+            "statement": "The larger candidate pool (M = 250, M_channel = 500, no popularity prior) replaces the Core "
+            "pool (M = 100, M_channel = 200) only if the paired-bootstrap 95% CI of its tuning-split NDCG@10 gain over "
+            "Core (each at its own grid optimum) lies above zero (design §13.9, Phase 11 specification point 2).",
+            "alternative": dict(POOL_ALTERNATIVE),
+            "n_resamples": n_resamples,
+            "alpha": alpha,
+            "seed": seed,
+        },
+        "n_users": cmp["n_users"],
+        "core": cmp["core"],
+        "larger_pool": cmp["variant"],
+        "ndcg_gain": cmp["ndcg_gain"],
+        "candidate_recall_gain": cmp["candidate_recall_gain"],
+        "adopt_larger_pool": cmp["adopt"],
+    }
+
+
+# ---------------------------------------------------------------------------
 # V2 cross-encoder: decision on the tuning split (design §13.8, plan 10.2b-c)
 # ---------------------------------------------------------------------------
 
