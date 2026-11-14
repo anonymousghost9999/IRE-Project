@@ -89,6 +89,13 @@ def parse_args() -> argparse.Namespace:
         "scripts/decide_cross_encoder.py",
     )
     parser.add_argument(
+        "--encoder",
+        default=None,
+        metavar="KEY",
+        help="Run the V1 encoder candidate (design §13.8, plan 10.1d) frozen in data/artifacts/variant_v1_decision.json, "
+        "with its full-corpus index from scripts/build_encoder_index.py; its grid is tuned on the tuning split first",
+    )
+    parser.add_argument(
         "--learned-ranker",
         action="store_true",
         help="Run the V3 learned ranker (design §13.8, plan 10.3d) with the model frozen by "
@@ -318,6 +325,7 @@ def main():
         "_graph_channel" if args.graph_channel else "",
         "_cross_encoder" if args.cross_encoder else "",
         "_learned_ranker" if args.learned_ranker else "",
+        f"_encoder_{args.encoder}" if args.encoder else "",
     ])
     run_id = f"track1_{Path(args.report_name).stem}{variant}_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
     manifest = RunManifest(run_id, cfg, runs_dir=root / "results" / "runs")
@@ -333,7 +341,27 @@ def run(args, root, cfg, manifest):
     t_start = time.time()
     processed_dir = root / cfg["paths"]["processed_dir"]
     logger.info("Loading recommender resources from %s...", processed_dir)
-    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True)
+    v1_decision = None
+    if args.encoder:
+        # V1 was decided for the headline configuration only, and only its frozen candidate gets a test run
+        if (args.enhanced or args.filter_popular is not None or args.facet_active or args.graph_channel
+                or args.cross_encoder or args.learned_ranker or args.skip_tuning):
+            raise ValueError("--encoder runs the V1 candidate in the headline configuration with its own tuning; drop "
+                             "--enhanced, --filter-popular, --facet-active, --graph-channel, --cross-encoder, "
+                             "--learned-ranker and --skip-tuning.")
+        decision_path = root / cfg["paths"]["artifacts_dir"] / "variant_v1_decision.json"
+        if not decision_path.exists():
+            raise FileNotFoundError(f"{decision_path} not found: freeze the V1 decision with scripts/decide_encoder.py "
+                                    "before the test run (plan 10.1c).")
+        v1_decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        if args.encoder != v1_decision["chosen_encoder"]:
+            raise ValueError(f"The frozen V1 candidate is {v1_decision['chosen_encoder']!r}, not {args.encoder!r}.")
+        for attr in ("report_name", "results_name"):
+            name = Path(getattr(args, attr))
+            if name.stem.startswith("track1_lfo") and not name.stem.endswith(f"_encoder_{args.encoder}"):
+                setattr(args, attr, f"{name.stem}_encoder_{args.encoder}{name.suffix}")
+    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True,
+                                          encoder_key=args.encoder or "specter2")
 
     cohort, discovery_map, recitation_map, zero_pub_map = load_cohort_and_ground_truth(processed_dir)
     topic_map, paper_facet_map = build_metadata_maps(resources.db, resources.facet_store)
@@ -442,6 +470,8 @@ def run(args, root, cfg, manifest):
         tuned_config = tuned_config.with_overrides(graph_channel=True)  # part of the tuning signature
     if args.cross_encoder:
         tuned_config = tuned_config.with_overrides(cross_encoder=v2_decision["chosen_model"])  # in the signature
+    if args.encoder:
+        tuned_config = tuned_config.with_overrides(dense_encoder=args.encoder)  # its own tuning file
 
     # 1. Tuning stage
     tuning_sig = tuning_signature(
@@ -549,6 +579,16 @@ def run(args, root, cfg, manifest):
         manifest.extra_metadata["v2_decision"] = {
             k: v2_decision.get(k) for k in ("adopt_v2", "chosen_model", "core", "v2", "ndcg_gain", "latency")
         }
+    if args.encoder:
+        variant = (
+            f"V1 dense encoder {args.encoder} (design §13.8; exploratory, plan 10.1d); tuning-split decision: "
+            + (f"adopt {args.encoder}" if v1_decision.get("adopt_v1") else "keep SPECTER2")
+            + "; weights re-tuned on the full tuning split with this encoder; the Dense Centroid and Hybrid-Persona "
+            "baselines also use it"
+        )
+        manifest.extra_metadata["v1_decision"] = {
+            k: v1_decision.get(k) for k in ("adopt_v1", "chosen_encoder", "per_encoder", "ndcg_gain", "models")
+        }
     if args.learned_ranker:
         # The linear tuned weights stay for the zero-publication slice, which V3 does not rank (design §13.8 V3 point 8)
         tuned_config = tuned_config.with_overrides(
@@ -636,7 +676,8 @@ def run(args, root, cfg, manifest):
         f"> **Evaluation Run Configuration:**\n"
         f"> - Mode: {'Enhanced (Option 2 & Option 3)' if (tuned_config.weights.w_pop > 0 or (tuned_config.pool_size and tuned_config.pool_size > 100)) else 'Baseline'}\n"
         f"> - Candidate Pool Size (M): {tuned_config.pool_size or 100}\n"
-        f"> - Candidate Channels: {'SPECTER2 + BM25s + citation graph (V4)' if tuned_config.graph_channel else 'SPECTER2 + BM25s'}\n"
+        f"> - Candidate Channels: {'SPECTER2 + BM25s + citation graph (V4)' if tuned_config.graph_channel else 'SPECTER2 + BM25s'}"
+        f"{' (dense channel: ' + tuned_config.dense_encoder + ', V1)' if tuned_config.dense_encoder != 'specter2' else ''}\n"
         + (f"> - Reranker Feature (V2): {tuned_config.cross_encoder}, w_ce={tuned_config.weights.w_ce:.2f}\n" if tuned_config.cross_encoder else "")
         + (f"> - Scorer (V3): learned ranker {tuned_config.learned_ranker}, its lambda_div={tuned_config.v3_lambda_div:.2f} "
            "(the linear weights below are used only for the zero-publication slice)\n" if tuned_config.learned_ranker else "")
@@ -709,6 +750,8 @@ def run(args, root, cfg, manifest):
                 "split.json": processed_dir / "split.json",
                 **({tuning_artifact.name: tuning_artifact} if tuning_artifact is not None else {}),
                 "embedding_ids.json": processed_dir / "embedding_ids.json",
+                **({f"encoder_{args.encoder}/embedding_ids.json": processed_dir / f"encoder_{args.encoder}" / "embedding_ids.json"}
+                   if args.encoder else {}),
                 "index_manifest.json": processed_dir / "index_manifest.json",
             }.items()
         },

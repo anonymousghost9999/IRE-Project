@@ -56,6 +56,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--facet-active", action="store_true", help="Audit the facet-active variant frozen by select_facet_config.py")
     parser.add_argument("--filter-popular", type=int, default=None, metavar="THRESHOLD", help="Filter popular papers from discovery")
     parser.add_argument(
+        "--encoder",
+        default=None,
+        metavar="KEY",
+        help="Audit the V1 encoder run (plan 10.1d): its full-corpus index and the weights tuned with it",
+    )
+    parser.add_argument(
         "--learned-ranker",
         action="store_true",
         help="Audit the V3 learned ranker (plan 10.3d) with the model frozen by decide_learned_ranker.py",
@@ -109,6 +115,14 @@ def audit_config(cfg, cohort, args, artifacts_dir):
             raise ValueError("--graph-channel audits the V4 run of the headline configuration with its frozen weights; "
                              "drop --enhanced, --filter-popular, --facet-active and --skip-tuning.")
         rec_cfg = rec_cfg.with_overrides(graph_channel=True)  # part of the tuning signature
+    encoder_key = getattr(args, "encoder", None)
+    if encoder_key:
+        if (getattr(args, "enhanced", False) or filter_popular is not None or facet_active or span_check
+                or getattr(args, "graph_channel", False) or getattr(args, "cross_encoder", False)
+                or getattr(args, "learned_ranker", False) or getattr(args, "skip_tuning", False)):
+            raise ValueError("--encoder audits the V1 run of the headline configuration with its own tuning; drop the "
+                             "other variant options and --skip-tuning.")
+        rec_cfg = rec_cfg.with_overrides(dense_encoder=encoder_key)  # part of the tuning signature
     if getattr(args, "learned_ranker", False):
         if (getattr(args, "enhanced", False) or filter_popular is not None or facet_active or span_check
                 or getattr(args, "graph_channel", False) or getattr(args, "cross_encoder", False)
@@ -196,6 +210,11 @@ def main() -> int:
     else:
         results_name = "faithfulness_audit_report.json"
 
+    if args.encoder:  # the V1 audit gets its own files
+        if not args.report_name:
+            report_name = report_name.replace(".md", f"_encoder_{args.encoder}.md")
+        if not args.results_name:
+            results_name = results_name.replace(".json", f"_encoder_{args.encoder}.json")
     if args.learned_ranker:  # the V3 audit gets its own files
         if not args.report_name:
             report_name = report_name.replace(".md", "_learned_ranker.md")
@@ -233,7 +252,8 @@ def main() -> int:
 
 def _run(args, root, cfg, manifest, report_path, results_path):
     logger.info("Initializing RecommenderResources from %s...", root / cfg["paths"]["processed_dir"])
-    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True)
+    resources = RecommenderResources.load(cfg, root, load_encoder=True, use_facets=True,
+                                          encoder_key=args.encoder or "specter2")
 
     cohort_path = root / cfg["paths"]["processed_dir"] / "cohort.jsonl"
     with open(cohort_path, "r", encoding="utf-8") as f:
@@ -277,6 +297,7 @@ def _run(args, root, cfg, manifest, report_path, results_path):
         "cross_encoder": rec_cfg.cross_encoder,
         "n_reranker_dominant": audit_result.n_reranker_dominant,
         "learned_ranker": rec_cfg.learned_ranker,
+        "dense_encoder": rec_cfg.dense_encoder,
         "n_rank_dominant": audit_result.n_rank_dominant,
         "v3_explanations_reliable": audit_result.v3_explanations_reliable,
         "n_span_explanations_audited": audit_result.n_span_explanations,

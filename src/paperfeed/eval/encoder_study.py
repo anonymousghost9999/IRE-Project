@@ -236,3 +236,42 @@ def decide_encoder(
         "dense_centroid_gain": centroid,
         "adopt_v1": cmp["adopt"],
     }
+
+
+# ---------------------------------------------------------------------------
+# 5. Full-corpus index for the V1 candidate (plan 10.1d)
+# ---------------------------------------------------------------------------
+
+def build_full_encoder_index(
+    reference_ids: Sequence[str],
+    db,
+    encoder,
+    model_name: str,
+    out_dir: Path,
+    batch_size: int = 32,
+    checkpoint_every: int = 10000,
+) -> Dict[str, Any]:
+    """Embed exactly the papers of the SPECTER2 store (``reference_ids``) with ``encoder`` and build its FAISS index in
+    ``out_dir`` (embedding resumes from checkpoints). BM25s and facets are reused from the Core index. The manifest is
+    marked complete only at the end, so a half-built index is never loaded (RecommenderResources.load checks it)."""
+    import time
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = out_dir / "index_manifest.json"
+    ids = sorted({clean_id(p) for p in reference_ids})
+    manifest = {"model": model_name, "status": "embedding", "n_docs": len(ids), "ids_sha256": subset_fingerprint(ids)}
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    t0 = time.time()
+    texts = paper_texts(db, ids)
+    store = embed_subset(encoder, model_name, texts, out_dir, batch_size, checkpoint_every)
+    t_embed = time.time() - t0
+    vecs = store.select(ids)
+    dense = DenseIndex(dimension=vecs.shape[1])
+    dense.add_documents(ids, vecs)
+    dense.save(out_dir / "faiss.index", out_dir / "paper_ids.json")
+    manifest.update({"status": "complete", "embedding_dim": int(vecs.shape[1]), "build_seconds": round(t_embed, 1),
+                     "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                     "bm25s": "reused from the Core index", "same_papers_as": "the SPECTER2 embedding store"})
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    return manifest

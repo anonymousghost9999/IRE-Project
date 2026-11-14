@@ -13,6 +13,7 @@ Identical inputs give identical outputs: every sort breaks ties by paper_id.
 """
 
 from dataclasses import dataclass, field, replace
+import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
@@ -75,6 +76,9 @@ class RecommendConfig:
     # Extended V3 (D§13.8): name of the frozen LightGBM model file that ranks the pool instead of the linear score; its
     # own lambda_div; and model inputs switched off (V3 ablations). Zero-publication profiles keep the linear scorer.
     learned_ranker: Optional[str] = None
+    # Extended V1 (D§13.8): the dense encoder whose vectors and index the resources were loaded with; part of the
+    # tuning signature, so weights tuned with one encoder are never reused with another
+    dense_encoder: str = "specter2"
     v3_lambda_div: Optional[float] = None
     v3_off_features: Tuple[str, ...] = ()
     explain: bool = True
@@ -115,6 +119,23 @@ class RecommendConfig:
 # Shared resources and per-user profile
 # ---------------------------------------------------------------------------
 
+def load_encoder_index(processed: Path, encoder_key: str):
+    """(store, dense index) of a V1 encoder's full-corpus index in ``<processed>/encoder_<key>/``; refuses an index that
+    is incomplete or was built with another model (scripts/build_encoder_index.py writes it)."""
+    from paperfeed.index.dense import DenseIndex
+    from paperfeed.index.encoders import ENCODER_SPECS
+
+    enc_dir = Path(processed) / f"encoder_{encoder_key}"
+    manifest_path = enc_dir / "index_manifest.json"
+    if not manifest_path.exists():
+        raise FileNotFoundError(f"No {encoder_key} index in {enc_dir}: run scripts/build_encoder_index.py first.")
+    built = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if built.get("model") != ENCODER_SPECS[encoder_key].model_name or built.get("status") != "complete":
+        raise ValueError(f"{enc_dir} is incomplete or was built with another model; rebuild it.")
+    return (EmbeddingStore.load(enc_dir / "embeddings.npy", enc_dir / "embedding_ids.json"),
+            DenseIndex.load(enc_dir / "faiss.index", enc_dir / "paper_ids.json"))
+
+
 @dataclass
 class RecommenderResources:
     """Everything shared across users, loaded once."""
@@ -136,8 +157,13 @@ class RecommenderResources:
         root: Path,
         load_encoder: bool = False,
         use_facets: bool = True,
+        encoder_key: str = "specter2",
     ) -> "RecommenderResources":
-        """Load the built indexes, embeddings and database from ``paths.processed_dir``."""
+        """Load the built indexes, embeddings and database from ``paths.processed_dir``.
+
+        ``encoder_key`` other than "specter2" (V1, design §13.8) loads that encoder's vectors and dense index from
+        ``<processed>/encoder_<key>/`` (scripts/build_encoder_index.py) and that encoder; BM25s and facets are the same.
+        """
         from paperfeed.data.db import DatabaseManager
         from paperfeed.index.dense import DenseIndex
         from paperfeed.index.lexical import LexicalIndex
@@ -145,10 +171,14 @@ class RecommenderResources:
         processed = Path(root) / cfg["paths"]["processed_dir"]
         cutoff = int(cfg["project"]["cutoff_year"])
         db = DatabaseManager(Path(root) / cfg["paths"]["sqlite_db"], cutoff_year=cutoff)
-        store = EmbeddingStore.load(processed / "embeddings.npy", processed / "embedding_ids.json", processed / "paper_ids.json")
+        if encoder_key == "specter2":
+            store = EmbeddingStore.load(processed / "embeddings.npy", processed / "embedding_ids.json", processed / "paper_ids.json")
+            dense = DenseIndex.load(processed / "faiss.index", processed / "paper_ids.json")
+        else:
+            store, dense = load_encoder_index(processed, encoder_key)
         rcfg = RecommendConfig.from_config(cfg)
         retriever = HybridRetriever(
-            DenseIndex.load(processed / "faiss.index", processed / "paper_ids.json"),
+            dense,
             LexicalIndex.load(processed / "bm25s"),
             channel_depth=rcfg.channel_depth or 200,
             rrf_k=int(cfg.get("retrieval", {}).get("rrf_k", 60)),
@@ -162,7 +192,11 @@ class RecommenderResources:
             if facet_store is None:
                 logger.warning("facet_canon is empty: facet features, the new-method term and facet explanations are off.")
         encoder = None
-        if load_encoder:
+        if load_encoder and encoder_key != "specter2":
+            from paperfeed.index.encoders import make_encoder
+
+            encoder = make_encoder(encoder_key, track1=True)
+        elif load_encoder:
             from paperfeed.index.embeddings import SPECTER2Encoder
 
             m = cfg["models"]

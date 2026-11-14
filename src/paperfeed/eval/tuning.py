@@ -454,6 +454,8 @@ def tuning_signature(
         signature["graph_channel"] = True
     if config.cross_encoder:
         signature["cross_encoder"] = config.cross_encoder
+    if config.dense_encoder != "specter2":  # V1: weights tuned with one encoder are never reused with another
+        signature["dense_encoder"] = config.dense_encoder
     return signature
 
 

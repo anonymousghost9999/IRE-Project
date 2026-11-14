@@ -76,8 +76,10 @@ class _CountingEncoder:
 
     def embed_papers(self, papers, batch_size=32, show_progress=False):
         self.n += len(papers)
-        rng = np.random.default_rng(self.seed)
-        v = rng.normal(size=(len(papers), 4)).astype(np.float32)
+        import zlib
+
+        rows = [np.random.default_rng(zlib.crc32((p["title"] + str(self.seed)).encode())).normal(size=8) for p in papers]
+        v = np.asarray(rows, dtype=np.float32)  # one vector per paper text, whatever the chunking
         return v / np.linalg.norm(v, axis=1, keepdims=True)
 
 
@@ -145,3 +147,42 @@ def test_encoder_decision_picks_the_better_alternative_and_applies_the_ci_rule()
     assert d["adopt_v1"] is False  # one lucky author is not a reliable gain
     with pytest.raises(ValueError):
         decide_encoder({"bge": _arm([0.2] * n, [0.1] * n)})
+
+
+def test_full_encoder_index_builds_loads_and_refuses_partial_or_foreign_indexes(graph_db, tmp_path):
+    import json
+
+    from paperfeed.eval.encoder_study import build_full_encoder_index
+    from paperfeed.rec.recommender import load_encoder_index
+
+    db, ids = graph_db
+    processed = tmp_path / "processed"
+    out = processed / "encoder_bge"
+    enc = _CountingEncoder()
+    m = build_full_encoder_index(sorted(ids), db, enc, "BAAI/bge-base-en-v1.5", out, checkpoint_every=4)
+    assert m["status"] == "complete" and m["n_docs"] == len(ids) and enc.n == len(ids)
+    store, dense = load_encoder_index(processed, "bge")
+    assert len(store) == len(ids) and len(dense) == len(ids)
+    assert dense.search(store.select(["C"])[0], k=1)[0][0] == "C"
+    again = _CountingEncoder()
+    build_full_encoder_index(sorted(ids), db, again, "BAAI/bge-base-en-v1.5", out)
+    assert again.n == 0  # resumed: nothing re-embedded
+
+    man = json.loads((out / "index_manifest.json").read_text())
+    (out / "index_manifest.json").write_text(json.dumps({**man, "status": "embedding"}))
+    with pytest.raises(ValueError, match="incomplete"):
+        load_encoder_index(processed, "bge")
+    (out / "index_manifest.json").write_text(json.dumps({**man, "model": "malteos/scincl"}))
+    with pytest.raises(ValueError, match="another model"):
+        load_encoder_index(processed, "bge")
+    with pytest.raises(FileNotFoundError, match="build_encoder_index"):
+        load_encoder_index(processed, "scincl")
+
+
+def test_tuning_signature_names_a_non_default_encoder():
+    from paperfeed.eval.tuning import tuning_signature
+    from paperfeed.rec.recommender import RecommendConfig
+
+    core = tuning_signature(RecommendConfig(pool_size=100), ["A1"])
+    v1 = tuning_signature(RecommendConfig(pool_size=100, dense_encoder="bge"), ["A1"])
+    assert "dense_encoder" not in core and v1 == {**core, "dense_encoder": "bge"}

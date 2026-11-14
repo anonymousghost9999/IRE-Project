@@ -543,3 +543,28 @@ def test_audit_cross_encoder_uses_the_v2_tuning_file_and_model(tmp_path):
     for bad in ({"enhanced": True}, {"graph_channel": True}, {"span_check": True}, {"skip_tuning": True}):
         with pytest.raises(ValueError, match="cross-encoder"):
             script.audit_config(cfg, cohort, SimpleNamespace(**{"enhanced": False, "skip_tuning": False, "cross_encoder": True, **bad}), tmp_path)
+
+
+def test_audit_encoder_uses_the_tuning_file_of_that_encoder(tmp_path):
+    script = _audit_script()
+    cfg = {
+        "scoring_weights": {"w_pers": 1.0, "w_cite": 0.5, "w_facet": 0.5, "w_nov": 0.5, "lambda_div": 0.2},
+        "retrieval": {"channel_depth": 200, "candidate_pool_size": 100},
+    }
+    cohort = [{"author_id": "A1", "split": "tuning"}]
+    base = RecommendConfig.from_config(cfg)
+    w = {"w_pers": 1.0, "w_cite": 1.0, "w_nov": 0.0, "lambda_neg": 0.5, "w_pop": 0.0, "w_sess": 1.0}
+    core_sig = tuning_signature(base, ["A1"])
+    tuning_artifact_path(tmp_path, core_sig).write_text(
+        json.dumps({"config_signature": core_sig, "best_weights": {**w, "w_facet": 0.25}, "best_lambda_div": 0.5}))
+    args = SimpleNamespace(enhanced=False, skip_tuning=False, encoder="bge")
+    with pytest.raises(FileNotFoundError):  # SPECTER2's weights are never reused for BGE
+        script.audit_config(cfg, cohort, args, tmp_path)
+    bge_sig = tuning_signature(base.with_overrides(dense_encoder="bge"), ["A1"])
+    tuning_artifact_path(tmp_path, bge_sig).write_text(
+        json.dumps({"config_signature": bge_sig, "best_weights": {**w, "w_facet": 0.5}, "best_lambda_div": 0.1}))
+    rec_cfg, source = script.audit_config(cfg, cohort, args, tmp_path)
+    assert rec_cfg.dense_encoder == "bge" and rec_cfg.weights.w_facet == 0.5 and rec_cfg.lambda_div == 0.1
+    for bad in ({"enhanced": True}, {"cross_encoder": True}, {"learned_ranker": True}, {"skip_tuning": True}):
+        with pytest.raises(ValueError, match="--encoder"):
+            script.audit_config(cfg, cohort, SimpleNamespace(**{"enhanced": False, "skip_tuning": False, "encoder": "bge", **bad}), tmp_path)
