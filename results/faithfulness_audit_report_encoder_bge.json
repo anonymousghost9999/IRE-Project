@@ -1,0 +1,2006 @@
+{
+  "n_sampled": 100,
+  "n_users_in_sample": 97,
+  "total_evaluated_recommendations": 3200,
+  "total_covered_recommendations": 3200,
+  "explanation_coverage": 1.0,
+  "extractive_grounding_rate": 1.0,
+  "counterfactual_dropout_rate": 1.0,
+  "left_top_k_count": 100,
+  "dropped_gte_3_count": 0,
+  "retained_near_rank_count": 0,
+  "mean_rank_drop": 5.88,
+  "median_rank_drop": 6.0,
+  "template_distribution": {
+    "citation": 31,
+    "persona": 66,
+    "facet": 3
+  },
+  "template_proportions": {
+    "citation": 0.31,
+    "persona": 0.66,
+    "facet": 0.03
+  },
+  "per_template": {
+    "citation": {
+      "n": 31,
+      "grounded": 31,
+      "necessary": 31,
+      "left_top_k": 31,
+      "dropped_gte_3": 0
+    },
+    "persona": {
+      "n": 66,
+      "grounded": 66,
+      "necessary": 66,
+      "left_top_k": 66,
+      "dropped_gte_3": 0
+    },
+    "facet": {
+      "n": 3,
+      "grounded": 3,
+      "necessary": 3,
+      "left_top_k": 3,
+      "dropped_gte_3": 0
+    }
+  },
+  "population_template_distribution": {
+    "citation": 959,
+    "persona": 2238,
+    "facet": 3
+  },
+  "n_span_explanations_audited": 3,
+  "n_reranker_dominant": null,
+  "n_rank_dominant": null,
+  "v3_explanations_reliable": null,
+  "audited_explanations": [
+    {
+      "author_id": "A5002622547",
+      "paper_id": "W2134295053",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *A realistic named data networking architecture for the Internet of things*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W7148852039",
+        "title": "A realistic named data networking architecture for the Internet of things",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5053635944",
+      "paper_id": "W4403143620",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8580823540687561
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8580823540687561
+      }
+    },
+    {
+      "author_id": "A5095690828",
+      "paper_id": "W4401867536",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8471848964691162
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8471848964691162
+      }
+    },
+    {
+      "author_id": "A5112867666",
+      "paper_id": "W4387424085",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8408244848251343
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8408244848251343
+      }
+    },
+    {
+      "author_id": "A5101151571",
+      "paper_id": "W4361213044",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8366683721542358
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8366683721542358
+      }
+    },
+    {
+      "author_id": "A5022849698",
+      "paper_id": "W4398151550",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8739652633666992
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8739652633666992
+      }
+    },
+    {
+      "author_id": "A5102531513",
+      "paper_id": "W4405180660",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.855884850025177
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.855884850025177
+      }
+    },
+    {
+      "author_id": "A5030028173",
+      "paper_id": "W2186589370",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8566384315490723
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8566384315490723
+      }
+    },
+    {
+      "author_id": "A5095084159",
+      "paper_id": "W3159952799",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8683478236198425
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8683478236198425
+      }
+    },
+    {
+      "author_id": "A5037568194",
+      "paper_id": "W4289792856",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.833965539932251
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.833965539932251
+      }
+    },
+    {
+      "author_id": "A5045291334",
+      "paper_id": "W4395695324",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8663951754570007
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8663951754570007
+      }
+    },
+    {
+      "author_id": "A5051895612",
+      "paper_id": "W2056663787",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Effect of management commitment to internal marketing on employee work attitude*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2027118968",
+        "title": "Effect of management commitment to internal marketing on employee work attitude",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5093315589",
+      "paper_id": "W4375846667",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7969533801078796
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7969533801078796
+      }
+    },
+    {
+      "author_id": "A5055166499",
+      "paper_id": "W4400406773",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.790386974811554
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.790386974811554
+      }
+    },
+    {
+      "author_id": "A5065793456",
+      "paper_id": "W4387078269",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.798474133014679
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.798474133014679
+      }
+    },
+    {
+      "author_id": "A5042091255",
+      "paper_id": "W3134423973",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **21** references with your paper *Unifying Motion and Appearance Cues for Visual Tracking via Shared Queries*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 21,
+        "actual_refs": 21
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4403758852",
+        "title": "Unifying Motion and Appearance Cues for Visual Tracking via Shared Queries",
+        "shared_references": 21
+      }
+    },
+    {
+      "author_id": "A5057652939",
+      "paper_id": "W3036924350",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8431366682052612
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8431366682052612
+      }
+    },
+    {
+      "author_id": "A5036925558",
+      "paper_id": "W4402669343",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *Federated Learning for Enhanced Cybersecurity and Trustworthiness in 5G and 6G Networks: A Comprehensive Survey*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4401878745",
+        "title": "Federated Learning for Enhanced Cybersecurity and Trustworthiness in 5G and 6G Networks: A Comprehensive Survey",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5065193592",
+      "paper_id": "W3047238636",
+      "original_rank": 6,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *DRONE: Dual-Domain Residual-based Optimization NEtwork for Sparse-View CT Reconstruction*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3157089313",
+        "title": "DRONE: Dual-Domain Residual-based Optimization NEtwork for Sparse-View CT Reconstruction",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5025448575",
+      "paper_id": "W4384341111",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *ML Based Apple Leaf Disease Detection*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4391129152",
+        "title": "ML Based Apple Leaf Disease Detection",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5069620257",
+      "paper_id": "W2999146029",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8438606262207031
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8438606262207031
+      }
+    },
+    {
+      "author_id": "A5005943811",
+      "paper_id": "W4393126053",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Frequently cited together with your paper *Unpacking Chinese EFL Students\u2019 Academic Engagement and Psychological Well-Being: The Roles of Language Teachers\u2019 Affective Scaffolding*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_citers": 10,
+        "actual_citers": 10
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "co_citation",
+        "authored_paper_id": "W4378745808",
+        "title": "Unpacking Chinese EFL Students\u2019 Academic Engagement and Psychological Well-Being: The Roles of Language Teachers\u2019 Affective Scaffolding",
+        "co_citing_papers": 10
+      }
+    },
+    {
+      "author_id": "A5058906826",
+      "paper_id": "W2948573781",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **3** references with your paper *T cell-related prognostic risk model and tumor immune environment modulation in lung adenocarcinoma based on single-cell and bulk RNA sequencing*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 3,
+        "actual_refs": 3
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4312140690",
+        "title": "T cell-related prognostic risk model and tumor immune environment modulation in lung adenocarcinoma based on single-cell and bulk RNA sequencing",
+        "shared_references": 3
+      }
+    },
+    {
+      "author_id": "A5100343402",
+      "paper_id": "W4377079849",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.852062463760376
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.852062463760376
+      }
+    },
+    {
+      "author_id": "A5103203760",
+      "paper_id": "W3157999218",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **9** references with your paper *W-MMP2Vec: Topic-driven network embedding model for link prediction in content-based heterogeneous information network*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 9,
+        "actual_refs": 9
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3157706510",
+        "title": "W-MMP2Vec: Topic-driven network embedding model for link prediction in content-based heterogeneous information network",
+        "shared_references": 9
+      }
+    },
+    {
+      "author_id": "A5092271235",
+      "paper_id": "W3194757962",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8156530857086182
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8156530857086182
+      }
+    },
+    {
+      "author_id": "A5003311970",
+      "paper_id": "W4315865725",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9004276990890503
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9004276990890503
+      }
+    },
+    {
+      "author_id": "A5009940552",
+      "paper_id": "W3000754666",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8257216215133667
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8257216215133667
+      }
+    },
+    {
+      "author_id": "A5077564485",
+      "paper_id": "W4405269911",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *YOLO\u2010RSFM: An efficient road small object detection method*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4402895978",
+        "title": "YOLO\u2010RSFM: An efficient road small object detection method",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5064920618",
+      "paper_id": "W3208843561",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **10** references with your paper *Tourism demand forecasting using tourist-generated online review data*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 10,
+        "actual_refs": 10
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4206661700",
+        "title": "Tourism demand forecasting using tourist-generated online review data",
+        "shared_references": 10
+      }
+    },
+    {
+      "author_id": "A5023755979",
+      "paper_id": "W4321377319",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8223644495010376
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8223644495010376
+      }
+    },
+    {
+      "author_id": "A5050199179",
+      "paper_id": "W3034305775",
+      "original_rank": 9,
+      "template": "facet",
+      "text": "Evaluates on **Fermatean fuzzy sets**, used in 2 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 2,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_a327c6bb3d95",
+        "span": "Fermatean fuzzy sets",
+        "start_char": 996,
+        "end_char": 1016,
+        "evidence_sentence": "Properties of proposed operators were presented, and operators were defined on Fermatean fuzzy sets."
+      }
+    },
+    {
+      "author_id": "A5019366345",
+      "paper_id": "W4296035682",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **19** references with your paper *Multilevel Feature Fusion for End-to-End Blind Image Quality Assessment*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 19,
+        "actual_refs": 19
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4362563559",
+        "title": "Multilevel Feature Fusion for End-to-End Blind Image Quality Assessment",
+        "shared_references": 19
+      }
+    },
+    {
+      "author_id": "A5113259589",
+      "paper_id": "W4405131051",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.793272852897644
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.793272852897644
+      }
+    },
+    {
+      "author_id": "A5022849698",
+      "paper_id": "W4386824701",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **18** references with your paper *ORSI Salient Object Detection via Bidimensional Attention and Full-Stage Semantic Guidance*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 18,
+        "actual_refs": 18
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4319663751",
+        "title": "ORSI Salient Object Detection via Bidimensional Attention and Full-Stage Semantic Guidance",
+        "shared_references": 18
+      }
+    },
+    {
+      "author_id": "A5005867621",
+      "paper_id": "W4388980030",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **7** references with your paper *Brain tumor segmentation based on deep learning and an attention mechanism using MRI multi-modalities brain images*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 7,
+        "actual_refs": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3164956625",
+        "title": "Brain tumor segmentation based on deep learning and an attention mechanism using MRI multi-modalities brain images",
+        "shared_references": 7
+      }
+    },
+    {
+      "author_id": "A5035489416",
+      "paper_id": "W3007447684",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8710954189300537
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8710954189300537
+      }
+    },
+    {
+      "author_id": "A5100701075",
+      "paper_id": "W3193498964",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8801774382591248
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8801774382591248
+      }
+    },
+    {
+      "author_id": "A5018457033",
+      "paper_id": "W2541050166",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.822598397731781
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.822598397731781
+      }
+    },
+    {
+      "author_id": "A5065232100",
+      "paper_id": "W4404503720",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.806054949760437
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.806054949760437
+      }
+    },
+    {
+      "author_id": "A5035489416",
+      "paper_id": "W4214817670",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Deployment techniques in wireless sensor networks: a survey, classification, challenges, and future research issues*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3002555613",
+        "title": "Deployment techniques in wireless sensor networks: a survey, classification, challenges, and future research issues",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5085879249",
+      "paper_id": "W2787506852",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **2** references with your paper *Infinite Latent Feature Selection Technique for Hyperspectral Image Classification*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 2,
+        "actual_refs": 2
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2970697556",
+        "title": "Infinite Latent Feature Selection Technique for Hyperspectral Image Classification",
+        "shared_references": 2
+      }
+    },
+    {
+      "author_id": "A5031916377",
+      "paper_id": "W4394863031",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **5** references with your paper *BTEM: Belief based trust evaluation mechanism for Wireless Sensor Networks*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 5,
+        "actual_refs": 5
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2914295391",
+        "title": "BTEM: Belief based trust evaluation mechanism for Wireless Sensor Networks",
+        "shared_references": 5
+      }
+    },
+    {
+      "author_id": "A5084617577",
+      "paper_id": "W3188733779",
+      "original_rank": 10,
+      "template": "citation",
+      "text": "Shares **10** references with your paper *DrugComb: an integrative cancer drug combination data portal*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 10,
+        "actual_refs": 10
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2950860419",
+        "title": "DrugComb: an integrative cancer drug combination data portal",
+        "shared_references": 10
+      }
+    },
+    {
+      "author_id": "A5020661868",
+      "paper_id": "W2883830791",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *Swift: Expedited Failure Recovery for Large-Scale DNN Training*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4400770595",
+        "title": "Swift: Expedited Failure Recovery for Large-Scale DNN Training",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5070869667",
+      "paper_id": "W2895361756",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8531500697135925
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8531500697135925
+      }
+    },
+    {
+      "author_id": "A5045016749",
+      "paper_id": "W2157690157",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8594909310340881
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8594909310340881
+      }
+    },
+    {
+      "author_id": "A5000804034",
+      "paper_id": "W4211255666",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8194462656974792
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8194462656974792
+      }
+    },
+    {
+      "author_id": "A5086382599",
+      "paper_id": "W4213073341",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7928488254547119
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7928488254547119
+      }
+    },
+    {
+      "author_id": "A5086294753",
+      "paper_id": "W4386609037",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.868569016456604
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.868569016456604
+      }
+    },
+    {
+      "author_id": "A5060345555",
+      "paper_id": "W2964845901",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8758876323699951
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8758876323699951
+      }
+    },
+    {
+      "author_id": "A5101411506",
+      "paper_id": "W4401483736",
+      "original_rank": 5,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *An FPGA-based MobileNet Accelerator Considering Network Structure Characteristics*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3206196385",
+        "title": "An FPGA-based MobileNet Accelerator Considering Network Structure Characteristics",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5079899006",
+      "paper_id": "W4402128637",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8974303007125854
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8974303007125854
+      }
+    },
+    {
+      "author_id": "A5083549838",
+      "paper_id": "W4384298399",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8191549181938171
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8191549181938171
+      }
+    },
+    {
+      "author_id": "A5024949316",
+      "paper_id": "W51359916",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8185102939605713
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8185102939605713
+      }
+    },
+    {
+      "author_id": "A5017764143",
+      "paper_id": "W4283746642",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7918602228164673
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7918602228164673
+      }
+    },
+    {
+      "author_id": "A5063558450",
+      "paper_id": "W4307862292",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.833786129951477
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.833786129951477
+      }
+    },
+    {
+      "author_id": "A5102634892",
+      "paper_id": "W3095665272",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7810709476470947
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7810709476470947
+      }
+    },
+    {
+      "author_id": "A5100342308",
+      "paper_id": "W4403342875",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8184120655059814
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8184120655059814
+      }
+    },
+    {
+      "author_id": "A5099032966",
+      "paper_id": "W4285014529",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.876355767250061
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.876355767250061
+      }
+    },
+    {
+      "author_id": "A5028634636",
+      "paper_id": "W4382133963",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.9080236554145813
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.9080236554145813
+      }
+    },
+    {
+      "author_id": "A5084221816",
+      "paper_id": "W3178549001",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8591002821922302
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8591002821922302
+      }
+    },
+    {
+      "author_id": "A5050708271",
+      "paper_id": "W2028926163",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **4** references with your paper *Social Capital and Organizational Innovation: The Mediating Effect of Entrepreneurial Orientation*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 4,
+        "actual_refs": 4
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3123655154",
+        "title": "Social Capital and Organizational Innovation: The Mediating Effect of Entrepreneurial Orientation",
+        "shared_references": 4
+      }
+    },
+    {
+      "author_id": "A5100306735",
+      "paper_id": "W4377231435",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Shares **12** references with your paper *Channel semantic mutual learning for visible-thermal person re-identification*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 12,
+        "actual_refs": 12
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4391022066",
+        "title": "Channel semantic mutual learning for visible-thermal person re-identification",
+        "shared_references": 12
+      }
+    },
+    {
+      "author_id": "A5009129791",
+      "paper_id": "W4385155956",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8846589922904968
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8846589922904968
+      }
+    },
+    {
+      "author_id": "A5047801260",
+      "paper_id": "W4323912167",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8094963431358337
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8094963431358337
+      }
+    },
+    {
+      "author_id": "A5082007071",
+      "paper_id": "W2999759831",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Shares **8** references with your paper *Pulmonary Nodule Classification Based on Heterogeneous Features Learning*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 8,
+        "actual_refs": 8
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3081729309",
+        "title": "Pulmonary Nodule Classification Based on Heterogeneous Features Learning",
+        "shared_references": 8
+      }
+    },
+    {
+      "author_id": "A5101831987",
+      "paper_id": "W4403619615",
+      "original_rank": 6,
+      "template": "facet",
+      "text": "Addresses **design**, studied in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "task",
+        "canonical_id": "canon_task_a77de8a6daa1",
+        "span": "design",
+        "start_char": 871,
+        "end_char": 877,
+        "evidence_sentence": "Then, in order to design a frame structure that meets all the working conditions at the same time, a mathematical model of multi-working condition topology optimization is established, and the weights of each working condition are determined by using AHP, and the multi-working condition topology optimization design of the frame is carried out."
+      }
+    },
+    {
+      "author_id": "A5046498081",
+      "paper_id": "W4385293522",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Frequently cited together with your paper *Assessing the Usability of ChatGPT for Formal English Language Learning*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_citers": 7,
+        "actual_citers": 7
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "co_citation",
+        "authored_paper_id": "W4386959594",
+        "title": "Assessing the Usability of ChatGPT for Formal English Language Learning",
+        "co_citing_papers": 7
+      }
+    },
+    {
+      "author_id": "A5093049266",
+      "paper_id": "W4404944302",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8620123863220215
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8620123863220215
+      }
+    },
+    {
+      "author_id": "A5088884073",
+      "paper_id": "W1955113513",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *Hidden Markov Models for Pattern Recognition*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4383958523",
+        "title": "Hidden Markov Models for Pattern Recognition",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5027988796",
+      "paper_id": "W2375780404",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8475185632705688
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8475185632705688
+      }
+    },
+    {
+      "author_id": "A5040070511",
+      "paper_id": "W2969936949",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.801287055015564
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.801287055015564
+      }
+    },
+    {
+      "author_id": "A5036848541",
+      "paper_id": "W2070420170",
+      "original_rank": 2,
+      "template": "citation",
+      "text": "Frequently cited together with your paper *Estimating driving behavior by a smartphone*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_citers": 16,
+        "actual_citers": 16
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "co_citation",
+        "authored_paper_id": "W2129367100",
+        "title": "Estimating driving behavior by a smartphone",
+        "co_citing_papers": 16
+      }
+    },
+    {
+      "author_id": "A5100430478",
+      "paper_id": "W60493759",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8516404628753662
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8516404628753662
+      }
+    },
+    {
+      "author_id": "A5115740218",
+      "paper_id": "W4283820151",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8861916661262512
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8861916661262512
+      }
+    },
+    {
+      "author_id": "A5059013679",
+      "paper_id": "W4394804956",
+      "original_rank": 7,
+      "template": "citation",
+      "text": "Shares **13** references with your paper *Visibility Restoration: A Systematic Review and Meta-Analysis*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 13,
+        "actual_refs": 13
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W3152849518",
+        "title": "Visibility Restoration: A Systematic Review and Meta-Analysis",
+        "shared_references": 13
+      }
+    },
+    {
+      "author_id": "A5025324850",
+      "paper_id": "W4388908375",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7347476482391357
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7347476482391357
+      }
+    },
+    {
+      "author_id": "A5088581659",
+      "paper_id": "W2896294941",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **6** references with your paper *QSFVQA: A Time Efficient, Scalable and Optimized VQA Framework*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 6,
+        "actual_refs": 6
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4321233963",
+        "title": "QSFVQA: A Time Efficient, Scalable and Optimized VQA Framework",
+        "shared_references": 6
+      }
+    },
+    {
+      "author_id": "A5007880405",
+      "paper_id": "W2340535024",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8892806172370911
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8892806172370911
+      }
+    },
+    {
+      "author_id": "A5107077385",
+      "paper_id": "W4400889241",
+      "original_rank": 4,
+      "template": "citation",
+      "text": "Frequently cited together with your paper *Benchmarking foundation models as feature extractors for weakly-supervised computational pathology*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_citers": 2,
+        "actual_citers": 2
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "co_citation",
+        "authored_paper_id": "W4402706047",
+        "title": "Benchmarking foundation models as feature extractors for weakly-supervised computational pathology",
+        "co_citing_papers": 2
+      }
+    },
+    {
+      "author_id": "A5100360494",
+      "paper_id": "W1498029981",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8146395683288574
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8146395683288574
+      }
+    },
+    {
+      "author_id": "A5111756734",
+      "paper_id": "W2325992011",
+      "original_rank": 8,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7727234363555908
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 3,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7727234363555908
+      }
+    },
+    {
+      "author_id": "A5058572131",
+      "paper_id": "W4408060476",
+      "original_rank": 1,
+      "template": "citation",
+      "text": "Shares **23** references with your paper *AutoCTS++: zero-shot joint neural architecture and hyperparameter search for correlated time series forecasting*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 23,
+        "actual_refs": 23
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W4401126726",
+        "title": "AutoCTS++: zero-shot joint neural architecture and hyperparameter search for correlated time series forecasting",
+        "shared_references": 23
+      }
+    },
+    {
+      "author_id": "A5058454592",
+      "paper_id": "W4403318601",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8467462062835693
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8467462062835693
+      }
+    },
+    {
+      "author_id": "A5078245368",
+      "paper_id": "W3176811243",
+      "original_rank": 3,
+      "template": "citation",
+      "text": "Shares **2** references with your paper *User Experience Evaluation to El Encanto: a Serious Game for Learning Community Intervention*",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "citation",
+        "claimed_refs": 2,
+        "actual_refs": 2
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "kind": "bibliographic_coupling",
+        "authored_paper_id": "W2557078848",
+        "title": "User Experience Evaluation to El Encanto: a Serious Game for Learning Community Intervention",
+        "shared_references": 2
+      }
+    },
+    {
+      "author_id": "A5100307907",
+      "paper_id": "W2514227030",
+      "original_rank": 6,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7113654017448425
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 5,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7113654017448425
+      }
+    },
+    {
+      "author_id": "A5112111677",
+      "paper_id": "W4402237581",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8308524489402771
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8308524489402771
+      }
+    },
+    {
+      "author_id": "A5019483041",
+      "paper_id": "W4400296417",
+      "original_rank": 3,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8260231614112854
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 8,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8260231614112854
+      }
+    },
+    {
+      "author_id": "A5100658356",
+      "paper_id": "W3036096522",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8729184865951538
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8729184865951538
+      }
+    },
+    {
+      "author_id": "A5100442534",
+      "paper_id": "W2131372145",
+      "original_rank": 4,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7987184524536133
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 7,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7987184524536133
+      }
+    },
+    {
+      "author_id": "A5024185234",
+      "paper_id": "W3034305775",
+      "original_rank": 2,
+      "template": "facet",
+      "text": "Evaluates on **Fermatean fuzzy sets**, used in 1 of your papers",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "facet",
+        "exact_span_match": true,
+        "span_in_sentence": true,
+        "sentence_in_abstract": true
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "user_papers_with_facet": 1,
+        "facet_type": "dataset",
+        "canonical_id": "canon_dataset_a327c6bb3d95",
+        "span": "Fermatean fuzzy sets",
+        "start_char": 996,
+        "end_char": 1016,
+        "evidence_sentence": "Properties of proposed operators were presented, and operators were defined on Fermatean fuzzy sets."
+      }
+    },
+    {
+      "author_id": "A5053036601",
+      "paper_id": "W4405704035",
+      "original_rank": 2,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8837372064590454
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 9,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8837372064590454
+      }
+    },
+    {
+      "author_id": "A5004246659",
+      "paper_id": "W4283075725",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8574031591415405
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8574031591415405
+      }
+    },
+    {
+      "author_id": "A5079258366",
+      "paper_id": "W4400277049",
+      "original_rank": 5,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8228618502616882
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 6,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8228618502616882
+      }
+    },
+    {
+      "author_id": "A5025448575",
+      "paper_id": "W3109000640",
+      "original_rank": 7,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8570429682731628
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 4,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8570429682731628
+      }
+    },
+    {
+      "author_id": "A5058765046",
+      "paper_id": "W4385759809",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8917566537857056
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8917566537857056
+      }
+    },
+    {
+      "author_id": "A5012593535",
+      "paper_id": "W2441453070",
+      "original_rank": 9,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7651878595352173
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 2,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7651878595352173
+      }
+    },
+    {
+      "author_id": "A5027381508",
+      "paper_id": "W134960717",
+      "original_rank": 1,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.8430076241493225
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 10,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.8430076241493225
+      }
+    },
+    {
+      "author_id": "A5018810713",
+      "paper_id": "W4313584196",
+      "original_rank": 10,
+      "template": "persona",
+      "text": "Close to your overall research profile",
+      "is_grounded": true,
+      "grounding_details": {
+        "feature": "persona",
+        "persona_cosine": 0.7998942136764526
+      },
+      "counterfactual_rank": null,
+      "rank_drop": 1,
+      "is_counterfactually_necessary": true,
+      "evidence": {
+        "persona_cosine": 0.7998942136764526
+      }
+    }
+  ]
+}

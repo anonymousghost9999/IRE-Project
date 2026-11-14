@@ -1,0 +1,381 @@
+{
+  "run_id": "track1_track1_lfo_report_encoder_bge_20261114T004801Z",
+  "status": "COMPLETED",
+  "git_commit": "37cad9c0fd40a7327b8f8e0866c4bc33fc54f149",
+  "config_hash": "e00204c2388d8fad",
+  "start_time": "2026-11-14T00:48:02.005805+00:00",
+  "end_time": "2026-11-14T01:04:04.231854+00:00",
+  "hardware": {
+    "platform": "Windows-11-10.0.26300-SP0",
+    "python_version": "3.13.2",
+    "processor": "AMD64 Family 25 Model 116 Stepping 1, AuthenticAMD",
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "device_count": 1,
+    "device_name": "NVIDIA GeForce RTX 3050 6GB Laptop GPU"
+  },
+  "config": {
+    "project": {
+      "name": "paperfeed",
+      "version": "0.1.0",
+      "cutoff_year": 2024,
+      "target_year": 2025,
+      "random_seed": 42
+    },
+    "paths": {
+      "data_dir": "data",
+      "raw_dir": "data/raw",
+      "interim_dir": "data/interim",
+      "processed_dir": "data/processed",
+      "artifacts_dir": "data/artifacts",
+      "sqlite_db": "data/processed/paperfeed.sqlite3",
+      "results_dir": "results",
+      "runs_dir": "results/runs"
+    },
+    "models": {
+      "dense_encoder": "allenai/specter2_base",
+      "dense_adapter": "allenai/specter2",
+      "query_adapter": "allenai/specter2_adhoc_query",
+      "gliner_model": "urchade/gliner_medium-v2.1",
+      "facet_embed_model": "all-MiniLM-L6-v2",
+      "cross_encoder_primary": "BAAI/bge-reranker-base",
+      "cross_encoder_fallback": "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    },
+    "index": {
+      "min_abstract_chars": 150,
+      "embed_checkpoint_every": 10000
+    },
+    "facets": {
+      "labels": [
+        "task",
+        "method",
+        "dataset",
+        "metric",
+        "topic"
+      ],
+      "threshold": 0.5,
+      "paper_batch_size": 32,
+      "sentence_batch_size": 32,
+      "canon_distance_threshold": 0.25,
+      "canon_neighbours": 64
+    },
+    "retrieval": {
+      "candidate_pool_size": 100,
+      "channel_depth": 200,
+      "rrf_k": 60,
+      "feed_size": 10,
+      "faiss_index_type": "IndexFlatIP"
+    },
+    "user_model": {
+      "gamma_recency": 0.9,
+      "alpha_session": 0.5,
+      "rho_persona_weight": 0.3,
+      "gamma_pivot": 0.35,
+      "use_pivot_gate": false,
+      "pseudo_query_terms": 10,
+      "pseudo_query_titles": 3
+    },
+    "scoring_weights": {
+      "w_pers": 1.0,
+      "w_sess": 1.0,
+      "w_cite": 0.5,
+      "w_facet": 0.5,
+      "w_nov": 0.5,
+      "lambda_div": 0.2,
+      "lambda_neg": 0.5,
+      "adaptive_graph": true
+    },
+    "tuning_grids": {
+      "track1": {
+        "w_cite": [
+          0.0,
+          0.25,
+          0.5,
+          1.0
+        ],
+        "w_facet": [
+          0.0,
+          0.25,
+          0.5,
+          1.0
+        ],
+        "w_nov": [
+          0.0,
+          0.25,
+          0.5,
+          1.0
+        ],
+        "lambda_div": [
+          0.0,
+          0.1,
+          0.2,
+          0.3,
+          0.5
+        ]
+      },
+      "track2_pilot": {
+        "alpha_session": [
+          0.3,
+          0.5,
+          0.8
+        ],
+        "rho_persona_weight": [
+          0.2,
+          0.3,
+          0.5
+        ],
+        "w_sess": [
+          0.5,
+          1.0,
+          1.5
+        ],
+        "lambda_neg": [
+          0.2,
+          0.5,
+          1.0
+        ],
+        "gamma_pivot": [
+          0.25,
+          0.35,
+          0.45
+        ]
+      }
+    },
+    "cohort": {
+      "total_authors": 400,
+      "tuning_authors": 80,
+      "test_authors": 320,
+      "min_discovery_references": 5,
+      "max_neighborhood_per_author": 150
+    },
+    "corpus": {
+      "target_size": 120000,
+      "hop2_per_author_cap": 150,
+      "hop1_seeds_per_author": 5,
+      "hop1_max_citing_per_paper": 40,
+      "hop1_min_citations": 1,
+      "hop1_max_citations": 300,
+      "hop1_total_new_cap": 40000,
+      "foundational_anchor_count": 15000,
+      "focus_subfields": [
+        "subfields/1702",
+        "subfields/1710"
+      ],
+      "focus_topics": [
+        "T10286",
+        "T10203",
+        "T14435",
+        "T12072",
+        "T12535",
+        "T10320",
+        "T10028",
+        "T12026",
+        "T13904"
+      ]
+    }
+  },
+  "metadata": {
+    "arguments": {
+      "config": "configs/default.yaml",
+      "test_sample": null,
+      "tuning_sample": null,
+      "skip_tuning": false,
+      "n_bootstrap": 10000,
+      "out_dir": "results",
+      "w_pop": null,
+      "pool_size": null,
+      "channel_depth": null,
+      "report_name": "track1_lfo_report_encoder_bge.md",
+      "results_name": "track1_lfo_results_encoder_bge.json",
+      "enhanced": false,
+      "filter_popular": null,
+      "graph_channel": false,
+      "cross_encoder": false,
+      "encoder": "bge",
+      "learned_ranker": false,
+      "facet_active": false,
+      "skip_zero_pub": false
+    },
+    "tuning_artifact": "tuning_results_fd6cfc64f625.json",
+    "v1_decision": {
+      "adopt_v1": false,
+      "chosen_encoder": "bge",
+      "per_encoder": {
+        "specter2": {
+          "w_cite": 1.0,
+          "w_facet": 0.25,
+          "w_nov": 0.25,
+          "w_pop": 0.0,
+          "lambda_div": 0.0,
+          "mean_ndcg": 0.021480842835037362,
+          "dense_centroid_ndcg": 0.00673039144071815,
+          "candidate_recall_at_100": 0.06342872094274796
+        },
+        "scincl": {
+          "w_cite": 1.0,
+          "w_facet": 0.25,
+          "w_nov": 0.25,
+          "w_pop": 0.0,
+          "lambda_div": 0.0,
+          "mean_ndcg": 0.027829751908517962,
+          "dense_centroid_ndcg": 0.017414576599674058,
+          "candidate_recall_at_100": 0.06629363903178558
+        },
+        "bge": {
+          "w_cite": 1.0,
+          "w_facet": 0.5,
+          "w_nov": 0.0,
+          "w_pop": 0.0,
+          "lambda_div": 0.1,
+          "mean_ndcg": 0.031969627436175006,
+          "dense_centroid_ndcg": 0.012230093672601227,
+          "candidate_recall_at_100": 0.07855437682245245
+        }
+      },
+      "ndcg_gain": {
+        "mean_diff": 0.010488784601137646,
+        "relative": 0.4882855240684229,
+        "ci": [
+          -0.0019377092590617759,
+          0.02371230331181493
+        ],
+        "p_value": 0.1099,
+        "cohens_d": 0.1788415020577728
+      },
+      "models": {
+        "specter2": "allenai/specter2_base",
+        "scincl": "malteos/scincl",
+        "bge": "BAAI/bge-base-en-v1.5"
+      }
+    },
+    "variant": "V1 dense encoder bge (design \u00a713.8; exploratory, plan 10.1d); tuning-split decision: keep SPECTER2; weights re-tuned on the full tuning split with this encoder; the Dense Centroid and Hybrid-Persona baselines also use it",
+    "zero_pub_seed_subfield_found": 320,
+    "outputs": [
+      "results\\track1_lfo_report_encoder_bge.md",
+      "results\\track1_lfo_results_encoder_bge.json",
+      "results\\track1_lfo_results_encoder_bge_zero_pub.json"
+    ],
+    "n_test_authors_evaluated": 320,
+    "n_zero_pub_authors_evaluated": 320,
+    "tuned_weights": {
+      "w_pers": 1.0,
+      "w_sess": 1.0,
+      "w_cite": 1.0,
+      "w_facet": 0.5,
+      "w_nov": 0.0,
+      "lambda_neg": 0.5,
+      "w_pop": 0.0,
+      "w_ce": 0.0
+    },
+    "tuned_lambda_div": 0.5,
+    "hybrid_persona_params": {
+      "gamma_rec": 0.7,
+      "n_terms": 20,
+      "n_titles": 3
+    },
+    "tuning_signature": {
+      "pool_size": 100,
+      "channel_depth": 200,
+      "w_pop": 0.0,
+      "adaptive_graph": true,
+      "filter_popular": null,
+      "tuning_version": 2,
+      "tuning_authors": [
+        "A5003214688",
+        "A5004748988",
+        "A5005210500",
+        "A5005496603",
+        "A5010222804",
+        "A5012204898",
+        "A5013220901",
+        "A5013593792",
+        "A5015776510",
+        "A5016244805",
+        "A5017126182",
+        "A5020925570",
+        "A5021922035",
+        "A5022196006",
+        "A5024494152",
+        "A5026115671",
+        "A5026351959",
+        "A5026365297",
+        "A5028054991",
+        "A5028171895",
+        "A5031828496",
+        "A5038233087",
+        "A5038488825",
+        "A5040138884",
+        "A5040962321",
+        "A5041581994",
+        "A5043313875",
+        "A5044874837",
+        "A5047269850",
+        "A5047299059",
+        "A5047691220",
+        "A5049385876",
+        "A5049679682",
+        "A5055120498",
+        "A5055839415",
+        "A5059677848",
+        "A5060678745",
+        "A5061157758",
+        "A5061433075",
+        "A5062365263",
+        "A5066198122",
+        "A5067180435",
+        "A5073108578",
+        "A5073213890",
+        "A5074386912",
+        "A5074810713",
+        "A5075901325",
+        "A5076124263",
+        "A5076229179",
+        "A5078765527",
+        "A5079533447",
+        "A5080582343",
+        "A5080737790",
+        "A5081114494",
+        "A5081767435",
+        "A5087866946",
+        "A5091379515",
+        "A5098670998",
+        "A5098934039",
+        "A5100392988",
+        "A5100561952",
+        "A5100584702",
+        "A5100753884",
+        "A5100876983",
+        "A5101609721",
+        "A5101637432",
+        "A5101919983",
+        "A5102836087",
+        "A5103138048",
+        "A5103157015",
+        "A5105018994",
+        "A5106364788",
+        "A5111121607",
+        "A5112398821",
+        "A5113283768",
+        "A5114369128",
+        "A5114833336",
+        "A5116190832",
+        "A5116288238",
+        "A5128771498"
+      ],
+      "dense_encoder": "bge"
+    },
+    "popularity_filter": null,
+    "h1_supported": false,
+    "h2_supported": true,
+    "input_sha256": {
+      "cohort.jsonl": "435ebe916017fd3529c01cf14a1fc6e4dcbe389e2df522432a75b47e50365af4",
+      "ground_truth.jsonl": "1f8686199f0b0911fe3640aeb1c839ea482f5abcf6e91e657df4069bd4fc394a",
+      "split.json": "6dc2c2922c26efd522b2c45758c5495948945706fbb519537124e581f41de120",
+      "tuning_results_fd6cfc64f625.json": "054f3729acae4dd70dfb71b6e27852210f7da1de3cdbcb63815ea5789678b547",
+      "embedding_ids.json": "1b1cc138505dc3f3c9450117fec4abaa412fdb1067c8e449d6265da129d5dc76",
+      "encoder_bge/embedding_ids.json": "1b1cc138505dc3f3c9450117fec4abaa412fdb1067c8e449d6265da129d5dc76",
+      "index_manifest.json": "79bb25fa8cb805323eb51f4b932ddad4fd28321ae37a9632e554e82d052a7e41"
+    },
+    "runtime_seconds": 962.2
+  }
+}

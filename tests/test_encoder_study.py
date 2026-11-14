@@ -102,7 +102,7 @@ def test_subset_vectors_are_cached_per_subset_and_model(graph_db, tmp_path):
 def test_subset_resources_restrict_candidates_and_use_the_encoders_vectors(graph_db):
     db, _ = graph_db
     ids = ["A", "B", "C"]
-    texts = paper_texts(db, ids)
+    texts = {k: {"title": f"Paper_{k}", "abstract": f"Abstract_{k}"} for k in ids}
     store = EmbeddingStore(ids, np.eye(3, 4, dtype=np.float32))
     retriever = SimpleNamespace(channel_depth=200, rrf_k=60, candidate_pool_size=100)
     base = SimpleNamespace(retriever=retriever, eligible={"A", "B", "X"}, store=None, encoder=None)
@@ -118,7 +118,7 @@ def test_subset_resources_restrict_candidates_and_use_the_encoders_vectors(graph
     r = subset_resources(Res(**vars(base)), store, build_subset_lexical(texts), "enc", ids)
     assert r.eligible == {"A", "B"} and r.encoder == "enc" and r.store is store
     assert r.retriever.dense_index.search(np.array([0, 1, 0, 0], dtype=np.float32), k=1)[0][0] == "B"
-    assert r.retriever.lexical_index.search("About C", k=1)[0][0] == "C"
+    assert r.retriever.lexical_index.search("Paper_C", k=1)[0][0] == "C"
     assert (r.retriever.channel_depth, r.retriever.candidate_pool_size) == (200, 100)
 
 
