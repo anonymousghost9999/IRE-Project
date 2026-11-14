@@ -1,0 +1,41 @@
+{
+  "grid": {
+    "C": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ]
+  },
+  "points": [
+    {
+      "C": 0.01,
+      "mean_ndcg": 0.021835137363995803
+    },
+    {
+      "C": 0.1,
+      "mean_ndcg": 0.023224770699195835
+    },
+    {
+      "C": 1.0,
+      "mean_ndcg": 0.022775641392257826
+    },
+    {
+      "C": 10.0,
+      "mean_ndcg": 0.019694402197353623
+    }
+  ],
+  "best": {
+    "C": 0.1,
+    "mean_ndcg": 0.023224770699195835
+  },
+  "n_users": 80,
+  "embedding": {
+    "model": "thenlper/gte-large",
+    "pca_dim": 256,
+    "explained_variance": 0.8019320368766785,
+    "n_papers": 111149
+  },
+  "negatives_per_positive": 10,
+  "seconds": 65.0
+}
