@@ -1,12 +1,14 @@
 """Altair visualization helpers for PaperFeed UI."""
 
 from typing import Any, Dict, List, Mapping, Sequence
-import pandas as pd
 import altair as alt
+import pandas as pd
+from demo.theme import get_theme
 
 
 def create_facet_bar_chart(facets_data: Sequence[Mapping[str, Any]], top_n: int = 10) -> alt.Chart:
     """Create a sleek horizontal bar chart of top canonical facets."""
+    t = get_theme()
     if not facets_data:
         df = pd.DataFrame({"facet": ["None"], "count": [0], "type": ["default"]})
     else:
@@ -32,13 +34,14 @@ def create_facet_bar_chart(facets_data: Sequence[Mapping[str, Any]], top_n: int 
         )
         .properties(height=max(160, len(df) * 22))
         .configure_view(strokeWidth=0)
-        .configure_axis(gridColor="#2E3348", labelColor="#94A3B8", titleColor="#CBD5E1")
+        .configure_axis(gridColor=t["chart_grid"], labelColor=t["chart_label"], titleColor=t["chart_title"])
     )
     return chart
 
 
 def create_timeline_chart(papers: Sequence[Mapping[str, Any]]) -> alt.Chart:
     """Create bar chart of authored papers across years."""
+    t = get_theme()
     if not papers:
         df = pd.DataFrame({"year": [2024], "count": [0]})
     else:
@@ -50,7 +53,7 @@ def create_timeline_chart(papers: Sequence[Mapping[str, Any]]) -> alt.Chart:
 
     chart = (
         alt.Chart(df)
-        .mark_bar(color="#4A9EFF", cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
+        .mark_bar(color=t["accent"], cornerRadiusTopLeft=3, cornerRadiusTopRight=3)
         .encode(
             x=alt.X("year:O", title="Publication Year"),
             y=alt.Y("count:Q", title="Papers Authored"),
@@ -58,13 +61,14 @@ def create_timeline_chart(papers: Sequence[Mapping[str, Any]]) -> alt.Chart:
         )
         .properties(height=180)
         .configure_view(strokeWidth=0)
-        .configure_axis(gridColor="#2E3348", labelColor="#94A3B8", titleColor="#CBD5E1")
+        .configure_axis(gridColor=t["chart_grid"], labelColor=t["chart_label"], titleColor=t["chart_title"])
     )
     return chart
 
 
 def create_score_breakdown_chart(contributions: Mapping[str, float]) -> alt.Chart:
     """Create horizontal bar chart breaking down linear score components."""
+    t = get_theme()
     rows = []
     labels = {
         "persona": "Persona Match",
@@ -90,13 +94,13 @@ def create_score_breakdown_chart(contributions: Mapping[str, float]) -> alt.Char
             y=alt.Y("feature:N", sort="-x", title=""),
             color=alt.condition(
                 alt.datum.weight > 0,
-                alt.value("#38BDF8"),
+                alt.value(t["link"]),
                 alt.value("#F87171"),
             ),
             tooltip=["feature:N", "weight:Q"],
         )
         .properties(height=140)
         .configure_view(strokeWidth=0)
-        .configure_axis(gridColor="#2E3348", labelColor="#94A3B8", titleColor="#CBD5E1")
+        .configure_axis(gridColor=t["chart_grid"], labelColor=t["chart_label"], titleColor=t["chart_title"])
     )
     return chart

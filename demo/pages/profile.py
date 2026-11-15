@@ -122,8 +122,8 @@ When session is empty, retrieval uses the persona alone (Track 1). Once papers a
         if session.positives:
             for idx, pid in enumerate(session.positives, 1):
                 step_html = clean_html(f"""
-<div style="background-color: {t['sub_box']}; border-left: 3px solid {t['accent']}; border: 1px solid {t['sub_border']}; padding: 8px 12px; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 0.8rem; color: {t['text_sub']};">
-<span style="font-weight: 600; color: {t['link']};">Step {idx}:</span> Clicked / Saved <code style="color: {t['text_primary']}; background: {t['code_bg']}; padding: 1px 4px; border-radius: 3px;">{pid}</code>
+<div style="background-color: {t['sub_box']}; border-left: 3px solid {t['accent']}; border: 1px solid {t['sub_border']}; padding: 8px 12px; margin-bottom: 6px; border-radius: 0 6px 6px 0; font-size: 0.8rem; color: {t['text_sub']}; box-shadow: 0 1px 2px rgba(0,0,0,0.03);">
+<span style="font-weight: 600; color: {t['link']};">Step {idx}:</span> Clicked / Saved <code style="color: {t['code_text']}; background: {t['code_bg']}; border: 1px solid {t['code_border']}; padding: 2px 6px; border-radius: 4px; font-weight: 600;">{pid}</code>
 </div>
 """)
                 st.markdown(step_html, unsafe_allow_html=True)
