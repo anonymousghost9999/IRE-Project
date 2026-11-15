@@ -106,19 +106,28 @@ class LocalRanker:
         self.max_new_tokens = max_new_tokens
         loaded = None
         if four_bit:
-            try:
-                from transformers import BitsAndBytesConfig
+            import sys
+            if sys.platform == "win32":
+                logger.warning("4-bit loading on Windows is unsupported/unstable; using %s in fp16 (pre-stated fallback).",
+                               FALLBACK_MODEL)
+            else:
+                try:
+                    from transformers import BitsAndBytesConfig
 
-                quant = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16,
-                                           bnb_4bit_quant_type="nf4")
-                loaded = (model_name, AutoModelForCausalLM.from_pretrained(model_name, quantization_config=quant,
-                                                                          device_map="auto"), "4-bit nf4")
-            except Exception as exc:  # bitsandbytes missing or unsupported here: the pre-stated fallback
-                logger.warning("4-bit loading of %s failed (%s); using %s in fp16.", model_name, exc, FALLBACK_MODEL)
+                    quant = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16,
+                                               bnb_4bit_quant_type="nf4")
+                    loaded = (model_name, AutoModelForCausalLM.from_pretrained(model_name, quantization_config=quant,
+                                                                              device_map="auto"), "4-bit nf4")
+                except Exception as exc:  # bitsandbytes missing or unsupported here: the pre-stated fallback
+                    logger.warning("4-bit loading of %s failed (%s); using %s in fp16.", model_name, exc, FALLBACK_MODEL)
         if loaded is None:
             name = FALLBACK_MODEL if four_bit else model_name
             dtype = torch.float16 if torch.cuda.is_available() else torch.float32
-            loaded = (name, AutoModelForCausalLM.from_pretrained(name, torch_dtype=dtype, device_map="auto"), str(dtype))
+            if torch.cuda.is_available():
+                model = AutoModelForCausalLM.from_pretrained(name, dtype=dtype).to("cuda")
+            else:
+                model = AutoModelForCausalLM.from_pretrained(name, dtype=dtype)
+            loaded = (name, model, str(dtype))
         self.model_name, self.model, self.precision = loaded
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
         self.model.eval()
