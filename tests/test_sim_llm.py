@@ -178,6 +178,9 @@ def test_openai_compatible_client_request_reply_and_limit_headers(monkeypatch):
     from paperfeed.sim.llm import OpenAICompatibleClient, make_client, rate_limit_headers
 
     monkeypatch.delenv("NVIDIA_API_KEY", raising=False)
+    monkeypatch.delenv("NVIDIA_API_KEYS", raising=False)
+    for _i in range(1, 33):
+        monkeypatch.delenv(f"NVIDIA_API_KEY_{_i}", raising=False)
     with pytest.raises(RuntimeError, match="NVIDIA_API_KEY"):
         OpenAICompatibleClient("nvidia", "m")
     with pytest.raises(ValueError, match="Unknown provider"):
