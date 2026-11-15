@@ -230,3 +230,26 @@ def check_all(
     return check_corpus(db, cutoff_year, forbidden_paper_ids, cited_forbidden_ids).merge(
         check_users(db, cohort, truths, cutoff_year)
     )
+
+
+def preprint_leaked_authors(db, cohort_rows, b_titles, chunk: int = 500) -> Dict[str, Dict[str, str]]:
+    """Authors whose history <= T contains a work with the title of their target paper B (``titles_match``): B's
+    preprint or another version under a different ID. ``cohort_rows``: dicts with author_id, split and
+    authored_paper_ids_T; ``b_titles``: bare author ID -> B's title. Returns bare author ID -> evidence."""
+    out: Dict[str, Dict[str, str]] = {}
+    with db.get_connection() as conn:
+        for a in cohort_rows:
+            aid = clean_id(a["author_id"])
+            b_title = b_titles.get(aid) or ""
+            ids = [to_uri(clean_id(p)) for p in a.get("authored_paper_ids_T", [])]
+            for i in range(0, len(ids), chunk):
+                sub = ids[i : i + chunk]
+                rows = conn.execute(f"SELECT paper_id, title FROM papers WHERE paper_id IN ({','.join('?' * len(sub))})", sub)
+                for pid, title in rows:
+                    if title and titles_match(title, b_title):
+                        out[aid] = {"split": a.get("split", ""), "history_paper": clean_id(pid), "history_title": title,
+                                    "b_title": b_title}
+                        break
+                if aid in out:
+                    break
+    return out
