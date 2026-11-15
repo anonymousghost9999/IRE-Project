@@ -1,0 +1,140 @@
+{
+  "A5001991004": {
+    "split": "test",
+    "history_paper": "W4403679101",
+    "history_title": "Deep Graph Anomaly Detection: A Survey and New Perspectives",
+    "b_title": "Deep Graph Anomaly Detection: A Survey and New Perspectives"
+  },
+  "A5004310412": {
+    "split": "test",
+    "history_paper": "W4403883700",
+    "history_title": "Emotion-Aware Embedding Fusion in LLMs (Flan-T5, LLAMA 2, DeepSeek-R1, and ChatGPT 4) for Intelligent Response Generation",
+    "b_title": "Emotion-Aware Embedding Fusion in Large Language Models (Flan-T5, Llama 2, DeepSeek-R1, and ChatGPT 4) for Intelligent Response Generation"
+  },
+  "A5006995271": {
+    "split": "test",
+    "history_paper": "W4394716879",
+    "history_title": "Development and Validation of Generative Artificial Intelligence Attitude Scale for Students",
+    "b_title": "Development and validation of generative artificial intelligence attitude scale for students"
+  },
+  "A5011404590": {
+    "split": "test",
+    "history_paper": "W4388092696",
+    "history_title": "Generative Artificial Intelligence for Software Engineering -- A Research Agenda",
+    "b_title": "Generative Artificial Intelligence for Software Engineering\u2014A Research Agenda"
+  },
+  "A5015776510": {
+    "split": "tuning",
+    "history_paper": "W4400488358",
+    "history_title": "RNNs, CNNs and Transformers in Human Action Recognition: A Survey and a Hybrid Model",
+    "b_title": "CNNs, RNNs and Transformers in human action recognition: a survey and a hybrid model"
+  },
+  "A5017859484": {
+    "split": "test",
+    "history_paper": "W4387221424",
+    "history_title": "The Promises and Pitfalls of LLMs as Feedback Providers: A Study of Prompt Engineering and the Quality of AI-Driven Feedback",
+    "b_title": "The Promises and Pitfalls of Large Language Models as Feedback Providers: A Study of Prompt Engineering and the Quality of AI-Driven Feedback"
+  },
+  "A5021494379": {
+    "split": "test",
+    "history_paper": "W4200187172",
+    "history_title": "Explainable AI and Random Forest Based Reliable Intrusion Detection system",
+    "b_title": "Explainable AI and Random Forest based reliable intrusion detection system"
+  },
+  "A5052866036": {
+    "split": "test",
+    "history_paper": "W4386069007",
+    "history_title": "Intrusion Detection based on Federated Learning: a systematic review",
+    "b_title": "Intrusion Detection Based on Federated Learning: A Systematic Review"
+  },
+  "A5053822883": {
+    "split": "test",
+    "history_paper": "W4390962868",
+    "history_title": "The Faiss library",
+    "b_title": "The Faiss Library"
+  },
+  "A5069589370": {
+    "split": "test",
+    "history_paper": "W4388184510",
+    "history_title": "A Systematic Review for Transformer-based Long-term Series Forecasting",
+    "b_title": "A systematic review for transformer-based long-term series forecasting"
+  },
+  "A5078765527": {
+    "split": "tuning",
+    "history_paper": "W4402398497",
+    "history_title": "A Systematic Review of Intermediate Fusion in Multimodal Deep Learning for Biomedical Applications",
+    "b_title": "A systematic review of intermediate fusion in multimodal deep learning for biomedical applications"
+  },
+  "A5079533447": {
+    "split": "tuning",
+    "history_paper": "W4313679638",
+    "history_title": "Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers",
+    "b_title": "Neural Codec Language Models are Zero-Shot Text to Speech Synthesizers"
+  },
+  "A5080582343": {
+    "split": "tuning",
+    "history_paper": "W4405428531",
+    "history_title": "Gradient-Weighted Class Activation Mapping: A Systematic Literature Review",
+    "b_title": "Grad-CAM (Gradient-weighted Class Activation Mapping): A systematic literature review"
+  },
+  "A5086254582": {
+    "split": "test",
+    "history_paper": "W4225011431",
+    "history_title": "A review of Federated Learning in Intrusion Detection Systems for IoT",
+    "b_title": "A Review of Federated Learning Applications in Intrusion Detection Systems"
+  },
+  "A5090650251": {
+    "split": "test",
+    "history_paper": "W4400445270",
+    "history_title": "A Survey on Mixture of Experts",
+    "b_title": "A Survey on Mixture of Experts in Large Language Models"
+  },
+  "A5091464412": {
+    "split": "test",
+    "history_paper": "W4401307342",
+    "history_title": "A Systematic Review on Long-Tailed Learning",
+    "b_title": "A Systematic Review on Long-Tailed Learning"
+  },
+  "A5099611070": {
+    "split": "test",
+    "history_paper": "W4402740813",
+    "history_title": "Knowledge Graph Enhanced Retrieval-Augmented Generation for Failure Mode and Effects Analysis",
+    "b_title": "Knowledge graph enhanced retrieval-augmented generation for failure mode and effects analysis"
+  },
+  "A5100343402": {
+    "split": "test",
+    "history_paper": "W4415392087",
+    "history_title": "Author response for \"Enhanced Deep Image Prior for Unsupervised Hyperspectral Image Super-Resolution\"",
+    "b_title": "Enhanced Deep Image Prior for Unsupervised Hyperspectral Image Super-Resolution"
+  },
+  "A5101966856": {
+    "split": "test",
+    "history_paper": "W4404415725",
+    "history_title": "Learning about AI: A Systematic Review of Reviews on AI Literacy",
+    "b_title": "Learning About AI: A Systematic Review of Reviews on AI Literacy"
+  },
+  "A5102531513": {
+    "split": "test",
+    "history_paper": "W4383180643",
+    "history_title": "From Portfolio Optimization to Quantum Blockchain and Security: A Systematic Review of Quantum Computing in Finance",
+    "b_title": "From portfolio optimization to quantum blockchain and security: a systematic review of quantum computing in finance"
+  },
+  "A5107077385": {
+    "split": "test",
+    "history_paper": "W4402706047",
+    "history_title": "Benchmarking foundation models as feature extractors for weakly-supervised computational pathology",
+    "b_title": "Benchmarking foundation models as feature extractors for weakly supervised computational pathology"
+  },
+  "A5111756734": {
+    "split": "test",
+    "history_paper": "W4405095387",
+    "history_title": "SIDA: Social Media Image Deepfake Detection, Localization and Explanation with Large Multimodal Model",
+    "b_title": "SIDA: Social Media Image Deepfake Detection, Localization and Explanation with Large Multimodal Model"
+  },
+  "A5115740218": {
+    "split": "test",
+    "history_paper": "W4405980344",
+    "history_title": "Security in the Internet of Things: Identifying and Analysing Critical Categories",
+    "b_title": "A Literature Review on Security in the Internet of Things: Identifying and Analysing Critical Categories"
+  }
+}
