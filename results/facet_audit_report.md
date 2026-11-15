@@ -31,3 +31,6 @@
 
 - Machine-readable audit: [`facet_audit_report.json`](facet_audit_report.json)
 - Stratified annotation sheet: [`facet_annotation_sample.json`](facet_annotation_sample.json)
+
+> [!NOTE]
+> The annotation sheet `facet_annotation_sample.json` (100 papers, 968 facets) was exported for the manual Precision@facet check required by plan §3.3 / design §13.5, but **no facet has been annotated, so Precision@facet on this corpus is not measured**. The 100% grounding rate shows only that each span exists verbatim at its offsets (which the extractor already enforces); it says nothing about whether the label is correct. The closest available evidence on label accuracy is the SciERC benchmark (Phase 3.4), which is a different domain. The sample allocates papers equally per primary topic rather than proportionally, and papers with zero facets cannot be sampled, so facet density here (64%) is lower than over the whole candidate corpus (about 76%). The "Avg Facets" PASS marks are printed unconditionally by the script.

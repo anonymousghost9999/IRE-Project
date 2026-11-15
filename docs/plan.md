@@ -11,7 +11,7 @@
 - The work is split into **phases**. Each phase lists its **tasks** with an ID (for example `1.4`), what to build, the **outputs** it produces, and a **done when** check.
 - Phases 0–8 are **Core** (P§6A). Phases 9–12 are **Extended**. Phase 13 closes the project.
 - Order matters mainly for data dependencies: data (1) → indexes (2) → facets (3) → user model (4) → recommender (5) → evaluation (6–8). Phases 7 and 3.4 can run in parallel with others once Phase 2 exists.
-- Every number that has a default in D§2 (for example $T=2023$, $K=10$, $M=100$, $k_{\text{rrf}}=60$) lives in **one config file**, never hard-coded.
+- Every number that has a default in D§2 (for example $T=2024$, $K=10$, $M=100$, $k_{\text{rrf}}=60$) lives in **one config file**, never hard-coded.
 
 ### Phase dependency overview
 
@@ -105,7 +105,7 @@ For each candidate author, fetch all works with `publication_year` $\le T$ (2024
 
 ### 1.4 Corpus expansion (D§4.1 steps 2–3)
 - **Hop 1:** the references of every authored paper, plus papers published $\le T$ that cite an authored paper (the inbound citations that co-citation CC needs). Budget: up to 5 seed papers per author (most-cited first, with 1–300 citations; mega-papers time out), up to 40 citing papers per seed, processed rank by rank so every author gets their best seed before anyone gets a second, with a global cap of 40,000 newly added papers.
-- **Hop 2:** references of hop-1 papers, with a per-author cap (150) so the corpus stays near 120k.
+- **Hop 2:** references of hop-1 papers, with a per-author cap (150) so the corpus stays near 120k. *(Not implemented as specified: the hop-2 stage scans a global sample of citation targets and added no papers in the reported build; see design §18a.)*
 - **Foundational CS/AI/IR Anchors:** classic papers published $\le T$ in CS, AI, ML, and IR (e.g. ~15k papers) ensuring high graph connectivity, fetched sorted by citations. Selecting them by present-day citation counts nudges corpus membership towards papers that became classics; this is a corpus-construction choice, shared by every system and baseline, and is stated as a limitation.
 - **Fill:** random and topic-stratified CS/AI/IR papers published $\le T$ (OpenAlex `sample` with a fixed `seed`), up to about 120,000 papers in total.
 - **Rules:** never add a paper with year $> T$ (2024); never use paper $B$ (2025) (or any work with year $> T$) as a traversal source. $\text{Ref}(B)$ is fetched only for ground truth and coverage (1.9).
@@ -203,7 +203,7 @@ bm25s over title + abstract: lowercase, stop-word removal, and the same tokenize
 - Cache outputs; **record the extraction time** per 1,000 abstracts.
 
 ### 3.2 Canonicalization (D§6.3)
-1. Lowercase and lemmatize each span.
+1. Lowercase and lemmatize each span. *(Implemented without lemmatization; design §18a.)*
 2. Embed spans with a small sentence-embedding model.
 3. Cluster spans **per facet type** with greedy leader clustering over exact nearest-neighbour lists (most frequent span first; a span joins a leader within the cosine-distance threshold; no full distance matrix, so it scales to the whole corpus) and assign a `canonical_id`; the canonical name is the most frequent surface form in the cluster.
 4. Choose the threshold by inspecting samples of clusters (too loose merges unrelated methods; too tight never matches).
@@ -365,10 +365,10 @@ BM25s, SPECTER2, RRF hybrid ($k=60$, top 200 per channel); optional cross-encode
 
 ## Phase 9 — Track 2: LLM Session Simulation (Extended)
 
-> **Status (2026-11-15): completed.** Fully executed and verified at zero cost using hosted NVIDIA NIM (`minimaxai/minimax-m3.1-flash`) with multi-key pool rotation and persistent rating cache.
+> **Status (2026-11-15): run once; must be repeated.** Executed with hosted NVIDIA NIM (`minimaxai/minimax-m3.1-flash`, not the Gemini model D§13.2 names), multi-key pool rotation and a persistent rating cache; budget fallback per D§13.2 point 7 (20 personas $\times$ 3 seeds).
 > - **Deliverables:** `data/artifacts/track2_personas.json`, `data/artifacts/track2_config.json`, `results/track2_simulation_results.json`, `results/track2_simulation_report.md`, `data/artifacts/track2_rating_cache.jsonl`.
-> - **Hypothesis Results:** $H_{3a}$ supported (Pivot Latency difference against Persona-Only $+0.500$ turns, 95% CI $[+0.117, +1.000]$), $H_{3b}$ supported (difference against Static Blend $+0.500$ turns, 95% CI $[+0.117, +1.000]$).
-> - **Pre-registered budget fallback:** applied per D§13.2 point 7 (20 personas $\times$ 3 seeds).
+> - **What the run showed:** Hybrid reached the pivot in 5 of 60 episodes (mean $k_{\text{pivot}}$ 9.5, censored at 10); Hybrid + gate was identical to Hybrid in all 60 (the gate never fired); pilot tuning gave the same criterion $J$ for every value tried, so no parameter was effectively tuned. $H_{3a}$/$H_{3b}$ were reported as supported (difference $+0.500$ turns, CI $[+0.117, +1.000]$) with a bootstrap over persona $\times$ seed units, but the difference comes from 3 personas and a persona-clustered bootstrap gives a CI that includes 0. $H_{3c}$ is not supported (Session-Only retention 0.605 vs Hybrid 0.563).
+> - **Why it must be repeated:** the cohort was rebuilt on 2026-11-15 (preprint leakage, D§4.1), and `track2_personas.json` now comes from the new split (only 3 of the 20 reported personas remain); the shift-turn fallback no longer uses the Topic B label; and the H3 analysis is now persona-clustered.
 
 **Goal:** session adaptation results with clearly simulated status (D§13.2, P§6E.2).
 
@@ -527,7 +527,8 @@ Generated by `eval/report.py` from saved run outputs, never by hand.
 >   - `demo/components/`: Modular UI components (`paper_card.py`, `facet_pills.py`, `explanation.py`, `session_panel.py`, `charts.py`).
 >   - `demo/pages/`: 6 dedicated pages (`onboarding.py`, `feed.py`, `search.py`, `library.py`, `profile.py`, `about.py`).
 >   - Pilot study rating integration (§12.2) with in-session relevance & clarity sliders and JSON export.
->   - All test suites passing (`tests/test_demo_ui.py`, 450 total tests).
+>   - All test suites passing (`tests/test_demo_ui.py`; 453 tests in total on 2026-11-15).
+>   - Known gaps: the demo forces the pivot gate on although `configs/best.yaml` keeps it off; paper metadata is rendered as HTML without escaping; no pilot-study ratings are in the repository yet.
 
 ### 12.1 Streamlit UI
 Onboarding (seed topics or an OpenAlex author ID), feed with paper cards (title, year, venue, abstract snippet, facet pills, explanation), `click` / `save` / `skip` buttons, search bar, library page, interest inspector (top canonical facets), reset-session button. It calls the same recommender interface as the evaluation, with the frozen best configuration of Phase 11 (Core if Phase 11 was not run).

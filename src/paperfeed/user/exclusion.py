@@ -36,12 +36,12 @@ class ExclusionSources:
         diagnostic: bool = False,
         zero_pub: bool = False,
     ) -> Set[str]:
-        """E_u for the current moment. ``zero_pub`` wins over ``diagnostic`` and returns the empty set."""
-        if zero_pub:
-            return set()
-        excluded = set(self.authored)
-        if not diagnostic:
-            excluded |= self.citations
+        """E_u for the current moment. zero_pub excludes no past history, but still excludes session-consumed items."""
+        excluded: Set[str] = set()
+        if not zero_pub:
+            excluded |= set(self.authored)
+            if not diagnostic:
+                excluded |= self.citations
         excluded |= _bare(session_consumed)
         return excluded
 

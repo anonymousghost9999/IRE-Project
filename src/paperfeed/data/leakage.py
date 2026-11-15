@@ -5,8 +5,9 @@ Nothing here modifies data; every check returns violations instead of raising, s
 all of them at once, and ``LeakageReport.assert_clean()`` raises when anything is found.
 """
 
+import re
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Set
+from typing import Dict, Iterable, List, Optional, Set, Tuple
 
 from paperfeed.data.cohort import CandidateAuthor, clean_id
 from paperfeed.data.db import DatabaseManager
@@ -131,26 +132,68 @@ def check_corpus(
     return report
 
 
+def normalize_title(s: Optional[str]) -> str:
+    """Normalize string for robust title comparison."""
+    if not s:
+        return ""
+    return re.sub(r"[^a-z0-9]", "", s.lower())
+
+
+def titles_match(t1: Optional[str], t2: Optional[str]) -> bool:
+    """True if two titles match exactly after normalization, or have high token similarity / containment."""
+    if not t1 or not t2:
+        return False
+    n1, n2 = normalize_title(t1), normalize_title(t2)
+    if not n1 or not n2:
+        return False
+    if n1 == n2:
+        return True
+    if len(n1) > 20 and len(n2) > 20 and (n1 in n2 or n2 in n1):
+        return True
+    s1 = set(re.sub(r"[^a-z0-9\s]", " ", t1.lower()).split())
+    s2 = set(re.sub(r"[^a-z0-9\s]", " ", t2.lower()).split())
+    if len(s1) >= 3 and len(s2) >= 3:
+        if len(s1 & s2) / len(s1 | s2) >= 0.75:
+            return True
+    return False
+
+
 def check_users(
     db: DatabaseManager,
     cohort: List[CandidateAuthor],
     truths: List[GroundTruth],
     cutoff_year: int,
 ) -> LeakageReport:
-    """Per-user checks: profile inputs (authored papers) are <= T and never include B; targets are <= T."""
+    """Per-user checks: profile inputs (authored papers) are <= T and never include B (or B's preprint); targets are <= T."""
     report = LeakageReport()
     paper_b = {clean_id(c.target_paper_b_id) for c in cohort}
     late_authored: List[str] = []
     b_authored: List[str] = []
+    b_preprint: List[str] = []
 
-    for c in cohort:
-        authored = [clean_id(a) for a in c.authored_paper_ids_T]
-        b_authored += [f"{c.author_id}:{a}" for a in authored if a in paper_b]
-        for pid, s in paper_status(db, authored).items():
-            if s["year"] > cutoff_year:
-                late_authored.append(f"{c.author_id}:{pid}")
+    with db.get_connection() as conn:
+        for c in cohort:
+            authored = [clean_id(a) for a in c.authored_paper_ids_T]
+            b_authored += [f"{c.author_id}:{a}" for a in authored if a in paper_b]
+            for pid, s in paper_status(db, authored).items():
+                if s["year"] > cutoff_year:
+                    late_authored.append(f"{c.author_id}:{pid}")
+
+            # Check for preprint leakage (matching title of target paper B in authored history)
+            b_title = getattr(c, "target_paper_b_title", "")
+            if b_title:
+                marks = ",".join("?" for _ in authored)
+                if marks:
+                    chunk = [to_uri(a) for a in authored]
+                    for row in conn.execute(
+                        f"SELECT paper_id, title FROM papers WHERE paper_id IN ({marks})", chunk
+                    ):
+                        if row[1] and titles_match(row[1], b_title):
+                            b_preprint.append(f"{c.author_id}:{clean_id(row[0])} -> {row[1]!r}")
+
     report.add("authored_paper_year_after_T", late_authored)
     report.add("target_paper_B_in_authored_history", b_authored)
+    report.add("target_paper_B_preprint_in_authored_history", b_preprint)
 
     bad_targets: List[str] = []
     for gt in truths:

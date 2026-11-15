@@ -380,13 +380,8 @@ def run_episode(
             clicked_b = True
 
     if not clicked_b and search_b_ids:
-        # Fallback to highest-rated Topic B paper
-        topic_b_cands = [
-            pid for pid in search_b_ids
-            if subfield_lookup.get(clean_id(pid)) == persona.topic_b_id
-        ]
-        pool = topic_b_cands if topic_b_cands else search_b_ids
-        best_pid = max(pool, key=lambda pid: ratings_search_b.get(clean_id(pid), 0))
+        # Fallback to highest-rated search result (without oracle subfield metadata lookup)
+        best_pid = max(search_b_ids, key=lambda pid: ratings_search_b.get(clean_id(pid), 0))
         emb = get_paper_embedding(resources.store, best_pid, dim)
         session.apply("click", best_pid, emb)
 

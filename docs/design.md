@@ -36,7 +36,7 @@ One symbol, one meaning (C4, D4). Values marked *tuned* are chosen on the tuning
 
 | Symbol | Meaning | Default / range | Used in |
 |---|---|---|---|
-| $T$ | Evaluation cutoff year | 2023 | §4, §13 |
+| $T$ | Evaluation cutoff year | 2024 | §4, §13 |
 | $u$ | User / seed author | — | all |
 | $\mathcal{C}$ | Candidate corpus, papers with year $\le T$ | ~100k | §4 |
 | $\mathbf{e}_p$ | SPECTER2 (`proximity`) embedding of paper $p$, L2-normalized | 768-d | §6 |
@@ -93,6 +93,7 @@ If the schedule slips, the minimum deliverable is: corpus + LFO harness + BM25 /
   3. Anchor with top-cited foundational CS/AI/IR papers plus thematic fill published $\le T$ (2024), scaling to $\ge 120,000$ papers.
   4. The crawl **never** traverses the reference list of target paper $B$ ($T+1 = 2025$). $\text{Ref}(B)$ is read only to compute coverage and ground truth.
 - **Coverage report (before any model runs).** Fraction of $\text{Discovery}(B\mid u)$ present in $\mathcal{C}$ with an abstract, before and after cohort filtering. Recall is reported against the full reference set and the in-corpus subset, next to the empirical Corpus Coverage Ceiling.
+- **Preprint check (added 2026-11-15).** The same paper often has several OpenAlex records (for example an arXiv preprint dated $\le T$ and a 2025 journal version). If an author's history $\le T$ contains a work whose title matches $B$'s (exact after normalization, containment, or token Jaccard $\ge 0.75$), the persona would contain $B$'s own text, so the author is dropped before cohort selection. This removed 37 authors in the 2026-11-15 rebuild; results produced before that date used the earlier cohort.
 - **Target validation.** A genuine $T+1$ paper cannot be cited by a paper from $\le T$. Authors whose $B$ is cited in a year $\le T$ (by a corpus paper, or per OpenAlex `counts_by_year`) are dropped: OpenAlex has dated an old work or a merged preprint/journal record to $T+1$, so they would not be a leave-future-out test. In the first build this removed 294 of 1,000 candidate authors.
 - **Selection bias to state in the report.** Keeping authors with $\ge 5$ in-corpus discovery references selects authors whose references the crawl happened to reach, and single/first authors skew early-career (prob.md §4).
 - **Non-CS papers are kept.** The expansion crawl pulls in papers from other OpenAlex fields (about 40% of the corpus in the first build). They are legitimate references and easy negatives, so the corpus is not filtered by field. The in-corpus Topic Entropy and Topic Discovery Rate are computed over all candidates as-is.
@@ -148,7 +149,7 @@ Tables (aligned with `prob.md` §6D): `papers`, `paper_facets` (adds `canonical_
 
 ### 6.3 Facet canonicalization (F5)
 Exact string equality on verbatim spans ("BERT-based dual encoder", "dense passage retriever") almost never matches across papers. Facets are therefore canonicalized before any matching:
-1. Lowercase and lemmatize.
+1. Lowercase and lemmatize. *(Deviation, §18a: the implementation lowercases and strips only; it does not lemmatize.)*
 2. Embed the span with a small sentence-embedding model, cluster spans per facet type with a similarity threshold, and assign a `canonical_id`.
 3. $\mathcal{F}_p$, $\mathcal{F}_u$, facet match and the new-method indicator all operate on `canonical_id`s.
 4. The in-corpus audit (§13.5) reports facet match rates so a degenerate canonicalization (everything matches, or nothing does) is visible.
@@ -234,6 +235,7 @@ $$\text{Score}(p) = w_{\text{pers}}\,\text{mm}\!\big[\cos(\mathbf{e}_p,\mathbf{v
 - **Penalty:** $\max_{n\in\mathcal{S}^-_u}\cos(\mathbf{e}_p,\mathbf{e}_n)$, and 0 when $\mathcal{S}^-_u=\emptyset$ (`prob.md` §5).
 - **When $\mathbf{v}^{\text{sess}}=\mathbf{0}$** the session term is dropped.
 - **Zero-publication users** have no authored papers, so $\text{BC}=\text{CC}=0$ and the citation term vanishes; their facet set comes from §7.1.
+- **Sparse authors (`adaptive_graph`, on by default):** for authors with 1–2 authored papers, $w_{\text{cite}}$ is scaled by $|\text{Authored}(u)|/3$, because their citation signal rests on very few papers. This rule is in the implementation and every reported run; it was not in the original specification (§18a).
 
 **Deliberately not in the score (S1, L1, item cold start).**
 - Global authority $\log(1+\text{citation\_count})$: biases toward old papers (prob.md §4, item cold start) and is leakage-prone. Counts up to $T$ exist only for the Popularity Baseline.
@@ -301,7 +303,7 @@ Everything in this section follows `prob.md` §4 and §6E. Only the implementati
 
 ### 13.1 Track 1: Leave-Future-Out on OpenAlex (Core)
 **Cohort (R1, R3).**
-- $N=400$ verified first or single authors with target paper $B$ in $T+1=2024$ having $\ge 5$ in-corpus Discovery references.
+- $N=400$ verified first or single authors with target paper $B$ in $T+1=2025$ having $\ge 5$ in-corpus Discovery references.
 - Seed-author rule: one seed author per paper $B$, and $B$ must be a genuine $T+1$ paper (§4.1). Moderate and sparse authors are rare, so all qualifying ones are kept and the rest of the cohort is filled with seeded warm authors, which tilts the cohort towards less-published authors. Authors with implausible histories (too many papers per year, multiple unrelated fields) are filtered; the rule and final count are reported.
 - Split: **tuning** 80 (20%), **held-out test** 320 (80%). All reported results are on the test split.
 
@@ -360,7 +362,7 @@ Everything in this section follows `prob.md` §4 and §6E. Only the implementati
 - **$H_3$** as in `prob.md`: the Hybrid has lower Pivot Latency than Persona-Only and Static Blend and higher unforced retention than Session-Only, each supported if the 95% paired-bootstrap CI of the difference (over persona × seed units) excludes 0. Absolute levels such as Retention@3 around 70% are descriptive targets reported honestly, not pass/fail criteria. The simulation is circular by nature (E7), so it is described as a sanity check and no number from it is a headline claim.
 
 **Track 2 specification (details fixed before implementation, after Phase 10).** Phase 10 adopted no variant, so Track 2 runs the Core system (SPECTER2, linear score, Track 1 weights $w_{\text{cite}}, w_{\text{facet}}, w_{\text{nov}}, \lambda_{\text{div}}$).
-1. *Simulator.* Google Gemini through the AI Studio free tier; the exact model ID is pinned in `configs/default.yaml` (`simulation.model`, a Flash-class model) before the pilot and never changed afterwards; the model ID and version returned by the API and the run dates are recorded. Temperature 0.7. The API key is read from the `GEMINI_API_KEY` environment variable and never stored in the repository. Only public OpenAlex metadata (titles, abstracts, subfield names) is sent.
+1. *(Deviation, §18a: the reported run used `minimaxai/minimax-m3.1-flash` through NVIDIA NIM, not Gemini, and the model is set by the scripts' `--model` default rather than `simulation.model`.)* *Simulator.* Google Gemini through the AI Studio free tier; the exact model ID is pinned in `configs/default.yaml` (`simulation.model`, a Flash-class model) before the pilot and never changed afterwards; the model ID and version returned by the API and the run dates are recorded. Temperature 0.7. The API key is read from the `GEMINI_API_KEY` environment variable and never stored in the repository. Only public OpenAlex metadata (titles, abstracts, subfield names) is sent.
 2. *Rating call.* Up to 10 papers per call (title + abstract), with the persona text and the current goal; the reply is JSON `{"ratings": [{"id": ..., "rating": 1-5}]}`. Parsing is strict: every shown paper exactly once, integer ratings 1–5. A malformed reply is retried up to 3 times with backoff; after that the episode is marked failed and reported, never imputed. Policy: rating $\ge 4$ click, $5$ save, $\le 2$ skip.
 3. *Rating cache.* A rating is cached per (persona, goal phase, paper, seed, model, prompt version); only papers without a cached rating are sent. Arms therefore see the same rating for the same paper (common random numbers): differences between arms come from what each arm shows, not from rating noise. This replaces the per-prompt cache key above and is what keeps the call budget feasible. The cache is released with the results.
 4. *Personas.* Evaluation: 30 authors from the Track 1 **test** split; pilot: 10 from the **tuning** split (disjoint by construction). Eligible: at least 5 authored papers $\le T$, and a primary subfield (modal OpenAlex subfield of their papers) with at least 500 eligible corpus papers; chosen in a seeded order (seed 42). Persona text: the 3 most recent authored titles and the primary subfield's name. Topic A = the primary subfield; Topic B = a different subfield with at least 500 eligible corpus papers, chosen with a per-persona seed. Topic membership of any paper is its OpenAlex subfield; subfield names come from the raw OpenAlex records (`data/raw/`), and 36 subfields currently meet the 500-paper bound.
@@ -596,6 +598,24 @@ Clean + abstract reconstruction ──► time-bounded citation graph (citing ye
 - Scoring: linear min-max-scaled score of §9; MMR after novelty; template explanations; no NLI.
 - Evaluation: `prob.md` Track 1 / Track 2 / retrieval / extraction / faithfulness audit, with the leakage rules of §4.
 - Reproducibility and temporal-leakage guard.
+
+### 18a. Recorded deviations of the implementation from this design (2026-11-15)
+Listed so the final report can state them; the specification text above is left as it was pre-registered.
+
+| Area | Specified | Implemented / happened |
+|---|---|---|
+| Cohort (§4.1) | ID-based exclusion of $B$ | A preprint of $B$ under another ID leaked into 15+ authors' histories; a title-match check was added and the cohort rebuilt (37 authors dropped). Results dated before 2026-11-15 use the leaky cohort. |
+| Ground truth (§13.1) | References of $B$ restricted to year $\le T$ | References not in the corpus are assumed $\le T$, so the unconstrained-Recall and coverage-ceiling denominators include some 2025 papers. In-corpus targets are correct. |
+| Corpus (§4.1, plan 1.4) | Hop-2 with a per-author cap | The hop-2 stage scans a global sample of citation targets and added no papers in the reported build. |
+| Canonicalization (§6.3) | Lowercase and lemmatize | Lowercase and strip only. |
+| Scoring (§9) | Fixed $w_{\text{cite}}$ | `adaptive_graph` scales $w_{\text{cite}}$ for authors with 1–2 papers. |
+| V2 query (§13.8) | Zero-publication users: seed-topic profile | Facet names of the 20 nearest papers, no seed-topic text. |
+| SOTA comparison (§13.9) | Same tuning budget for every system; RankGPT with Qwen2.5-3B in 4-bit | Budgets differ (Paper Feed 320 grid points, RP3β 12, Scholar Inbox 4, SciNCL and RankGPT 0). RankGPT ran with Qwen2.5-1.5B in fp16 (no 4-bit on Windows); the published table still says 3B. |
+| Test-split use (§13.9) | Test split used once before the Phase 11 run | The Core, filtered and enhanced runs were each repeated, so the Phase 11 run is exploratory, not confirmatory. |
+| Track 2 simulator (§13.2) | Gemini, pinned in `configs/default.yaml` | `minimaxai/minimax-m3.1-flash` via NVIDIA NIM; `simulation.*` config not read. |
+| Track 2 analysis (§13.2) | Paired bootstrap over persona × seed units | Units within a persona are strongly correlated; a persona-clustered bootstrap is now implemented, and the published report predates it. |
+| Track 2 episodes (§13.2) | Fallback click only at re-engagement | The reported run also force-clicked at the Topic B shift using the evaluation subfield label; removed 2026-11-15, so the reported run must be repeated. |
+| Pivot gate (§7.2, §13.2) | Kept only if it helps in Track 2 | It never fired at $\gamma_{\text{pivot}}=0.35$ (Hybrid and Hybrid + gate identical), yet the demo turns it on. |
 
 ### Tentative / Open
 - Cross-encoder choice for search mode (compare both).

@@ -17,8 +17,9 @@ scikit-learn>=1.4.0
 torch>=2.2.0
 transformers>=4.40.0
 sentence-transformers>=3.0.0
+adapters>=1.0.0           # SPECTER2 proximity / adhoc_query adapters (index/embeddings.py)
 
-# Information Extraction (GLiNER & SciSpaCy)
+# Information Extraction (GLiNER)
 gliner>=0.2.0
 
 # Extended Scope

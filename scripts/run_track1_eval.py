@@ -351,12 +351,13 @@ def build_sota_systems(resources, root, cfg):
     logger.info("Phase 11e: loading the RankGPT reranker...")
     ranker = LocalRanker()
     stats = RerankStats()
+    ranker_label = f"RankGPT ({'Qwen2.5-1.5B' if '1.5B' in ranker.model_name else 'Qwen2.5-3B'})"
     systems = {
         "RP3beta": make_rp3beta_system(graph, resources.eligible, rp3["alpha"], rp3["beta"]),
         "Scholar Inbox (GTE-large + LR)": make_scholar_inbox_system(space, allowed_idx, si["C"]),
         "SciNCL centroid kNN": make_centroid_system(scincl_store, scincl_dense, resources.eligible, texts,
                                                     make_encoder("scincl", track1=True)),
-        "RankGPT (Qwen2.5-3B)": make_rankgpt_system(ranker, texts, stats),
+        ranker_label: make_rankgpt_system(ranker, texts, stats),
     }
     info = {
         "RP3beta": {"alpha": rp3["alpha"], "beta": rp3["beta"], "tuning_ndcg": rp3["mean_ndcg"],
@@ -364,7 +365,7 @@ def build_sota_systems(resources, root, cfg):
         "Scholar Inbox (GTE-large + LR)": {"C": si["C"], "tuning_ndcg": si["mean_ndcg"], "pca_explained_variance":
                                            space.explained_variance, "model": "thenlper/gte-large"},
         "SciNCL centroid kNN": {"model": "malteos/scincl", "n_papers": len(scincl_store)},
-        "RankGPT (Qwen2.5-3B)": {"model": ranker.model_name, "precision": ranker.precision, "window": 20, "step": 10},
+        ranker_label: {"model": ranker.model_name, "precision": ranker.precision, "window": 20, "step": 10},
     }
     return systems, info, stats
 

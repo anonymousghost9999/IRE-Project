@@ -406,8 +406,17 @@ def split_cohort(
 
 def load_topic_names(raw_dir: str | Path) -> Dict[str, str]:
     """Map OpenAlex Topic IDs to display names using the cached raw OpenAlex responses."""
+    cache_file = Path(raw_dir).parent / "interim" / "topic_names_cache.json"
+    if cache_file.exists():
+        try:
+            return json.loads(cache_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
     names: Dict[str, str] = {}
     for fpath in glob.glob(str(Path(raw_dir) / "*.json")):
+        if fpath.endswith("_cache.json"):
+            continue
         try:
             with open(fpath, "r", encoding="utf-8") as f:
                 results = json.load(f).get("results", [])
@@ -418,6 +427,12 @@ def load_topic_names(raw_dir: str | Path) -> Dict[str, str]:
             for t in topics:
                 if t and t.get("id") and t.get("display_name"):
                     names[t["id"]] = t["display_name"]
+    if names:
+        try:
+            cache_file.parent.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps(names, ensure_ascii=False), encoding="utf-8")
+        except Exception:
+            pass
     return names
 
 

@@ -98,13 +98,13 @@ parts:
     rationale: lambda_div is part of the §9 grid tuned on the tuning split.
   session_model:
     choice:
-      alpha_sess: 0.5
+      alpha_sess: 0.3
       rho: 0.3
       use_pivot_gate: false
       gamma_pivot: 0.35
     replaces_core: false
-    evidence: null
-    rationale: 'No evidence: Track 2 (Phase 9) is deferred, so the design defaults
-      are kept. Track 1 feeds use an empty session, so these values do not affect
-      any Track 1 or Phase 11 number.'
+    evidence:
+      metric: Track 2 session simulation (Phase 9 tuning)
+      source: data/artifacts/track2_config.json
+    rationale: 'Track 2 tuned alpha_sess to 0.30 and rho to 0.30. Track 1 feeds use an empty session, so these values govern interactive session adaptation in the Phase 12 demo.'
 frozen_at: '2026-11-14T11:45:37Z'

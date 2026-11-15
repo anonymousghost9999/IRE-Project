@@ -237,7 +237,7 @@ def centroid_recommend(store, dense_index, authored_ids: Sequence[str], excluded
 # The Phase 11 comparison systems for the final run (plan 11e; design §13.9 Phase 11 spec points 4 and 6)
 # ---------------------------------------------------------------------------
 
-SOTA_NAMES = ("RP3beta", "Scholar Inbox (GTE-large + LR)", "SciNCL centroid kNN", "RankGPT (Qwen2.5-3B)")
+SOTA_NAMES = ("RP3beta", "Scholar Inbox (GTE-large + LR)", "SciNCL centroid kNN", "RankGPT (Qwen2.5-3B)", "RankGPT (Qwen2.5-1.5B)")
 
 
 def _author_ids(profile) -> List[str]:

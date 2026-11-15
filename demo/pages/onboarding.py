@@ -3,9 +3,10 @@
 from typing import List
 import streamlit as st
 
-from demo.state import get_featured_authors, get_popular_seed_topics, reset_user_session
+from demo.state import ROOT_DIR, get_featured_authors, get_popular_seed_topics, reset_user_session
 from demo.theme import clean_html, get_theme
 from paperfeed.data.cohort import clean_id
+import json
 
 
 def render_onboarding_page() -> None:
@@ -68,12 +69,28 @@ Select an author identity from the OpenAlex corpus or enter custom seed topics f
                 if manual_id.strip():
                     clean_aid = clean_id(manual_id.strip().split("/")[-1])
                     if clean_aid:
-                        chosen_author = {
-                            "author_id": clean_aid,
-                            "name": f"Author {clean_aid}",
-                            "authored_ids": [],
-                            "n_papers": 0,
-                        }
+                        found_author = None
+                        candidates_file = ROOT_DIR / "data" / "candidate_authors.jsonl"
+                        if candidates_file.exists():
+                            with open(candidates_file, "r", encoding="utf-8") as f:
+                                for line in f:
+                                    entry = json.loads(line)
+                                    if clean_id(entry.get("author_id")) == clean_aid:
+                                        found_author = {
+                                            "author_id": clean_aid,
+                                            "name": entry.get("author_name", f"Author {clean_aid}"),
+                                            "authored_ids": entry.get("authored_paper_ids_T", []),
+                                            "n_papers": len(entry.get("authored_paper_ids_T", [])),
+                                        }
+                                        break
+                        if not found_author:
+                            found_author = {
+                                "author_id": clean_aid,
+                                "name": f"Author {clean_aid}",
+                                "authored_ids": [],
+                                "n_papers": 0,
+                            }
+                        chosen_author = found_author
 
             # Preview card
             preview_html = clean_html(f"""

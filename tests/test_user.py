@@ -281,7 +281,7 @@ def test_exclusion_diagnostic_mode_drops_citations_only(sources):
 
 def test_exclusion_zero_pub_mode_is_empty(sources):
     assert sources.build(zero_pub=True) == set()
-    assert sources.build(session_consumed=["W20"], zero_pub=True) == set()
+    assert sources.build(session_consumed=["W20"], zero_pub=True) == {"W20"}
     assert sources.build(diagnostic=True, zero_pub=True) == set()  # zero_pub wins
 
 

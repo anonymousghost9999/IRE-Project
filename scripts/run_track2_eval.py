@@ -113,15 +113,22 @@ def generate_markdown_report(
 
     lines.extend([
         "",
-        "## 3. Findings and Interpretation",
+        "## 3. Findings and Honest Interpretation",
         "",
         "- **Pivot Dynamics:** Persona-Only has no session input and stays censored at $k_{\\text{pivot}}=10.0$ turns. "
-        "The Hybrid system rapidly pivots when user attention shifts, showing significant latency reduction over both Persona-Only and Static Uniform Blend.",
-        "- **Retention Dynamics:** Session-Only heavily decays user persona history, suffering lower retention when the user re-engages with their primary field. "
-        "The Hybrid system retains high unforced retention by balancing recency-weighted persona with active session vectors.",
+        "The Hybrid system exhibits lower mean latency than Persona-Only in aggregate, but when properly cluster-bootstrapped "
+        "by persona (accounting for seed dependence per persona), the 95% CI reflects that pivot behavior is concentrated in "
+        "specific persona sub-trajectories rather than occurring universally.",
+        "- **Topic Pivot Gate:** At the evaluated threshold $\\gamma = 0.35$, the topic shift cosine delta rarely breached the threshold "
+        "in the test window, resulting in Hybrid and Hybrid+Gate exhibiting identical or near-identical behaviors.",
+        "- **Retention Dynamics:** Session-Only retains high topic re-engagement (Retention@3) through reactive session steering. "
+        "The Hybrid system balances persona and session vectors, but does not demonstrate a statistically significant retention "
+        "advantage over Session-Only ($H_{3c}$ is not supported).",
+        f"- **Model Disclosure:** The simulation was executed with `{model_name}` (NVIDIA API). "
+        "All ratings were generated with deterministic seed-anchored prompts and cached for zero-cost exact reproducibility.",
         "",
         "> [!NOTE]",
-        "> Track 2 results serve as a behavioral sanity check of session adaptation dynamics in accordance with docs/design.md §13.2. "
+        "> Track 2 results serve as a behavioral simulation check of session adaptation dynamics in accordance with docs/design.md §13.2. "
         "Track 2 numbers are strictly separated from Track 1 historical offline replay numbers.",
         "",
     ])
@@ -251,23 +258,24 @@ def main() -> int:
         }
 
     # -------------------------------------------------------------------------
-    # H3 Hypothesis Tests (Paired Bootstrap over persona x seed units)
+    # H3 Hypothesis Tests (Cluster Bootstrap over personas, averaging seeds per cluster)
     # -------------------------------------------------------------------------
-    hybrid_eps = episodes["hybrid"]
-    persona_eps = episodes["persona_only"]
-    static_eps = episodes["static_blend"]
-    session_eps = episodes["session_only"]
+    diff_pivot_persona = []
+    diff_pivot_static = []
+    diff_ret_session = []
 
-    # 1. Hybrid vs. Persona-Only: Pivot Latency reduction (k_pivot_persona - k_pivot_hybrid)
-    diff_pivot_persona = [p.k_pivot - h.k_pivot for p, h in zip(persona_eps, hybrid_eps)]
+    for p in eval_personas:
+        p_hybrid = [results_by_unit[(p.author_id, s)]["hybrid"] for s in args.seeds]
+        p_persona = [results_by_unit[(p.author_id, s)]["persona_only"] for s in args.seeds]
+        p_static = [results_by_unit[(p.author_id, s)]["static_blend"] for s in args.seeds]
+        p_session = [results_by_unit[(p.author_id, s)]["session_only"] for s in args.seeds]
+
+        diff_pivot_persona.append(float(np.mean([po.k_pivot - hy.k_pivot for po, hy in zip(p_persona, p_hybrid)])))
+        diff_pivot_static.append(float(np.mean([st.k_pivot - hy.k_pivot for st, hy in zip(p_static, p_hybrid)])))
+        diff_ret_session.append(float(np.mean([hy.retention_at_3 - se.retention_at_3 for hy, se in zip(p_hybrid, p_session)])))
+
     m1, lo1, hi1 = paired_bootstrap_ci(diff_pivot_persona)
-
-    # 2. Hybrid vs. Static Blend: Pivot Latency reduction (k_pivot_static - k_pivot_hybrid)
-    diff_pivot_static = [st.k_pivot - h.k_pivot for st, h in zip(static_eps, hybrid_eps)]
     m2, lo2, hi2 = paired_bootstrap_ci(diff_pivot_static)
-
-    # 3. Hybrid vs. Session-Only: Retention@3 gain (retention_hybrid - retention_session)
-    diff_ret_session = [h.retention_at_3 - se.retention_at_3 for h, se in zip(hybrid_eps, session_eps)]
     m3, lo3, hi3 = paired_bootstrap_ci(diff_ret_session)
 
     h3_tests = {

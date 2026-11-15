@@ -123,6 +123,31 @@ def test_user_leakage_checks(db):
     assert "authored_paper_year_after_T" in report.violations
 
 
+def test_preprint_title_leakage_detected(db):
+    # Authored paper WA1 has the same title as B under a different ID
+    b_author = CandidateAuthor(
+        author_id="A_PRE",
+        author_name="Preprint Author",
+        target_paper_b_id="WB_NEW",
+        target_paper_b_title="Deep Graph Anomaly Detection: A Survey and New Perspectives",
+        target_paper_b_date="2025-01-10",
+        target_paper_b_references=[U("WD1")],
+        target_paper_b_topics=["Topic"],
+        authored_paper_ids_T=["WPRE1"],
+        selection_rule="rule",
+        history_size_slice="sparse",
+    )
+    db.insert_papers_batch([{
+        "paper_id": U("WPRE1"), "title": "Deep Graph Anomaly Detection: A Survey and New Perspectives",
+        "abstract": "x", "authors": "[]", "year": 2024, "publication_date": "2024-06-01",
+        "venue": None, "doi": "10.48550/arxiv.2409.09957", "url": None, "citation_count_T": 0,
+        "primary_topic_id": U("T1"), "subfield_id": None, "field_id": None, "in_candidates": 1
+    }])
+    gt = compute_ground_truth(db, b_author, 2024)
+    report = check_all(db, [b_author], [gt], 2024, ["WB_NEW"])
+    assert "target_paper_B_preprint_in_authored_history" in report.violations
+
+
 def test_check_paper_ids_hook(db):
     db.insert_papers_batch([_paper("WLATE", year=2026)])
     r = check_paper_ids(db, ["WD1", "WLATE", "WB_A1"], 2024, ["WB_A1"])

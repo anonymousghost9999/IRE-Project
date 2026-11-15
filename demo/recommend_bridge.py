@@ -34,12 +34,21 @@ def get_or_build_profile(resources: RecommenderResources) -> UserProfile:
     config: RecommendConfig = st.session_state.get("config")
     if current_mode == "author":
         authored_ids = st.session_state.get("authored_ids", [])
-        profile = build_user_profile(
-            resources,
-            user_id=current_user_id,
-            authored_ids=authored_ids,
-            config=config,
-        )
+        if authored_ids:
+            profile = build_user_profile(
+                resources,
+                user_id=current_user_id,
+                authored_ids=authored_ids,
+                config=config,
+            )
+        else:
+            seed_topics = ["Artificial Intelligence", "Computer Science"]
+            profile = build_user_profile(
+                resources,
+                user_id=current_user_id,
+                seed_topics=seed_topics,
+                config=config,
+            )
     else:
         seed_topics = st.session_state.get("seed_topics", ["Large Language Models"])
         profile = build_user_profile(

@@ -50,6 +50,7 @@ def load_best_recommend_config() -> RecommendConfig:
     # Check for frozen best.yaml
     best_yaml_path = ROOT_DIR / "configs" / "best.yaml"
     scoring_weights = base_rcfg.weights
+    lambda_div = 0.5
     if best_yaml_path.exists():
         best_data = yaml.safe_load(best_yaml_path.read_text(encoding="utf-8"))
         sw = best_data.get("scoring_weights", {})
@@ -63,6 +64,9 @@ def load_best_recommend_config() -> RecommendConfig:
             w_pop=float(sw.get("w_pop", 0.0)),
             w_ce=float(sw.get("w_ce", 0.0)),
         )
+        parts_div = best_data.get("parts", {}).get("diversification", {}).get("choice", {})
+        if "lambda_div" in parts_div:
+            lambda_div = float(parts_div["lambda_div"])
 
     # Check for frozen Phase 9 simulation parameters
     track2_config_path = ROOT_DIR / "data" / "artifacts" / "track2_config.json"
@@ -83,6 +87,7 @@ def load_best_recommend_config() -> RecommendConfig:
 
     return base_rcfg.with_overrides(
         weights=scoring_weights,
+        lambda_div=lambda_div,
         alpha_sess=alpha_sess,
         rho=rho,
         gamma_pivot=gamma_pivot,
@@ -100,8 +105,9 @@ def get_featured_authors() -> List[Dict[str, Any]]:
     if not candidates_file.exists():
         return []
     
-    # Priority list of rich authors in our database
-    priority_ids = {"A5060364305", "A5073147712", "A5072548276", "A5081550394", "A5036875405", "A5020661868"}
+    # Priority list of rich authors in our database (ordered; Daya Guo first)
+    priority_order = ["A5060364305", "A5072548276", "A5081550394", "A5036875405", "A5020661868", "A5073147712"]
+    priority_ids = set(priority_order)
     featured = []
     others = []
     
@@ -123,7 +129,8 @@ def get_featured_authors() -> List[Dict[str, Any]]:
             elif len(item["authored_ids"]) >= 5:
                 others.append(item)
                 
-    # Sort priority authors first
+    # Sort priority authors according to explicit priority_order
+    featured.sort(key=lambda x: priority_order.index(x["author_id"]) if x["author_id"] in priority_order else 999)
     return featured + others[:10]
 
 
@@ -169,7 +176,8 @@ def init_session_state() -> None:
 
     if "authored_ids" not in st.session_state:
         featured = get_featured_authors()
-        default_ids = featured[0]["authored_ids"] if featured else []
+        matching = [a for a in featured if a.get("author_id") == st.session_state.get("user_id")]
+        default_ids = matching[0]["authored_ids"] if matching else (featured[0]["authored_ids"] if featured else [])
         st.session_state["authored_ids"] = default_ids
 
     if "seed_topics" not in st.session_state:

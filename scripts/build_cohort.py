@@ -15,6 +15,7 @@ import sys
 from paperfeed.common.config import find_project_root, load_config
 from paperfeed.common.logger import get_logger
 from paperfeed.data.cohort import (
+    clean_id,
     load_candidate_authors,
     load_topic_names,
     work_cited_before_publication,
@@ -24,7 +25,7 @@ from paperfeed.data.cohort import (
 )
 from paperfeed.data.db import DatabaseManager
 from paperfeed.data.ground_truth import compute_ground_truth, save_ground_truth, to_uri
-from paperfeed.data.leakage import check_all, find_targets_cited_before_publication
+from paperfeed.data.leakage import check_all, find_targets_cited_before_publication, titles_match
 from paperfeed.data.report import build_data_report, write_report
 from paperfeed.openalex.client import OpenAlexClient
 
@@ -82,6 +83,35 @@ def main() -> int:
         predating |= validate_targets_with_api(all_candidates, cutoff, cache_path)
     pool = [c for c in all_candidates if c.target_paper_b_id not in predating]
     logger.info(f"Dropped {len(all_candidates) - len(pool)} authors whose target paper predates T+1; {len(pool)} remain.")
+
+    # Drop authors whose target paper B leaked into their history <= T as a preprint
+    clean_pool = []
+    dropped_preprint = 0
+    with db.get_connection() as conn:
+        for c in pool:
+            b_title = getattr(c, "target_paper_b_title", "")
+            authored = [clean_id(a) for a in c.authored_paper_ids_T]
+            leaked = False
+            if b_title and authored:
+                chunk = [to_uri(a) for a in authored]
+                for i in range(0, len(chunk), 500):
+                    sub = chunk[i : i + 500]
+                    marks = ",".join("?" for _ in sub)
+                    for row in conn.execute(
+                        f"SELECT paper_id, title FROM papers WHERE paper_id IN ({marks})", sub
+                    ):
+                        if row[1] and titles_match(row[1], b_title):
+                            leaked = True
+                            break
+                    if leaked:
+                        break
+            if leaked:
+                dropped_preprint += 1
+            else:
+                clean_pool.append(c)
+
+    pool = clean_pool
+    logger.info(f"Dropped {dropped_preprint} authors whose target paper B leaked as a preprint; {len(pool)} remain.")
     logger.info(f"Computing ground truth for {len(pool)} candidate authors...")
     pool_truths = [compute_ground_truth(db, c, cutoff) for c in pool]
     truth_by_author = {t.author_id: t for t in pool_truths}
@@ -127,7 +157,8 @@ def main() -> int:
     forbidden = {c.target_paper_b_id for c in all_candidates}  # every candidate's B must be absent from the corpus
     leakage = check_all(db, cohort, cohort_truths, cutoff, forbidden, cited_forbidden_ids={c.target_paper_b_id for c in pool})
     report = build_data_report(db, cutoff, pool_truths, cohort, cohort_truths, split, leakage, min_disc)
-    report["candidate_pool"]["authors_dropped_target_predates_T"] = len(all_candidates) - len(pool)
+    report["candidate_pool"]["authors_dropped_target_predates_T"] = len(all_candidates) - (len(pool) + dropped_preprint)
+    report["candidate_pool"]["authors_dropped_preprint_leakage"] = dropped_preprint
     write_report(report, out_dir)
 
     logger.info(f"Wrote cohort, ground truth, split and data report to {out_dir}")
