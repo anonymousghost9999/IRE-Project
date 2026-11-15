@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from demo.components.charts import create_facet_bar_chart, create_timeline_chart
+from demo.components.facet_pills import is_informative_facet
 from demo.recommend_bridge import get_or_build_profile
 from demo.theme import clean_html, get_theme
 from paperfeed.rec.recommender import RecommenderResources
@@ -66,6 +67,8 @@ Annual recency decay &gamma;<sub>rec</sub> = 0.90
 
         # User Facets
         st.markdown("##### 🏷️ Top Canonical Facet Interests")
+        filter_generic = st.checkbox("Clean generic linguistic phrases (e.g. 'this approach', 'each manner')", value=True)
+
         user_facets = profile.user_facets
         facets_list = []
         if user_facets:
@@ -77,7 +80,8 @@ Annual recency decay &gamma;<sub>rec</sub> = 0.90
                     if c_id in canon_map:
                         ftype = canon_map[c_id].get("facet_type", "topic")
                         name = canon_map[c_id].get("canonical_name", c_id)
-                facets_list.append({"facet": name, "type": ftype, "count": count})
+                if not filter_generic or is_informative_facet(name):
+                    facets_list.append({"facet": name, "type": ftype, "count": count})
 
         facets_list.sort(key=lambda x: x["count"], reverse=True)
 

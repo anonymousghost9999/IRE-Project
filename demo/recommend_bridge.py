@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Sequence, Set
 import numpy as np
 import streamlit as st
 
+from demo.components.facet_pills import is_informative_facet
 from paperfeed.common.logger import get_logger
 from paperfeed.data.cohort import clean_id
 from paperfeed.data.ground_truth import to_uri
@@ -132,7 +133,7 @@ def _enrich_paper_metadata(resources: RecommenderResources, paper_ids: Sequence[
         for f in raw_facets:
             val = f.get("facet_value", "").strip()
             ftype = f.get("facet_type", "").lower()
-            if val and (ftype, val.lower()) not in seen:
+            if val and is_informative_facet(val) and (ftype, val.lower()) not in seen:
                 seen.add((ftype, val.lower()))
                 formatted_facets.append({
                     "type": ftype,

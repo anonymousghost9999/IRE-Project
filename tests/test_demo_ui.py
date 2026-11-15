@@ -92,3 +92,25 @@ def test_theme_and_clean_html():
     cleaned = clean_html(indented_html)
     assert cleaned.startswith('<div style="margin: 0;">')
     assert not cleaned.startswith(" ")
+
+
+def test_is_informative_facet():
+    from demo.components.facet_pills import is_informative_facet
+
+    # Uninformative / generic facets that should be filtered out
+    assert not is_informative_facet("This approach")
+    assert not is_informative_facet("Each manner")
+    assert not is_informative_facet("our method")
+    assert not is_informative_facet("The proposed system")
+    assert not is_informative_facet("execution")
+    assert not is_informative_facet("baseline experiments")
+    assert not is_informative_facet("47")
+
+    # Informative scientific facets that should be preserved
+    assert is_informative_facet("architectural design")
+    assert is_informative_facet("MBSE")
+    assert is_informative_facet("declarative modeling paradigms")
+    assert is_informative_facet("BERT")
+    assert is_informative_facet("dual encoder")
+    assert is_informative_facet("6G")
+    assert is_informative_facet("graph neural networks")
