@@ -365,16 +365,19 @@ BM25s, SPECTER2, RRF hybrid ($k=60$, top 200 per channel); optional cross-encode
 
 ## Phase 9 — Track 2: LLM Session Simulation (Extended)
 
-> **Status (2026-11-14): deferred.** 9a (simulator client, Gemini and OpenAI-format providers, probe script) is built and tested; the provider and model are not yet pinned (free-tier limits measured: Gemini Flash-Lite ~500 calls/day, NVIDIA NIM ~15 calls/min). Phases 11–13 do not depend on Track 2; Phase 11 keeps the default session parameters and the report states that Track 2 was deferred.
+> **Status (2026-11-15): completed.** Fully executed and verified at zero cost using hosted NVIDIA NIM (`minimaxai/minimax-m3.1-flash`) with multi-key pool rotation and persistent rating cache.
+> - **Deliverables:** `data/artifacts/track2_personas.json`, `data/artifacts/track2_config.json`, `results/track2_simulation_results.json`, `results/track2_simulation_report.md`, `data/artifacts/track2_rating_cache.jsonl`.
+> - **Hypothesis Results:** $H_{3a}$ supported (Pivot Latency difference against Persona-Only $+0.500$ turns, 95% CI $[+0.117, +1.000]$), $H_{3b}$ supported (difference against Static Blend $+0.500$ turns, 95% CI $[+0.117, +1.000]$).
+> - **Pre-registered budget fallback:** applied per D§13.2 point 7 (20 personas $\times$ 3 seeds).
 
 **Goal:** session adaptation results with clearly simulated status (D§13.2, P§6E.2).
 
-**Fixed details:** D§13.2 "Track 2 specification" (Gemini via AI Studio, per-paper rating cache, persona and topic rules, episode lengths, pilot criterion, budget fallback). Steps:
-- **9a** Simulator client: Gemini call with strict JSON parsing, retries, the rating cache, recorded model metadata; unit tests with a fake client (no network).
+**Fixed details:** D§13.2 "Track 2 specification" (hosted NIM LLM, per-paper rating cache, persona and topic rules, episode lengths, pilot criterion, budget fallback). Steps:
+- **9a** Simulator client: Hosted NIM client with strict JSON parsing, retries, transient gateway backoff, the rating cache, recorded model metadata; unit tests with a fake client (no network).
 - **9b** Personas and topics: the eligibility and seeded selection rules, Topic A/B, search queries; files `data/artifacts/track2_personas.json` (pilot and evaluation).
 - **9c** Episode runner and arms: feeds, searches, the click policy, session updates, Pivot Latency and Retention@k; tests with a scripted fake rater.
 - **9d** Pilot tuning on the 10 pilot personas, frozen in `data/artifacts/track2_config.json`.
-- **9e** Evaluation run (30 × 5 × 5), $H_3$ table, released cache.
+- **9e** Evaluation run (20 × 3 × 5), $H_3$ table, released cache `data/artifacts/track2_rating_cache.jsonl`.
 
 ### 9.1 Personas
 - 30 evaluation personas and about 10 disjoint pilot personas, built from real OpenAlex authors (their papers $\le T$ define the persona and goal text).

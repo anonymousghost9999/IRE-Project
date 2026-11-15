@@ -1,0 +1,93 @@
+{
+  "version": "track2-v1",
+  "timestamp": "2026-11-15T04:56:30Z",
+  "model": "minimaxai/minimax-m3.1-flash",
+  "provider": "nvidia",
+  "n_pilot_personas": 10,
+  "pilot_seeds": [
+    42,
+    43
+  ],
+  "criterion": "J = Retention@3 - (k_pivot / 10)",
+  "optimal_params": {
+    "alpha_sess": 0.3,
+    "rho": 0.3,
+    "w_sess": 1.0,
+    "lambda_neg": 0.5,
+    "gamma_pivot": 0.35
+  },
+  "final_metrics": {
+    "hybrid": {
+      "j": -0.2899999999999999,
+      "mean_retention_at_3": 0.53,
+      "mean_k_pivot": 8.2
+    },
+    "hybrid_gated": {
+      "j": -0.2899999999999999,
+      "mean_retention_at_3": 0.53,
+      "mean_k_pivot": 8.2
+    }
+  },
+  "history": [
+    {
+      "pass": 1,
+      "param": "alpha_sess",
+      "chosen": 0.3,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 1,
+      "param": "rho",
+      "chosen": 0.3,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 1,
+      "param": "w_sess",
+      "chosen": 1.0,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 1,
+      "param": "lambda_neg",
+      "chosen": 0.5,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 1,
+      "param": "gamma_pivot",
+      "chosen": 0.35,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 2,
+      "param": "alpha_sess",
+      "chosen": 0.3,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 2,
+      "param": "rho",
+      "chosen": 0.3,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 2,
+      "param": "w_sess",
+      "chosen": 1.0,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 2,
+      "param": "lambda_neg",
+      "chosen": 0.5,
+      "j": -0.2899999999999999
+    },
+    {
+      "pass": 2,
+      "param": "gamma_pivot",
+      "chosen": 0.35,
+      "j": -0.2899999999999999
+    }
+  ]
+}

@@ -93,7 +93,33 @@ def parse_ratings(text: str, expected_ids: Sequence[str]) -> Dict[str, int]:
         out[pid] = rating
     if set(out) != set(expected_ids):
         missing, extra = set(expected_ids) - set(out), set(out) - set(expected_ids)
-        raise RatingParseError(f"ids differ from the shown papers (missing {sorted(missing)[:3]}, extra {sorted(extra)[:3]})")
+        # Attempt recovery if the model slightly corrupted paper IDs (e.g. token glitch W277 -> Winners)
+        if len(missing) == len(extra) and len(out) == len(expected_ids):
+            unmatched_extra = list(extra)
+            unmatched_missing = list(missing)
+            mapping: Dict[str, str] = {}
+            for m in list(unmatched_missing):
+                digits_m = re.sub(r"\D", "", m)
+                for e in list(unmatched_extra):
+                    digits_e = re.sub(r"\D", "", e)
+                    if digits_e and digits_m and (digits_e.endswith(digits_m) or digits_m.endswith(digits_e)):
+                        mapping[e] = m
+                        unmatched_missing.remove(m)
+                        unmatched_extra.remove(e)
+                        break
+            if len(unmatched_missing) == 1 and len(unmatched_extra) == 1:
+                mapping[unmatched_extra[0]] = unmatched_missing[0]
+                unmatched_missing.clear()
+                unmatched_extra.clear()
+
+            if not unmatched_missing and not unmatched_extra:
+                for e, m in mapping.items():
+                    out[m] = out.pop(e)
+                logger.warning("Recovered corrupted paper IDs from LLM: %s", mapping)
+
+        if set(out) != set(expected_ids):
+            missing, extra = set(expected_ids) - set(out), set(out) - set(expected_ids)
+            raise RatingParseError(f"ids differ from the shown papers (missing {sorted(missing)[:3]}, extra {sorted(extra)[:3]})")
     return out
 
 
@@ -238,9 +264,10 @@ class KeyPoolRateLimiter:
                 for k in active:
                     self._history[k] = [t for t in self._history[k] if now - t < 60.0]
 
-                # Check for keys ready right now
+                # Check for keys ready right now (least in-flight, broken by least recently used)
                 best_key: Optional[str] = None
                 best_in_flight = float("inf")
+                best_last_used = float("inf")
 
                 for k in active:
                     if self._cooldown_until[k] > now:
@@ -249,8 +276,10 @@ class KeyPoolRateLimiter:
                         continue
                     if self.min_interval > 0 and self._history[k] and (now - self._history[k][-1] < self.min_interval):
                         continue
-                    if self._in_flight[k] < best_in_flight:
+                    last_used = self._history[k][-1] if self._history[k] else 0.0
+                    if self._in_flight[k] < best_in_flight or (self._in_flight[k] == best_in_flight and last_used < best_last_used):
                         best_in_flight = self._in_flight[k]
+                        best_last_used = last_used
                         best_key = k
 
                 if best_key is not None:
@@ -399,11 +428,12 @@ class OpenAICompatibleClient:
             "messages": [{"role": "system", "content": SYSTEM_INSTRUCTION}, {"role": "user", "content": prompt}],
             "temperature": temperature,
             "seed": seed,
+            "max_tokens": 1500,
         }
         if self.json_mode:
             body["response_format"] = {"type": "json_object"}
 
-        max_attempts = max(3, len(self.pool))
+        max_attempts = max(8, len(self.pool) * 2)
         last_exc: Optional[Exception] = None
 
         for attempt in range(max_attempts):
@@ -425,6 +455,14 @@ class OpenAICompatibleClient:
                         continue
                     raise last_exc
 
+                if resp.status_code in (500, 502, 504):
+                    self.pool.release_key(key, rate_limited_wait=3.0)
+                    last_exc = httpx.HTTPStatusError(f"{resp.status_code} Server Error", request=resp.request, response=resp)
+                    if attempt < max_attempts - 1:
+                        logger.warning("Provider returned %d; retrying with next key in pool.", resp.status_code)
+                        continue
+                    resp.raise_for_status()
+
                 if resp.status_code in (401, 403):
                     self.pool.release_key(key, disabled=True)
                     if self.pool.has_ready_key() and attempt < max_attempts - 1:
@@ -444,10 +482,8 @@ class OpenAICompatibleClient:
                 self.pool.release_key(key)
 
                 data = resp.json()
-                try:
-                    text = data["choices"][0]["message"]["content"] or ""
-                except (KeyError, IndexError, TypeError) as exc:
-                    raise RatingParseError(f"no text in the reply: {str(data)[:200]}") from exc
+                msg = data["choices"][0]["message"]
+                text = msg.get("content") or msg.get("reasoning_content") or ""
 
                 return _strip_code_fence(text), {
                     "model_version": data.get("model", self.model),
@@ -499,12 +535,16 @@ class NvidiaClient(OpenAICompatibleClient):
 
 
 def _strip_code_fence(text: str) -> str:
-    """Some models wrap JSON in a ```json fence even in JSON mode; the content inside is what gets parsed."""
+    """Extract JSON object from raw reply, stripping markdown fences or reasoning preambles."""
     t = text.strip()
-    if t.startswith("```"):
-        t = t.split("\n", 1)[1] if "\n" in t else ""
-        t = t.rsplit("```", 1)[0]
-    return t.strip()
+    if "```" in t:
+        m = re.search(r"```(?:json)?\s*([\s\S]*?)\s*```", t)
+        if m:
+            return m.group(1).strip()
+    m = re.search(r"(\{[\s\S]*\})", t)
+    if m:
+        return m.group(1).strip()
+    return t
 
 
 def make_client(
@@ -626,7 +666,8 @@ class Rater:
             try:
                 with self._call_lock:
                     self.calls += 1
-                text, meta = self.client.generate(prompt, self.temperature, seed)
+                call_seed = seed + malformed if malformed > 0 else seed
+                text, meta = self.client.generate(prompt, self.temperature, call_seed)
                 return parse_ratings(text, ids), meta, prompt_hash(prompt)
             except RateLimited as exc:
                 waits += 1
@@ -639,4 +680,4 @@ class Rater:
                 if malformed > self.max_retries:
                     raise RatingFailed(f"malformed reply after {self.max_retries} retries: {exc}") from exc
                 logger.warning("Malformed reply (%s); retry %d of %d.", exc, malformed, self.max_retries)
-                self.sleep(2.0 ** malformed)
+                self.sleep(2.0 ** min(malformed, 4))

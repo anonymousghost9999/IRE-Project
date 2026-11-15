@@ -19,7 +19,10 @@ import time
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
+from paperfeed.common.config import load_dotenv_file
 from paperfeed.sim.llm import OPENAI_COMPATIBLE, PaperForRating, Rater, RatingCache, make_client
+
+load_dotenv_file()
 
 PAPERS = [
     PaperForRating("W1", "Dense passage retrieval for open-domain question answering",
