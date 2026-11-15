@@ -4,21 +4,22 @@ import streamlit as st
 
 from demo.components.facet_pills import render_pills_container
 from demo.recommend_bridge import apply_user_action, search_papers
+from demo.theme import clean_html, get_theme
 from paperfeed.rec.recommender import RecommenderResources
 
 
 def render_search_page(resources: RecommenderResources) -> None:
-    st.markdown(
-        """
-        <div style="margin-bottom: 16px;">
-            <h2 style="margin: 0; font-size: 1.6rem; font-weight: 700; color: #F8FAFC;">🔍 Search Papers</h2>
-            <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">
-                Direct hybrid dense (SPECTER2 <code>adhoc_query</code>) + BM25s lexical search across the &le; 2024 corpus.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    t = get_theme()
+
+    header_html = clean_html(f"""
+<div style="margin-bottom: 16px;">
+<h2 style="margin: 0; font-size: 1.6rem; font-weight: 700; color: {t['text_primary']};">🔍 Search Papers</h2>
+<div style="font-size: 0.85rem; color: {t['text_secondary']}; margin-top: 4px;">
+Direct hybrid dense (SPECTER2 <code>adhoc_query</code>) + BM25s lexical search across the &le; 2024 corpus.
+</div>
+</div>
+""")
+    st.markdown(header_html, unsafe_allow_html=True)
 
     # Search Bar
     default_q = st.session_state.get("search_query", "graph neural networks for molecular property prediction")
@@ -36,7 +37,10 @@ def render_search_page(resources: RecommenderResources) -> None:
         "code large language models",
         "graph neural networks link prediction",
     ]
-    st.markdown("<div style='font-size: 0.75rem; color: #64748B; margin-top: -6px; margin-bottom: 12px;'>Quick queries:</div>", unsafe_allow_html=True)
+    st.markdown(
+        f"<div style='font-size: 0.75rem; color: {t['text_muted']}; margin-top: -6px; margin-bottom: 12px;'>Quick queries:</div>",
+        unsafe_allow_html=True,
+    )
     cols_sug = st.columns(len(suggestions))
     for idx, sug in enumerate(suggestions):
         with cols_sug[idx]:
@@ -50,7 +54,10 @@ def render_search_page(resources: RecommenderResources) -> None:
         with st.spinner(f"Searching corpus for '{query_text.strip()}'..."):
             results = search_papers(resources, query_text.strip(), limit=15)
 
-        st.markdown(f"<div style='font-size: 0.85rem; color: #94A3B8; margin-bottom: 14px;'>Found <strong>{len(results)}</strong> top hybrid matches:</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='font-size: 0.85rem; color: {t['text_secondary']}; margin-bottom: 14px;'>Found <strong>{len(results)}</strong> top hybrid matches:</div>",
+            unsafe_allow_html=True,
+        )
 
         for item in results:
             pid = item["paper_id"]
@@ -67,26 +74,24 @@ def render_search_page(resources: RecommenderResources) -> None:
 
             pills_html = render_pills_container(facets)
 
-            st.markdown(
-                f"""
-                <div style="background-color: #1C1F2A; border: 1px solid #2E3348; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
-                        <a href="{url}" target="_blank" style="font-size: 1.0rem; font-weight: 600; color: #60A5FA; text-decoration: none;">
-                            {rank}. {title} ↗
-                        </a>
-                        <div style="display: flex; gap: 4px; font-size: 0.7rem; font-family: monospace;">
-                            <span style="background: rgba(59, 130, 246, 0.15); color: #60A5FA; padding: 2px 6px; border-radius: 4px;">Dense #{dense_r or '-'}</span>
-                            <span style="background: rgba(16, 185, 129, 0.15); color: #34D399; padding: 2px 6px; border-radius: 4px;">BM25 #{lex_r or '-'}</span>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.78rem; color: #94A3B8; margin-bottom: 6px;">
-                        {authors} &bull; <span style="color: #CBD5E1;">{venue}</span> ({year}) &bull; {citations:,} citations
-                    </div>
-                    {pills_html}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            item_html = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border: 1px solid {t['card_border']}; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+<a href="{url}" target="_blank" style="font-size: 1.0rem; font-weight: 600; color: {t['link']}; text-decoration: none;">
+{rank}. {title} ↗
+</a>
+<div style="display: flex; gap: 4px; font-size: 0.7rem; font-family: monospace;">
+<span style="background: rgba(59, 130, 246, 0.15); color: {t['link']}; padding: 2px 6px; border-radius: 4px;">Dense #{dense_r or '-'}</span>
+<span style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 2px 6px; border-radius: 4px;">BM25 #{lex_r or '-'}</span>
+</div>
+</div>
+<div style="font-size: 0.78rem; color: {t['text_secondary']}; margin-bottom: 6px;">
+{authors} &bull; <span style="color: {t['text_sub']};">{venue}</span> ({year}) &bull; {citations:,} citations
+</div>
+{pills_html}
+</div>
+""")
+            st.markdown(item_html, unsafe_allow_html=True)
 
             # Action button to add into session
             col_act1, col_act2, col_sp = st.columns([1.8, 1.2, 5.0])

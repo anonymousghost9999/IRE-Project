@@ -74,3 +74,21 @@ def test_generate_bibtex():
     assert "@article{W12345," in bib
     assert "Dense Passage Retrieval" in bib
     assert "Karpukhin et al." in bib
+
+
+def test_theme_and_clean_html():
+    from demo.theme import clean_html, get_theme
+
+    theme = get_theme()
+    assert "bg" in theme
+    assert "card_bg" in theme
+    assert "accent" in theme
+
+    indented_html = """
+        <div style="margin: 0;">
+            <span>Test Text</span>
+        </div>
+    """
+    cleaned = clean_html(indented_html)
+    assert cleaned.startswith('<div style="margin: 0;">')
+    assert not cleaned.startswith(" ")

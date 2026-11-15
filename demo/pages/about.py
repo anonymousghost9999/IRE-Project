@@ -5,37 +5,37 @@ from typing import Any, Dict
 import pandas as pd
 import streamlit as st
 
+from demo.theme import clean_html, get_theme
+
 
 def render_about_page() -> None:
-    st.markdown(
-        """
-        <div style="margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 1.6rem; font-weight: 700; color: #F8FAFC;">ℹ️ About & User Pilot Study</h2>
-            <div style="font-size: 0.85rem; color: #94A3B8; margin-top: 4px;">
-                PaperFeed Research Demo &bull; Model Card &bull; User Pilot Protocol (Design Doc §14 / Plan §12.2)
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    t = get_theme()
+
+    header_html = clean_html(f"""
+<div style="margin-bottom: 20px;">
+<h2 style="margin: 0; font-size: 1.6rem; font-weight: 700; color: {t['text_primary']};">ℹ️ About & User Pilot Study</h2>
+<div style="font-size: 0.85rem; color: {t['text_secondary']}; margin-top: 4px;">
+PaperFeed Research Demo &bull; Model Card &bull; User Pilot Protocol (Design Doc §14 / Plan §12.2)
+</div>
+</div>
+""")
+    st.markdown(header_html, unsafe_allow_html=True)
 
     tab_pilot, tab_model, tab_eval = st.tabs(["📋 Pilot Study Protocol (§12.2)", "🔬 System Architecture & Model Card", "📊 Experimental Results"])
 
     with tab_pilot:
-        st.markdown(
-            """
-            <div style="background-color: #1C1F2A; border: 1px solid #2E3348; border-radius: 8px; padding: 18px; margin-bottom: 16px;">
-                <h4 style="margin-top: 0; color: #60A5FA;">Participant Consent & Privacy</h4>
-                <p style="font-size: 0.85rem; color: #CBD5E1; line-height: 1.45;">
-                    Thank you for participating in the PaperFeed user evaluation study. 
-                    This interface collects <strong>only your session interaction feedback and paper ratings</strong>. 
-                    All data is held in-memory in your local session and can be exported as a JSON file below. 
-                    No private identity data is stored or transmitted.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        consent_html = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border: 1px solid {t['card_border']}; border-radius: 8px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<h4 style="margin-top: 0; color: {t['link']};">Participant Consent & Privacy</h4>
+<p style="font-size: 0.85rem; color: {t['text_sub']}; line-height: 1.45;">
+Thank you for participating in the PaperFeed user evaluation study. 
+This interface collects <strong>only your session interaction feedback and paper ratings</strong>. 
+All data is held in-memory in your local session and can be exported as a JSON file below. 
+No private identity data is stored or transmitted.
+</p>
+</div>
+""")
+        st.markdown(consent_html, unsafe_allow_html=True)
 
         st.markdown("##### 📝 Scripted Task Instructions")
         st.markdown(

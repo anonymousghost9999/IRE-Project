@@ -5,6 +5,7 @@ import streamlit as st
 
 from demo.components.explanation import render_explanation_block
 from demo.components.facet_pills import render_pills_container
+from demo.theme import clean_html, get_theme
 
 
 def render_paper_card(
@@ -15,6 +16,7 @@ def render_paper_card(
     card_key_prefix: str = "card",
 ) -> None:
     """Render a clean, research-grade card for a paper."""
+    t = get_theme()
     pid = item.get("paper_id", "")
     rank = item.get("rank", 1)
     title = item.get("title", "Untitled Paper")
@@ -29,19 +31,26 @@ def render_paper_card(
 
     is_skipped = pid in st.session_state.get("skipped_ids", set())
     is_saved = any(p.get("paper_id") == pid for p in st.session_state.get("library", []))
-    is_clicked = pid in st.session_state.get("session", {}).positives if hasattr(st.session_state.get("session"), "positives") else False
+    session_obj = st.session_state.get("session")
+    is_clicked = pid in session_obj.positives if (session_obj and hasattr(session_obj, "positives")) else False
 
     opacity = "0.55" if is_skipped else "1.0"
-    border_color = "#3B82F6" if is_saved else ("#F87171" if is_skipped else "#2E3348")
+    border_color = t["accent"] if is_saved else ("#F87171" if is_skipped else t["card_border"])
 
-    # Card header HTML
+    # Card header status badges
     status_badges = []
     if is_saved:
-        status_badges.append('<span style="background-color: rgba(251, 191, 36, 0.2); color: #FBBF24; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">⭐ Saved</span>')
+        status_badges.append(
+            '<span style="background-color: rgba(251, 191, 36, 0.2); color: #FBBF24; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">⭐ Saved</span>'
+        )
     if is_skipped:
-        status_badges.append('<span style="background-color: rgba(248, 113, 113, 0.2); color: #F87171; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">✕ Skipped</span>')
+        status_badges.append(
+            '<span style="background-color: rgba(248, 113, 113, 0.2); color: #F87171; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">✕ Skipped</span>'
+        )
     if is_clicked and not is_saved:
-        status_badges.append('<span style="background-color: rgba(59, 130, 246, 0.2); color: #60A5FA; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">✓ Clicked</span>')
+        status_badges.append(
+            f'<span style="background-color: rgba(59, 130, 246, 0.2); color: {t["link"]}; padding: 2px 7px; border-radius: 4px; font-size: 0.72rem; font-weight: 600;">✓ Clicked</span>'
+        )
 
     status_html = " ".join(status_badges)
     pills_html = render_pills_container(facets)
@@ -53,49 +62,40 @@ def render_paper_card(
     failure_reason = item.get("explanation_failure")
     expl_html = render_explanation_block(expl_text, dominant_feat, expl_evidence, failure_reason)
 
-    # Clean display title with link
-    card_html = f"""
-    <div style="
-        background-color: #1C1F2A;
-        border: 1px solid {border_color};
-        border-radius: 8px;
-        padding: 16px 18px;
-        margin-bottom: 14px;
-        opacity: {opacity};
-        transition: border 0.2s ease;
-    ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="background-color: #262B3A; color: #4A9EFF; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; font-family: monospace;">#{rank}</span>
-                <span style="font-size: 0.75rem; color: #94A3B8;">Relevance Score: <strong style="color: #F1F5F9;">{score}</strong></span>
-            </div>
-            <div>{status_html}</div>
-        </div>
-
-        <div style="margin-bottom: 6px;">
-            <a href="{url}" target="_blank" style="font-size: 1.05rem; font-weight: 600; color: #60A5FA; text-decoration: none; line-height: 1.35;">
-                {title} ↗
-            </a>
-        </div>
-
-        <div style="font-size: 0.8rem; color: #94A3B8; margin-bottom: 8px; line-height: 1.3;">
-            <span>{authors}</span> &bull; 
-            <span style="color: #CBD5E1;">{venue}</span> ({year}) &bull; 
-            <span>{citations:,} citations (≤ 2024)</span>
-        </div>
-
-        {pills_html}
-
-        {expl_html}
-    </div>
-    """
+    # Unindented card HTML to ensure Markdown treats it strictly as rendered markup, never as code
+    card_html = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border: 1px solid {border_color}; border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; opacity: {opacity}; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+<div style="display: flex; align-items: center; gap: 8px;">
+<span style="background-color: {t['badge_bg']}; color: {t['accent']}; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; font-family: monospace;">#{rank}</span>
+<span style="font-size: 0.75rem; color: {t['text_secondary']};">Relevance Score: <strong style="color: {t['text_primary']};">{score}</strong></span>
+</div>
+<div>{status_html}</div>
+</div>
+<div style="margin-bottom: 6px;">
+<a href="{url}" target="_blank" style="font-size: 1.05rem; font-weight: 600; color: {t['link']}; text-decoration: none; line-height: 1.35;">
+{title} ↗
+</a>
+</div>
+<div style="font-size: 0.8rem; color: {t['text_secondary']}; margin-bottom: 8px; line-height: 1.3;">
+<span>{authors}</span> &bull; 
+<span style="color: {t['text_sub']};">{venue}</span> ({year}) &bull; 
+<span>{citations:,} citations (&le; 2024)</span>
+</div>
+{pills_html}
+{expl_html}
+</div>
+""")
 
     st.markdown(card_html, unsafe_allow_html=True)
 
     # Collapsible abstract snippet
     if abstract:
         with st.expander("📄 View Abstract", expanded=False):
-            st.markdown(f'<div style="font-size: 0.85rem; color: #CBD5E1; line-height: 1.5;">{abstract}</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="font-size: 0.85rem; color: {t["text_sub"]}; line-height: 1.5;">{abstract}</div>',
+                unsafe_allow_html=True,
+            )
 
     # Actions row
     if show_actions and not is_skipped:

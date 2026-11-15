@@ -3,8 +3,7 @@
 from typing import Any, Callable, Dict, List, Optional
 import streamlit as st
 
-from demo.components.charts import create_score_breakdown_chart
-from demo.components.facet_pills import render_pills_container
+from demo.theme import clean_html, get_theme
 from paperfeed.user.session import SessionState
 
 
@@ -14,20 +13,20 @@ def render_session_snapshot(
     on_reset: Optional[Callable[[], None]] = None,
 ) -> None:
     """Render real-time session feedback and telemetry panel."""
-    st.markdown(
-        """
-        <div style="background-color: #1C1F2A; border: 1px solid #2E3348; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 0.95rem; font-weight: 600; color: #F1F5F9;">⚡ Session Monitor</span>
-                <span style="font-size: 0.72rem; color: #34D399; background: rgba(52, 211, 153, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(52, 211, 153, 0.3);">Live State</span>
-            </div>
-            <div style="font-size: 0.78rem; color: #94A3B8; line-height: 1.35;">
-                Tracks in-session clicks & saves to adapt the retrieval query vector <code style="color: #60A5FA;">q_t</code> in real time.
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    t = get_theme()
+
+    header_html = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border: 1px solid {t['card_border']}; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<span style="font-size: 0.95rem; font-weight: 600; color: {t['text_primary']};">⚡ Session Monitor</span>
+<span style="font-size: 0.72rem; color: #10B981; background: rgba(16, 185, 129, 0.15); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(16, 185, 129, 0.3);">Live State</span>
+</div>
+<div style="font-size: 0.78rem; color: {t['text_secondary']}; line-height: 1.35;">
+Tracks in-session clicks & saves to adapt the retrieval query vector <code style="color: {t['link']}; background: {t['sub_box']}; padding: 1px 4px; border-radius: 3px;">q_t</code> in real time.
+</div>
+</div>
+""")
+    st.markdown(header_html, unsafe_allow_html=True)
 
     # Metric chips in 2x2 grid
     n_positives = len(session.positives)
@@ -58,46 +57,45 @@ def render_session_snapshot(
             st.rerun()
 
     # Active Hyperparameters Card
-    st.markdown(
-        """
-        <div style="margin-top: 14px; background-color: #161822; border: 1px solid #262B3A; border-radius: 6px; padding: 10px 12px; font-size: 0.75rem; color: #94A3B8;">
-            <div style="font-weight: 600; color: #CBD5E1; margin-bottom: 6px;">Frozen System Parameters (Phase 9/11)</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span>Session EMA &alpha;<sub>sess</sub>:</span>
-                <strong style="color: #60A5FA;">0.30</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span>Persona Weight &rho;:</span>
-                <strong style="color: #60A5FA;">0.30</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
-                <span>Topic Pivot Gate:</span>
-                <strong style="color: #34D399;">Active (&gamma;=0.35)</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>Negative Penalty &lambda;<sub>neg</sub>:</span>
-                <strong style="color: #F87171;">0.50</strong>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    params_html = clean_html(f"""
+<div style="margin-top: 14px; background-color: {t['sub_box']}; border: 1px solid {t['sub_border']}; border-radius: 6px; padding: 10px 12px; font-size: 0.75rem; color: {t['text_secondary']};">
+<div style="font-weight: 600; color: {t['text_primary']}; margin-bottom: 6px;">Frozen System Parameters (Phase 9/11)</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+<span>Session EMA &alpha;<sub>sess</sub>:</span>
+<strong style="color: {t['link']};">0.30</strong>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+<span>Persona Weight &rho;:</span>
+<strong style="color: {t['link']};">0.30</strong>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
+<span>Topic Pivot Gate:</span>
+<strong style="color: #10B981;">Active (&gamma;=0.35)</strong>
+</div>
+<div style="display: flex; justify-content: space-between;">
+<span>Negative Penalty &lambda;<sub>neg</sub>:</span>
+<strong style="color: #F87171;">0.50</strong>
+</div>
+</div>
+""")
+    st.markdown(params_html, unsafe_allow_html=True)
 
     # Recent Positive Interactions
     if session.positives:
-        st.markdown("<div style='font-size: 0.82rem; font-weight: 600; color: #CBD5E1; margin-top: 16px; margin-bottom: 6px;'>Active Session Clicks (Recent)</div>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div style='font-size: 0.82rem; font-weight: 600; color: {t['text_primary']}; margin-top: 16px; margin-bottom: 6px;'>Active Session Clicks (Recent)</div>",
+            unsafe_allow_html=True,
+        )
         recent_pids = session.recent_positives(n=4)
         for pid in recent_pids:
-            st.markdown(
-                f"""
-                <div style="background-color: #1C1F2A; border-left: 3px solid #3B82F6; padding: 4px 8px; margin-bottom: 4px; border-radius: 0 4px 4px 0; font-size: 0.75rem; color: #CBD5E1;">
-                    <span style="font-family: monospace; color: #60A5FA;">{pid}</span>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            item_html = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border-left: 3px solid {t['accent']}; border: 1px solid {t['card_border']}; padding: 6px 10px; margin-bottom: 4px; border-radius: 0 4px 4px 0; font-size: 0.75rem; color: {t['text_sub']};">
+<span style="font-family: monospace; color: {t['link']};">{pid}</span>
+</div>
+""")
+            st.markdown(item_html, unsafe_allow_html=True)
     else:
         st.markdown(
-            "<div style='font-size: 0.78rem; color: #64748B; font-style: italic; margin-top: 14px;'>Click '✓ Relevant' on any paper card to begin steering your session.</div>",
+            f"<div style='font-size: 0.78rem; color: {t['text_muted']}; font-style: italic; margin-top: 14px;'>Click '✓ Relevant' on any paper card to begin steering your session.</div>",
             unsafe_allow_html=True,
         )

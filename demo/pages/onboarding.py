@@ -4,41 +4,40 @@ from typing import List
 import streamlit as st
 
 from demo.state import get_featured_authors, get_popular_seed_topics, reset_user_session
+from demo.theme import clean_html, get_theme
 from paperfeed.data.cohort import clean_id
 
 
 def render_onboarding_page() -> None:
-    st.markdown(
-        """
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <h1 style="font-size: 2.2rem; font-weight: 700; color: #F8FAFC; margin-bottom: 0.5rem;">
-                🗞 PaperFeed
-            </h1>
-            <p style="font-size: 1.05rem; color: #94A3B8; max-width: 620px; margin: 0 auto;">
-                A personalized research-paper discovery engine powered by hybrid dense-lexical retrieval, 
-                dynamic session adaptation, citation-graph signals, and faithful grounded explanations.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    t = get_theme()
+
+    banner_html = clean_html(f"""
+<div style="text-align: center; margin-bottom: 2rem;">
+<h1 style="font-size: 2.2rem; font-weight: 700; color: {t['text_primary']}; margin-bottom: 0.5rem;">
+🗞 PaperFeed
+</h1>
+<p style="font-size: 1.05rem; color: {t['text_secondary']}; max-width: 620px; margin: 0 auto;">
+A personalized research-paper discovery engine powered by hybrid dense-lexical retrieval, 
+dynamic session adaptation, citation-graph signals, and faithful grounded explanations.
+</p>
+</div>
+""")
+    st.markdown(banner_html, unsafe_allow_html=True)
 
     col_center = st.columns([1, 4, 1])[1]
 
     with col_center:
-        st.markdown(
-            """
-            <div style="background-color: #1C1F2A; border: 1px solid #2E3348; border-radius: 10px; padding: 24px; margin-bottom: 20px;">
-                <h3 style="margin-top: 0; color: #F1F5F9; font-size: 1.2rem; font-weight: 600;">
-                    Choose Your Researcher Profile
-                </h3>
-                <p style="font-size: 0.85rem; color: #94A3B8; margin-bottom: 16px;">
-                    Select an author identity from the OpenAlex corpus or enter custom seed topics for cold-start exploration.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        card_intro = clean_html(f"""
+<div style="background-color: {t['card_bg']}; border: 1px solid {t['card_border']}; border-radius: 10px; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+<h3 style="margin-top: 0; color: {t['text_primary']}; font-size: 1.2rem; font-weight: 600;">
+Choose Your Researcher Profile
+</h3>
+<p style="font-size: 0.85rem; color: {t['text_secondary']}; margin-bottom: 0;">
+Select an author identity from the OpenAlex corpus or enter custom seed topics for cold-start exploration.
+</p>
+</div>
+""")
+        st.markdown(card_intro, unsafe_allow_html=True)
 
         mode = st.radio(
             "Profile Construction Mode",
@@ -77,19 +76,17 @@ def render_onboarding_page() -> None:
                         }
 
             # Preview card
-            st.markdown(
-                f"""
-                <div style="background-color: #161822; border: 1px solid #262B3A; border-radius: 8px; padding: 14px; margin: 16px 0;">
-                    <div style="font-size: 0.8rem; color: #64748B; text-transform: uppercase; font-weight: 600;">Selected Profile</div>
-                    <div style="font-size: 1.1rem; font-weight: 600; color: #60A5FA; margin: 4px 0;">{chosen_author['name']}</div>
-                    <div style="font-size: 0.82rem; color: #94A3B8;">
-                        OpenAlex ID: <code style="color: #F1F5F9;">{chosen_author['author_id']}</code> &bull; 
-                        <strong>{chosen_author['n_papers']}</strong> authored papers indexed
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            preview_html = clean_html(f"""
+<div style="background-color: {t['sub_box']}; border: 1px solid {t['sub_border']}; border-radius: 8px; padding: 14px; margin: 16px 0;">
+<div style="font-size: 0.8rem; color: {t['text_muted']}; text-transform: uppercase; font-weight: 600;">Selected Profile</div>
+<div style="font-size: 1.1rem; font-weight: 600; color: {t['link']}; margin: 4px 0;">{chosen_author['name']}</div>
+<div style="font-size: 0.82rem; color: {t['text_secondary']};">
+OpenAlex ID: <code style="color: {t['text_primary']}; background: {t['code_bg']}; padding: 1px 4px; border-radius: 3px;">{chosen_author['author_id']}</code> &bull; 
+<strong>{chosen_author['n_papers']}</strong> authored papers indexed
+</div>
+</div>
+""")
+            st.markdown(preview_html, unsafe_allow_html=True)
 
             if st.button("🚀 Build My Feed", type="primary", use_container_width=True):
                 st.session_state["user_id"] = chosen_author["author_id"]
@@ -117,17 +114,15 @@ def render_onboarding_page() -> None:
             if custom_topic and custom_topic.strip() and custom_topic.strip() not in selected_seeds:
                 selected_seeds.append(custom_topic.strip())
 
-            st.markdown(
-                f"""
-                <div style="background-color: #161822; border: 1px solid #262B3A; border-radius: 8px; padding: 14px; margin: 16px 0;">
-                    <div style="font-size: 0.8rem; color: #64748B; text-transform: uppercase; font-weight: 600;">Seed Anchors ({len(selected_seeds)})</div>
-                    <div style="font-size: 0.85rem; color: #CBD5E1; margin-top: 6px;">
-                        {", ".join(selected_seeds) if selected_seeds else "None selected yet"}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            seeds_html = clean_html(f"""
+<div style="background-color: {t['sub_box']}; border: 1px solid {t['sub_border']}; border-radius: 8px; padding: 14px; margin: 16px 0;">
+<div style="font-size: 0.8rem; color: {t['text_muted']}; text-transform: uppercase; font-weight: 600;">Seed Anchors ({len(selected_seeds)})</div>
+<div style="font-size: 0.85rem; color: {t['text_sub']}; margin-top: 6px;">
+{", ".join(selected_seeds) if selected_seeds else "None selected yet"}
+</div>
+</div>
+""")
+            st.markdown(seeds_html, unsafe_allow_html=True)
 
             btn_disabled = len(selected_seeds) == 0
             if st.button("🚀 Build Zero-Pub Feed", type="primary", disabled=btn_disabled, use_container_width=True):
